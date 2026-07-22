@@ -696,16 +696,16 @@ const Hero = () => {
 
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         <div className="relative overflow-hidden shadow-2xl bg-black group">
-          {/* ─── Main Image ────────────────────────────── */}
+          {/* ─── Main Image with fade transition ────────── */}
           <div className="relative w-full h-[280px] xs:h-[320px] sm:h-[400px] md:h-[480px] lg:h-[560px] xl:h-[620px]">
             <img
-              key={currentSlide._id || currentIndex}   // ← forces re‑mount
+              key={currentSlide._id || currentIndex}
               src={currentSlide.image}
               alt={currentSlide.alt || currentSlide.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-opacity duration-300 ease-in-out"
+              style={{ opacity: isTransitioning ? 0.8 : 1 }}
               loading="eager"
               onError={(e) => {
-                // fallback to a placeholder if image fails
                 e.target.src = 'https://via.placeholder.com/1400x620?text=Image+Unavailable';
               }}
             />
@@ -718,7 +718,7 @@ const Hero = () => {
             {slides.map((_, index) => (
               <div key={index} className="h-[3px] flex-1 bg-white/25 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-white"
+                  className="h-full bg-white transition-all duration-200"
                   style={{
                     width:
                       index < currentIndex ? '100%' : index === currentIndex ? `${progress}%` : '0%',
@@ -757,7 +757,7 @@ const Hero = () => {
             </p>
 
             <Link
-              to={currentSlide.link || "/news"}   // fallback
+              to={currentSlide.link || "/news"}
               className="mt-2 xs:mt-2.5 sm:mt-3 md:mt-4 lg:mt-6
                          inline-flex items-center gap-2
                          px-3 xs:px-4 sm:px-5 md:px-6 lg:px-8
@@ -773,7 +773,7 @@ const Hero = () => {
             </Link>
           </div>
 
-          {/* ─── Mobile dots ──────────────────────────── */}
+          {/* ─── Mobile dots (kept for quick navigation) ── */}
           <div className="absolute bottom-3 xs:bottom-4 left-1/2 -translate-x-1/2 flex sm:hidden gap-1.5 xs:gap-2 z-20">
             {slides.map((_, index) => (
               <button
@@ -781,7 +781,7 @@ const Hero = () => {
                 onClick={() => goToSlide(index)}
                 aria-label={`Go to slide ${index + 1}`}
                 aria-current={index === currentIndex}
-                className={`h-1 xs:h-1.5 rounded-full ${
+                className={`h-1 xs:h-1.5 rounded-full transition-all ${
                   index === currentIndex ? "w-5 xs:w-6 bg-white" : "w-2 xs:w-3 bg-white/40"
                 }`}
               />
@@ -789,32 +789,32 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* ─── Desktop thumbnail rail ──────────────────── */}
-        <div className="hidden sm:flex gap-2 md:gap-3 mt-2 md:mt-3 overflow-x-auto">
+        {/* ─── Thumbnail rail (visible on all screen sizes) ── */}
+        <div className="flex gap-1.5 xs:gap-2 sm:gap-2.5 md:gap-3 mt-2 md:mt-3 overflow-x-auto pb-1">
           {slides.map((slide, index) => (
             <button
-              key={slide._id || index}   // unique key
+              key={slide._id || index}
               onClick={() => goToSlide(index)}
               aria-label={`Go to: ${slide.title}`}
               aria-current={index === currentIndex}
-              className={`flex-shrink-0 flex items-center gap-2 pr-3 border-b-2 py-2 text-left ${
+              className={`flex-shrink-0 flex items-center gap-1.5 xs:gap-2 pr-2 xs:pr-3 border-b-2 py-1.5 xs:py-2 text-left transition-all ${
                 index === currentIndex ? "border-red-500" : "border-transparent hover:border-gray-300"
               }`}
-              style={{ maxWidth: "220px" }}
+              style={{ maxWidth: "140px" }}
             >
               <span
-                className="flex-shrink-0 w-12 h-9 md:w-14 md:h-10 bg-cover bg-center"
+                className="flex-shrink-0 w-8 h-6 xs:w-10 xs:h-7 sm:w-12 sm:h-9 md:w-14 md:h-10 bg-cover bg-center rounded"
                 style={{ backgroundImage: `url(${slide.image})` }}
               />
               <span className="min-w-0">
                 <span
-                  className={`block text-[10px] uppercase tracking-wider font-semibold ${
+                  className={`block text-[8px] xs:text-[10px] uppercase tracking-wider font-semibold ${
                     index === currentIndex ? "text-red-500" : "text-gray-400"
                   }`}
                 >
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <span className="block text-xs md:text-sm font-medium text-gray-800 truncate">
+                <span className="hidden xs:block text-[10px] sm:text-xs md:text-sm font-medium text-gray-800 truncate">
                   {slide.title}
                 </span>
               </span>
