@@ -803,7 +803,7 @@ const Hero = () => {
               style={{ maxWidth: "140px" }}
             >
               <span
-                className="flex-shrink-0 w-8 h-6 xs:w-10 xs:h-7 sm:w-12 sm:h-9 md:w-14 md:h-10 bg-cover bg-center rounded"
+                className="flex-shrink-0 w-8 h-6 xs:w-10 xs:h-7 sm:w-12 sm:h-9 md:w-14 md:h-10 bg-cover bg-center"
                 style={{ backgroundImage: `url(${slide.image})` }}
               />
               <span className="min-w-0">
