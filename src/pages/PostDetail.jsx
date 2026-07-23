@@ -26,7 +26,7 @@ import {
 } from 'react-icons/fi';
 import API from '../utils/api';
 
-// ─── Design tokens (neutralised) ───────────────────
+// ─── Design tokens ─────────────────────────────────────
 const TOKENS = {
   '--paper': '#ffffff',
   '--paper-dim': '#f5f5f5',
@@ -296,7 +296,6 @@ const PostDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  // const [showBackToTop, setShowBackToTop] = useState(false);
   const [autoPlay, setAutoPlay] = useState(true);
   const [progress, setProgress] = useState(0);
   const [readProgress, setReadProgress] = useState(0);
@@ -434,12 +433,6 @@ const PostDetail = () => {
     }
   };
 
-  // useEffect(() => {
-  //   const handleScroll = () => setShowBackToTop(window.scrollY > 500);
-  //   window.addEventListener('scroll', handleScroll, { passive: true });
-  //   return () => window.removeEventListener('scroll', handleScroll);
-  // }, []);
-
   useEffect(() => {
     const handleReadProgress = () => {
       const el = articleRef.current;
@@ -555,7 +548,6 @@ const PostDetail = () => {
     });
   };
 
-  // const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
   const scrollToSection = (sectionId) => {
     const el = document.getElementById(sectionId);
     if (el) {
@@ -610,8 +602,10 @@ const PostDetail = () => {
     );
   }
 
+  // ─── Extract data ──────────────────────────────────────
   const { title, category, images = [], author, authorName, createdAt, isPublished } = post;
-  const authorDisplay = authorName || author?.fullname || 'Unknown Author';
+  // 👇 Use fullname or username – never email
+  const authorDisplay = author?.fullname || author?.username || authorName || 'Unknown Author';
   const avatarUrl = author?.avatar ? getAvatarUrl(author.avatar) : null;
   const date = new Date(createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -714,24 +708,6 @@ const PostDetail = () => {
                     </button>
                   )}
                   {hasMultipleImages && (
-                    <>
-                      {/* <button
-                        onClick={handleImagePrev}
-                        aria-label="Previous image"
-                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-[var(--ink)] w-9 h-9 rounded-full shadow-md flex items-center justify-center text-lg"
-                      >
-                        ‹
-                      </button>
-                      <button
-                        onClick={handleImageNext}
-                        aria-label="Next image"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-[var(--ink)] w-9 h-9 rounded-full shadow-md flex items-center justify-center text-lg"
-                      >
-                        ›
-                      </button> */}
-                    </>
-                  )}
-                  {hasMultipleImages && (
                     <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
                       {images.map((img, idx) => (
                         <button
@@ -790,7 +766,7 @@ const PostDetail = () => {
                   <p className="text-xs uppercase tracking-wide text-[var(--ink-faint)]">Written by</p>
                   <h4 className="font-bold text-[var(--ink)] mt-0.5 text-lg">{authorDisplay}</h4>
                   <p className="text-sm text-[var(--ink-soft)] mt-1">{author?.bio || 'Writer and storyteller.'}</p>
-                  {/* 👇 Removed email display */}
+                  {/* Email deliberately omitted */}
                 </div>
               </div>
 
@@ -826,7 +802,7 @@ const PostDetail = () => {
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
                       placeholder="Share your thoughts…"
-                      className="flex-1 px-4 py-2.5 border border-[var(--rule)] bg-white rounded-md text-sm focus:outline-none focus:border-[var(--accent)]" // 👈 removed focus:ring
+                      className="flex-1 px-4 py-2.5 border border-[var(--rule)] bg-white rounded-md text-sm focus:outline-none focus:border-[var(--accent)]"
                       required
                       disabled={submittingComment}
                     />
@@ -946,17 +922,6 @@ const PostDetail = () => {
           </div>
         </div>
       </div>
-
-      {/* ─── Back to Top ────────────────────────────────── */}
-      {/* {showBackToTop && (
-        <button
-          onClick={scrollToTop}
-          aria-label="Back to top"
-          className="fixed bottom-6 right-6 bg-[var(--ink)] text-white p-3 rounded-full shadow-lg hover:bg-[var(--accent)] z-40"
-        >
-          <FiArrowUp size={20} />
-        </button>
-      )} */}
     </div>
   );
 };
