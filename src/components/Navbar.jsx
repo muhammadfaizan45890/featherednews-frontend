@@ -447,11 +447,11 @@ const Navbar = () => {
             News
           </Link>
           <Link
-            to="/contact"
+            to="/advertise"
             className="text-sm font-semibold text-gray-700 hover:text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded px-2 py-1"
             onClick={() => setMobileMenuOpen(false)}
           >
-            Contact
+            Advertise
           </Link>
           <Link
             to="/about"
