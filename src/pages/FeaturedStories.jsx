@@ -95,7 +95,7 @@ const Card = ({ post, isActive }) => (
 
       {/* Content overlay */}
       <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
-        <span className="inline-block text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-red-500 px-3 py-1 rounded-full mb-2">
+        <span className="inline-block text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-red-500 px-3 py-1 mb-2">
           {post.category}
         </span>
         <h3 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight line-clamp-2">
