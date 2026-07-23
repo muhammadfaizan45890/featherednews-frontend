@@ -499,8 +499,6 @@ const staticSlides = [
 ];
 
 const SLIDE_DURATION = 3000;
-// short input-lock so rapid clicks/keys/swipes can't fire two slide
-// changes at once — this is NOT a visual transition, just a debounce.
 const INPUT_LOCK_MS = 150;
 
 const Hero = () => {
@@ -543,7 +541,7 @@ const Hero = () => {
     fetchSlides();
   }, []);
 
-  // ─── Navigation (instant — no transition state) ───
+  // ─── Navigation ────────────────────────────────────
   const goToSlide = useCallback(
     (index) => {
       if (isLocked || totalSlides === 0) return;
@@ -568,7 +566,7 @@ const Hero = () => {
     goToSlide(currentIndex - 1);
   }, [currentIndex, goToSlide]);
 
-  // ─── Auto-play with pause ─────────────────────────
+  // ─── Auto-play ─────────────────────────────────────
   useEffect(() => {
     if (totalSlides === 0 || isPaused) return;
     autoPlayRef.current = setInterval(nextSlide, SLIDE_DURATION);
@@ -580,7 +578,7 @@ const Hero = () => {
     };
   }, [nextSlide, totalSlides, isPaused]);
 
-  // ─── Preload next + previous image ────────────────
+  // ─── Preload images ──────────────────────────────
   useEffect(() => {
     if (totalSlides === 0) return;
     const nextIndex = (currentIndex + 1) % totalSlides;
@@ -591,7 +589,7 @@ const Hero = () => {
     });
   }, [currentIndex, slides, totalSlides]);
 
-  // ─── Screen reader announcements ──────────────────
+  // ─── Screen reader ──────────────────────────────
   useEffect(() => {
     if (totalSlides === 0 || !liveRegionRef.current) return;
     liveRegionRef.current.textContent = `Slide ${currentIndex + 1} of ${totalSlides}: ${
@@ -599,7 +597,7 @@ const Hero = () => {
     }`;
   }, [currentIndex, slides, totalSlides]);
 
-  // ─── Keyboard (scoped to the carousel, not the window) ──
+  // ─── Keyboard ─────────────────────────────────────
   useEffect(() => {
     if (totalSlides === 0) return;
     const node = containerRef.current;
@@ -617,7 +615,7 @@ const Hero = () => {
     return () => node.removeEventListener("keydown", handleKeyDown);
   }, [nextSlide, prevSlide, totalSlides]);
 
-  // ─── Touch (works down to the smallest phones) ────
+  // ─── Touch ──────────────────────────────────────
   const handleTouchStart = (e) => {
     setTouchStartX(e.touches[0].clientX);
     setIsPaused(true);
@@ -636,7 +634,7 @@ const Hero = () => {
     setIsPaused(false);
   };
 
-  // ─── Pause on hover / focus ───────────────────────
+  // ─── Pause on hover / focus ─────────────────────
   const handleMouseEnter = () => setIsPaused(true);
   const handleMouseLeave = () => setIsPaused(false);
   const handleFocus = () => setIsPaused(true);
@@ -644,7 +642,7 @@ const Hero = () => {
     if (!containerRef.current?.contains(e.relatedTarget)) setIsPaused(false);
   };
 
-  // ─── Cleanup ───────────────────────────────────────
+  // ─── Cleanup ─────────────────────────────────────
   useEffect(() => {
     return () => {
       if (lockTimeoutRef.current) clearTimeout(lockTimeoutRef.current);
@@ -652,14 +650,14 @@ const Hero = () => {
     };
   }, []);
 
-  // ─── Loading (static skeleton, no animation) ──────
+  // ─── Loading ─────────────────────────────────────
   if (loading) {
     return (
       <section className="w-full bg-white py-3 xs:py-4 sm:py-6 md:py-8 lg:py-10">
         <div className="w-full max-w-[1800px] mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8">
           <div
             className="w-full bg-[#2b2b30] flex items-center justify-center"
-            style={{ height: "clamp(200px, 42vw, 640px)" }}
+            style={{ height: "clamp(200px, 35vw, 480px)" }}
           >
             <span className="text-white/70 text-xs xs:text-sm sm:text-base tracking-wide uppercase">
               Loading stories…
@@ -697,7 +695,7 @@ const Hero = () => {
           {/* ─── Image ─────────────────────────────────── */}
           <div
             className="relative w-full"
-            style={{ height: "clamp(200px, 42vw, 640px)" }}
+            style={{ height: "clamp(200px, 35vw, 480px)" }}
           >
             <img
               key={currentSlide._id || currentIndex}
@@ -712,55 +710,11 @@ const Hero = () => {
               }}
             />
 
-            {/* ─── Gradient overlays for readability ── */}
+            {/* ─── Gradient overlays ────────────────── */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
             <div className="absolute inset-0 bg-black/10" />
-          </div>
-
-          {/* ─── Navigation arrows: always visible on touch/small screens, hover-revealed from md up ── */}
-          <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-1.5 xs:px-2 sm:px-3 md:px-4 z-30 pointer-events-none">
-            <button
-              onClick={prevSlide}
-              disabled={isLocked}
-              className="pointer-events-auto p-1.5 xs:p-2 sm:p-2.5 md:p-3 bg-black/45 backdrop-blur-sm hover:bg-black/65 text-white rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 disabled:opacity-30"
-              aria-label="Previous slide"
-            >
-              <svg
-                className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={nextSlide}
-              disabled={isLocked}
-              className="pointer-events-auto p-1.5 xs:p-2 sm:p-2.5 md:p-3 bg-black/45 backdrop-blur-sm hover:bg-black/65 text-white rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 disabled:opacity-30"
-              aria-label="Next slide"
-            >
-              <svg
-                className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
           </div>
 
           {/* ─── Slide counter ────────────────────────── */}
@@ -789,7 +743,7 @@ const Hero = () => {
 
             <h1
               className="font-extrabold leading-tight drop-shadow-xl line-clamp-3"
-              style={{ fontSize: "clamp(1rem, 3.6vw, 3rem)" }}
+              style={{ fontSize: "clamp(1rem, 3.6vw, 2.8rem)" }}
             >
               {currentSlide.title}
             </h1>
@@ -797,7 +751,7 @@ const Hero = () => {
             <p
               className="text-white/95 leading-relaxed line-clamp-2 sm:line-clamp-3 drop-shadow-lg"
               style={{
-                fontSize: "clamp(0.65rem, 1.4vw, 1rem)",
+                fontSize: "clamp(0.65rem, 1.4vw, 0.95rem)",
                 marginTop: "clamp(4px, 1vw, 14px)",
               }}
             >
@@ -810,7 +764,7 @@ const Hero = () => {
               style={{
                 marginTop: "clamp(6px, 1.4vw, 18px)",
                 padding: "clamp(6px, 1vw, 12px) clamp(12px, 2vw, 26px)",
-                fontSize: "clamp(0.55rem, 1.1vw, 0.9rem)",
+                fontSize: "clamp(0.55rem, 1.1vw, 0.85rem)",
                 letterSpacing: "1px",
               }}
             >
