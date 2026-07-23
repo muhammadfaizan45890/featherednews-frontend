@@ -3,13 +3,13 @@ import Hero from '@/components/Hero'
 import HNews from '@/components/HNews'
 import LatestStories from '@/components/LatestStories'
 import React from 'react'
-import BlogCardSlider from './FeaturedStories'
+import FeaturedStories from './FeaturedStories'
 
 const Home = () => {
   return (
     <div>
       <Hero/>
-      <BlogCardSlider/>
+      <FeaturedStories/>
       <LatestStories/>
       <HNews/>
       {/* <Footer/> */}
