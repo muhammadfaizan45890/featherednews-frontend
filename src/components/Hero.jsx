@@ -698,7 +698,7 @@ const Hero = () => {
               }}
             />
 
-            {/* ─── Rich gradient overlays for readability ── */}
+            {/* ─── Gradient overlays for readability ── */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
@@ -734,9 +734,9 @@ const Hero = () => {
             </span>
           </div>
 
-          {/* ─── Text overlay (no white box, left aligned) ── */}
+          {/* ─── Text overlay – LEFT CENTER ───────────── */}
           <div className="absolute left-3 xs:left-4 sm:left-6 md:left-10 lg:left-14
-                       bottom-4 xs:bottom-6 sm:bottom-8 md:bottom-12 lg:bottom-16
+                       top-1/2 -translate-y-1/2
                        max-w-[calc(100%-24px)] xs:max-w-[280px] sm:max-w-[380px] md:max-w-[440px] lg:max-w-[480px] xl:max-w-[540px]
                        w-auto z-10
                        text-white"
@@ -790,7 +790,7 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* ─── Thumbnail rail with RED border for active ── */}
+        {/* ─── Thumbnail rail – NO BORDERS, only text color ── */}
         <div className="flex gap-1.5 xs:gap-2 sm:gap-2.5 md:gap-3 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
           {slides.map((slide, index) => (
             <button
@@ -798,17 +798,11 @@ const Hero = () => {
               onClick={() => goToSlide(index)}
               aria-label={`Go to: ${slide.title}`}
               aria-current={index === currentIndex}
-              className={`flex-shrink-0 flex items-center gap-1.5 xs:gap-2 pr-2 xs:pr-3 py-1.5 xs:py-2 text-left transition-all duration-200
-                ${index === currentIndex 
-                  ? 'border-2 border-red-500 rounded-lg bg-black/5 dark:bg-white/5' 
-                  : 'border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
-                }`}
+              className="flex-shrink-0 flex items-center gap-1.5 xs:gap-2 pr-2 xs:pr-3 py-1.5 xs:py-2 text-left transition-all duration-200 border-2 border-transparent"
               style={{ maxWidth: "140px" }}
             >
               <span
-                className={`flex-shrink-0 w-8 h-6 xs:w-10 xs:h-7 sm:w-12 sm:h-9 md:w-14 md:h-10 bg-cover bg-center rounded ${
-                  index === currentIndex ? 'ring-2 ring-red-500' : ''
-                }`}
+                className="flex-shrink-0 w-8 h-6 xs:w-10 xs:h-7 sm:w-12 sm:h-9 md:w-14 md:h-10 bg-cover bg-center rounded"
                 style={{ backgroundImage: `url(${slide.image})` }}
               />
               <span className="min-w-0">
@@ -819,10 +813,16 @@ const Hero = () => {
                 >
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <span className="hidden xs:block text-[10px] sm:text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                <span className={`hidden xs:block text-[10px] sm:text-xs md:text-sm font-medium truncate ${
+                  index === currentIndex ? "text-black dark:text-white" : "text-gray-500 dark:text-gray-400"
+                }`}>
                   {slide.title}
                 </span>
               </span>
+              {/* Active indicator – small underline */}
+              {index === currentIndex && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500" style={{ position: 'relative', display: 'block', marginTop: '2px' }} />
+              )}
             </button>
           ))}
         </div>
