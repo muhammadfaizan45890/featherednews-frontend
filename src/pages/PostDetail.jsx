@@ -790,7 +790,7 @@ const PostDetail = () => {
                   <p className="text-xs uppercase tracking-wide text-[var(--ink-faint)]">Written by</p>
                   <h4 className="font-bold text-[var(--ink)] mt-0.5 text-lg">{authorDisplay}</h4>
                   <p className="text-sm text-[var(--ink-soft)] mt-1">{author?.bio || 'Writer and storyteller.'}</p>
-                  {author?.email && <p className="text-xs text-[var(--ink-faint)] mt-1">{author.email}</p>}
+                  {/* 👇 Removed email display */}
                 </div>
               </div>
 
@@ -826,7 +826,7 @@ const PostDetail = () => {
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
                       placeholder="Share your thoughts…"
-                      className="flex-1 px-4 py-2.5 border border-[var(--rule)] bg-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                      className="flex-1 px-4 py-2.5 border border-[var(--rule)] bg-white rounded-md text-sm focus:outline-none focus:border-[var(--accent)]" // 👈 removed focus:ring
                       required
                       disabled={submittingComment}
                     />
