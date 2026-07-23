@@ -417,7 +417,6 @@
 
 
 
-
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -501,12 +500,10 @@ const Hero = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchEndX, setTouchEndX] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const autoPlayRef = useRef(null);
-  const progressRef = useRef(null);
   const transitionTimeoutRef = useRef(null);
   const containerRef = useRef(null);
   const liveRegionRef = useRef(null);
@@ -543,7 +540,6 @@ const Hero = () => {
       const targetIndex = ((index % totalSlides) + totalSlides) % totalSlides;
       setIsTransitioning(true);
       setCurrentIndex(targetIndex);
-      setProgress(0);
 
       if (transitionTimeoutRef.current) {
         clearTimeout(transitionTimeoutRef.current);
@@ -575,29 +571,6 @@ const Hero = () => {
       }
     };
   }, [nextSlide, totalSlides, isPaused]);
-
-  // ─── Progress ──────────────────────────────────────
-  useEffect(() => {
-    if (totalSlides === 0) return;
-    let startTime = Date.now();
-    const updateProgress = () => {
-      const elapsed = Date.now() - startTime;
-      const newProgress = Math.min((elapsed / SLIDE_DURATION) * 100, 100);
-      setProgress(newProgress);
-      if (newProgress < 100) {
-        progressRef.current = requestAnimationFrame(updateProgress);
-      } else {
-        progressRef.current = null;
-      }
-    };
-    progressRef.current = requestAnimationFrame(updateProgress);
-    return () => {
-      if (progressRef.current) {
-        cancelAnimationFrame(progressRef.current);
-        progressRef.current = null;
-      }
-    };
-  }, [currentIndex, totalSlides]);
 
   // ─── Preload next image ───────────────────────────
   useEffect(() => {
@@ -665,7 +638,6 @@ const Hero = () => {
     return () => {
       if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
       if (autoPlayRef.current) clearInterval(autoPlayRef.current);
-      if (progressRef.current) cancelAnimationFrame(progressRef.current);
     };
   }, []);
 
@@ -726,28 +698,11 @@ const Hero = () => {
               }}
             />
 
-            {/* ─── Gradient overlays (softer for readability) ── */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10" />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20" />
-          </div>
-
-          {/* ─── Progress segments (black & white) ────── */}
-          <div className="absolute top-0 left-0 right-0 flex gap-1 p-2.5 sm:p-3 z-20">
-            {slides.map((_, index) => (
-              <div
-                key={index}
-                className="h-[3px] flex-1 bg-black/30 dark:bg-white/30 rounded-full overflow-hidden backdrop-blur-sm"
-              >
-                <div
-                  className="h-full bg-black dark:bg-white transition-all duration-200"
-                  style={{
-                    width:
-                      index < currentIndex ? '100%' : index === currentIndex ? `${progress}%` : '0%',
-                  }}
-                />
-              </div>
-            ))}
+            {/* ─── Rich gradient overlays for readability ── */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
+            <div className="absolute inset-0 bg-black/10" />
           </div>
 
           {/* ─── Navigation arrows ────────────────────── */}
@@ -781,29 +736,29 @@ const Hero = () => {
 
           {/* ─── Text overlay (no white box, left aligned) ── */}
           <div className="absolute left-3 xs:left-4 sm:left-6 md:left-10 lg:left-14
-                       top-1/2 -translate-y-1/2
+                       bottom-4 xs:bottom-6 sm:bottom-8 md:bottom-12 lg:bottom-16
                        max-w-[calc(100%-24px)] xs:max-w-[280px] sm:max-w-[380px] md:max-w-[440px] lg:max-w-[480px] xl:max-w-[540px]
                        w-auto z-10
                        text-white"
           >
-            <p className="uppercase text-[8px] xs:text-[10px] sm:text-xs tracking-[2px] xs:tracking-[3px] sm:tracking-[4px] text-red-400 font-semibold mb-1 xs:mb-1.5 sm:mb-2 md:mb-3 lg:mb-4 drop-shadow-md">
+            <p className="uppercase text-[8px] xs:text-[10px] sm:text-xs tracking-[2px] xs:tracking-[3px] sm:tracking-[4px] text-red-400 font-semibold mb-1 xs:mb-1.5 sm:mb-2 md:mb-3 drop-shadow-lg">
               ■ {currentSlide.category}
             </p>
 
-            <h1 className="text-sm xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold leading-tight drop-shadow-lg line-clamp-4">
+            <h1 className="text-sm xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold leading-tight drop-shadow-xl line-clamp-3">
               {currentSlide.title}
             </h1>
 
-            <p className="text-[10px] xs:text-xs sm:text-sm md:text-base text-white/90 mt-1 xs:mt-1.5 sm:mt-2 md:mt-3 lg:mt-4 leading-relaxed line-clamp-3 drop-shadow-md">
+            <p className="text-[10px] xs:text-xs sm:text-sm md:text-base text-white/95 mt-1 xs:mt-1.5 sm:mt-2 md:mt-3 leading-relaxed line-clamp-2 sm:line-clamp-3 drop-shadow-lg">
               {currentSlide.description}
             </p>
 
             <Link
               to={currentSlide.link || "/news"}
-              className="mt-2 xs:mt-2.5 sm:mt-3 md:mt-4 lg:mt-6
+              className="mt-2 xs:mt-2.5 sm:mt-3 md:mt-4
                          inline-flex items-center gap-2
-                         px-3 xs:px-4 sm:px-5 md:px-6 lg:px-8
-                         py-1.5 xs:py-2 sm:py-2 md:py-2.5 lg:py-3
+                         px-3 xs:px-4 sm:px-5 md:px-6
+                         py-1.5 xs:py-2 sm:py-2 md:py-2.5
                          border-2 border-white
                          bg-transparent
                          hover:bg-white hover:text-black
@@ -835,7 +790,7 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* ─── Thumbnail rail ────────────────────────── */}
+        {/* ─── Thumbnail rail with RED border for active ── */}
         <div className="flex gap-1.5 xs:gap-2 sm:gap-2.5 md:gap-3 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
           {slides.map((slide, index) => (
             <button
@@ -843,24 +798,28 @@ const Hero = () => {
               onClick={() => goToSlide(index)}
               aria-label={`Go to: ${slide.title}`}
               aria-current={index === currentIndex}
-              className={`flex-shrink-0 flex items-center gap-1.5 xs:gap-2 pr-2 xs:pr-3 border-b-2 py-1.5 xs:py-2 text-left transition-all duration-200 ${
-                index === currentIndex ? "border-white dark:border-white" : "border-transparent hover:border-gray-400 dark:hover:border-gray-500"
-              }`}
+              className={`flex-shrink-0 flex items-center gap-1.5 xs:gap-2 pr-2 xs:pr-3 py-1.5 xs:py-2 text-left transition-all duration-200
+                ${index === currentIndex 
+                  ? 'border-2 border-red-500 rounded-lg bg-black/5 dark:bg-white/5' 
+                  : 'border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
               style={{ maxWidth: "140px" }}
             >
               <span
-                className="flex-shrink-0 w-8 h-6 xs:w-10 xs:h-7 sm:w-12 sm:h-9 md:w-14 md:h-10 bg-cover bg-center rounded"
+                className={`flex-shrink-0 w-8 h-6 xs:w-10 xs:h-7 sm:w-12 sm:h-9 md:w-14 md:h-10 bg-cover bg-center rounded ${
+                  index === currentIndex ? 'ring-2 ring-red-500' : ''
+                }`}
                 style={{ backgroundImage: `url(${slide.image})` }}
               />
               <span className="min-w-0">
                 <span
                   className={`block text-[8px] xs:text-[10px] uppercase tracking-wider font-semibold ${
-                    index === currentIndex ? "text-white" : "text-gray-400 dark:text-gray-500"
+                    index === currentIndex ? "text-red-500" : "text-gray-400 dark:text-gray-500"
                   }`}
                 >
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <span className="hidden xs:block text-[10px] sm:text-xs md:text-sm font-medium text-gray-200 dark:text-gray-300 truncate">
+                <span className="hidden xs:block text-[10px] sm:text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                   {slide.title}
                 </span>
               </span>
