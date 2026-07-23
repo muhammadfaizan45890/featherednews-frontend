@@ -654,7 +654,7 @@ const Hero = () => {
   if (loading) {
     return (
       <section className="w-full bg-white py-3 xs:py-4 sm:py-6 md:py-8 lg:py-10">
-        <div className="w-full max-w-[1800px] mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div
             className="w-full bg-[#2b2b30] flex items-center justify-center"
             style={{ height: "clamp(200px, 42vw, 640px)" }}
@@ -690,9 +690,9 @@ const Hero = () => {
     >
       <span ref={liveRegionRef} className="sr-only" aria-live="polite" />
 
-      {/* ─── Container: narrower on large screens ───── */}
-      <div className="w-full max-w-[1800px] mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8">
-        <div className="relative w-full overflow-hidden shadow-2xl bg-black group max-w-7xl mx-auto lg:max-w-5xl xl:max-w-4xl 2xl:max-w-3xl">
+      {/* ─── Container: exactly matches Featured Stories ── */}
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative w-full overflow-hidden shadow-2xl bg-black group">
           {/* ─── Image ─────────────────────────────────── */}
           <div
             className="relative w-full"
