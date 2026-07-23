@@ -491,7 +491,6 @@ const staticSlides = [
   },
 ];
 
-// ─── Faster slide duration (3 seconds) ──────────────
 const SLIDE_DURATION = 3000;
 
 const Hero = () => {
@@ -568,7 +567,6 @@ const Hero = () => {
   // ─── Auto‑play with pause ─────────────────────────
   useEffect(() => {
     if (totalSlides === 0 || isPaused) return;
-
     autoPlayRef.current = setInterval(nextSlide, SLIDE_DURATION);
     return () => {
       if (autoPlayRef.current) {
@@ -581,23 +579,18 @@ const Hero = () => {
   // ─── Progress ──────────────────────────────────────
   useEffect(() => {
     if (totalSlides === 0) return;
-
     let startTime = Date.now();
-
     const updateProgress = () => {
       const elapsed = Date.now() - startTime;
       const newProgress = Math.min((elapsed / SLIDE_DURATION) * 100, 100);
       setProgress(newProgress);
-
       if (newProgress < 100) {
         progressRef.current = requestAnimationFrame(updateProgress);
       } else {
         progressRef.current = null;
       }
     };
-
     progressRef.current = requestAnimationFrame(updateProgress);
-
     return () => {
       if (progressRef.current) {
         cancelAnimationFrame(progressRef.current);
@@ -650,11 +643,9 @@ const Hero = () => {
   const handleTouchStart = (e) => {
     setTouchStartX(e.touches[0].clientX);
   };
-
   const handleTouchMove = (e) => {
     setTouchEndX(e.touches[0].clientX);
   };
-
   const handleTouchEnd = () => {
     const diff = touchStartX - touchEndX;
     if (Math.abs(diff) > 50) {
@@ -713,7 +704,7 @@ const Hero = () => {
 
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         <div className="relative overflow-hidden shadow-2xl bg-black group">
-          {/* ─── Image with brightness boost ──────────── */}
+          {/* ─── Image with parallax ────────────────────── */}
           <div
             className="relative w-full h-[280px] xs:h-[320px] sm:h-[400px] md:h-[480px] lg:h-[560px] xl:h-[620px]"
             style={{
@@ -735,21 +726,21 @@ const Hero = () => {
               }}
             />
 
-            {/* ─── Lighter, more transparent overlays ── */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/10 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/5" />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/10" />
+            {/* ─── Gradient overlays (softer for readability) ── */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/10 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20" />
           </div>
 
-          {/* ─── Progress segments ─────────────────────── */}
+          {/* ─── Progress segments (black & white) ────── */}
           <div className="absolute top-0 left-0 right-0 flex gap-1 p-2.5 sm:p-3 z-20">
             {slides.map((_, index) => (
               <div
                 key={index}
-                className="h-[3px] flex-1 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm"
+                className="h-[3px] flex-1 bg-black/30 dark:bg-white/30 rounded-full overflow-hidden backdrop-blur-sm"
               >
                 <div
-                  className="h-full bg-gradient-to-r from-red-400 to-white transition-all duration-200"
+                  className="h-full bg-black dark:bg-white transition-all duration-200"
                   style={{
                     width:
                       index < currentIndex ? '100%' : index === currentIndex ? `${progress}%` : '0%',
@@ -788,48 +779,40 @@ const Hero = () => {
             </span>
           </div>
 
-          {/* ─── SQUARE Content Card ───────────────────── */}
-          <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
-                       w-[200px] xs:w-[240px] sm:w-[300px] md:w-[360px] lg:w-[440px] xl:w-[500px]
-                       aspect-square
-                       p-4 xs:p-5 sm:p-6 md:p-8 lg:p-10
-                       bg-white/90 dark:bg-black/80 backdrop-blur-md shadow-2xl
-                       border border-white/20 dark:border-white/10
-                       transition-all duration-700 ease-out
-                       flex flex-col justify-center
-                       hover:bg-white/95 dark:hover:bg-black/90
-                       hover:shadow-3xl
-                       z-10
-                       text-center"
+          {/* ─── Text overlay (no white box, left aligned) ── */}
+          <div className="absolute left-3 xs:left-4 sm:left-6 md:left-10 lg:left-14
+                       top-1/2 -translate-y-1/2
+                       max-w-[calc(100%-24px)] xs:max-w-[280px] sm:max-w-[380px] md:max-w-[440px] lg:max-w-[480px] xl:max-w-[540px]
+                       w-auto z-10
+                       text-white"
           >
-            <p className="uppercase text-[8px] xs:text-[10px] sm:text-xs tracking-[2px] xs:tracking-[3px] sm:tracking-[4px] text-red-500 font-semibold mb-1 xs:mb-1.5 sm:mb-2 md:mb-3 lg:mb-4">
+            <p className="uppercase text-[8px] xs:text-[10px] sm:text-xs tracking-[2px] xs:tracking-[3px] sm:tracking-[4px] text-red-400 font-semibold mb-1 xs:mb-1.5 sm:mb-2 md:mb-3 lg:mb-4 drop-shadow-md">
               ■ {currentSlide.category}
             </p>
 
-            <h1 className="text-sm xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold leading-tight text-gray-900 dark:text-white line-clamp-4">
+            <h1 className="text-sm xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold leading-tight drop-shadow-lg line-clamp-4">
               {currentSlide.title}
             </h1>
 
-            <p className="text-[10px] xs:text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-300 mt-1 xs:mt-1.5 sm:mt-2 md:mt-3 lg:mt-4 leading-relaxed line-clamp-3">
+            <p className="text-[10px] xs:text-xs sm:text-sm md:text-base text-white/90 mt-1 xs:mt-1.5 sm:mt-2 md:mt-3 lg:mt-4 leading-relaxed line-clamp-3 drop-shadow-md">
               {currentSlide.description}
             </p>
 
             <Link
               to={currentSlide.link || "/news"}
               className="mt-2 xs:mt-2.5 sm:mt-3 md:mt-4 lg:mt-6
-                         inline-flex items-center justify-center gap-2
+                         inline-flex items-center gap-2
                          px-3 xs:px-4 sm:px-5 md:px-6 lg:px-8
                          py-1.5 xs:py-2 sm:py-2 md:py-2.5 lg:py-3
-                         border-2 border-black dark:border-white
+                         border-2 border-white
                          bg-transparent
-                         hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black
+                         hover:bg-white hover:text-black
                          uppercase text-[8px] xs:text-[10px] sm:text-xs md:text-sm
                          tracking-wider font-semibold
                          whitespace-nowrap
                          transition-all duration-300
                          group/btn
-                         w-fit mx-auto"
+                         shadow-lg"
             >
               {currentSlide.buttonText || "Read More"}
               <span className="text-base transition-transform duration-300 group-hover/btn:translate-x-1">→</span>
@@ -861,7 +844,7 @@ const Hero = () => {
               aria-label={`Go to: ${slide.title}`}
               aria-current={index === currentIndex}
               className={`flex-shrink-0 flex items-center gap-1.5 xs:gap-2 pr-2 xs:pr-3 border-b-2 py-1.5 xs:py-2 text-left transition-all duration-200 ${
-                index === currentIndex ? "border-red-500" : "border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+                index === currentIndex ? "border-white dark:border-white" : "border-transparent hover:border-gray-400 dark:hover:border-gray-500"
               }`}
               style={{ maxWidth: "140px" }}
             >
@@ -872,12 +855,12 @@ const Hero = () => {
               <span className="min-w-0">
                 <span
                   className={`block text-[8px] xs:text-[10px] uppercase tracking-wider font-semibold ${
-                    index === currentIndex ? "text-red-500" : "text-gray-400 dark:text-gray-500"
+                    index === currentIndex ? "text-white" : "text-gray-400 dark:text-gray-500"
                   }`}
                 >
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <span className="hidden xs:block text-[10px] sm:text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                <span className="hidden xs:block text-[10px] sm:text-xs md:text-sm font-medium text-gray-200 dark:text-gray-300 truncate">
                   {slide.title}
                 </span>
               </span>
