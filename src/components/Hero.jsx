@@ -491,7 +491,8 @@ const staticSlides = [
   },
 ];
 
-const SLIDE_DURATION = 5000;
+// ─── Faster slide duration (3 seconds) ──────────────
+const SLIDE_DURATION = 3000;
 
 const Hero = () => {
   const [slides, setSlides] = useState([]);
@@ -510,7 +511,6 @@ const Hero = () => {
   const transitionTimeoutRef = useRef(null);
   const containerRef = useRef(null);
   const liveRegionRef = useRef(null);
-  const slideContainerRef = useRef(null);
 
   const totalSlides = slides.length;
 
@@ -713,7 +713,7 @@ const Hero = () => {
 
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         <div className="relative overflow-hidden shadow-2xl bg-black group">
-          {/* ─── Image with parallax ───────────────────── */}
+          {/* ─── Image with brightness boost ──────────── */}
           <div
             className="relative w-full h-[280px] xs:h-[320px] sm:h-[400px] md:h-[480px] lg:h-[560px] xl:h-[620px]"
             style={{
@@ -721,24 +721,24 @@ const Hero = () => {
               transition: 'transform 0.4s ease-out',
             }}
           >
-            {/* Background image */}
             <img
               key={currentSlide._id || currentIndex}
               src={currentSlide.image}
               alt={currentSlide.alt || currentSlide.title}
-              className={`w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
+              className={`w-full h-full object-cover transition-opacity duration-700 ease-in-out brightness-105 ${
                 isTransitioning ? 'opacity-60 scale-105' : 'opacity-100 scale-100'
               }`}
               loading="eager"
+              style={{ filter: 'brightness(1.05) contrast(1.05)' }}
               onError={(e) => {
                 e.target.src = 'https://via.placeholder.com/1400x620?text=Image+Unavailable';
               }}
             />
 
-            {/* Multiple gradient layers for depth */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/20 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30" />
+            {/* ─── Lighter, more transparent overlays ── */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/10 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/5" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/10" />
           </div>
 
           {/* ─── Progress segments ─────────────────────── */}
@@ -759,7 +759,7 @@ const Hero = () => {
             ))}
           </div>
 
-          {/* ─── Navigation arrows (desktop) ──────────── */}
+          {/* ─── Navigation arrows ────────────────────── */}
           <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2 sm:px-4 z-30 pointer-events-none">
             <button
               onClick={prevSlide}
@@ -788,37 +788,37 @@ const Hero = () => {
             </span>
           </div>
 
-          {/* ─── Content Card (glassmorphism) ────────── */}
+          {/* ─── SQUARE Content Card ───────────────────── */}
           <div
-            className="absolute left-3 xs:left-4 sm:left-6 md:left-10 lg:left-14
-                       top-1/2 -translate-y-1/2
-                       max-w-[calc(100%-24px)] xs:max-w-[280px] sm:max-w-[380px] md:max-w-[440px] lg:max-w-[480px] xl:max-w-[540px]
-                       w-auto
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+                       w-[200px] xs:w-[240px] sm:w-[300px] md:w-[360px] lg:w-[440px] xl:w-[500px]
+                       aspect-square
                        p-4 xs:p-5 sm:p-6 md:p-8 lg:p-10
                        bg-white/90 dark:bg-black/80 backdrop-blur-md shadow-2xl
                        border border-white/20 dark:border-white/10
                        transition-all duration-700 ease-out
-                       transform
+                       flex flex-col justify-center
                        hover:bg-white/95 dark:hover:bg-black/90
                        hover:shadow-3xl
-                       z-10"
+                       z-10
+                       text-center"
           >
             <p className="uppercase text-[8px] xs:text-[10px] sm:text-xs tracking-[2px] xs:tracking-[3px] sm:tracking-[4px] text-red-500 font-semibold mb-1 xs:mb-1.5 sm:mb-2 md:mb-3 lg:mb-4">
               ■ {currentSlide.category}
             </p>
 
-            <h1 className="text-sm xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold leading-tight text-gray-900 dark:text-white line-clamp-3">
+            <h1 className="text-sm xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold leading-tight text-gray-900 dark:text-white line-clamp-4">
               {currentSlide.title}
             </h1>
 
-            <p className="text-[10px] xs:text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-300 mt-1 xs:mt-1.5 sm:mt-2 md:mt-3 lg:mt-4 leading-relaxed line-clamp-2 sm:line-clamp-3 md:line-clamp-4">
+            <p className="text-[10px] xs:text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-300 mt-1 xs:mt-1.5 sm:mt-2 md:mt-3 lg:mt-4 leading-relaxed line-clamp-3">
               {currentSlide.description}
             </p>
 
             <Link
               to={currentSlide.link || "/news"}
               className="mt-2 xs:mt-2.5 sm:mt-3 md:mt-4 lg:mt-6
-                         inline-flex items-center gap-2
+                         inline-flex items-center justify-center gap-2
                          px-3 xs:px-4 sm:px-5 md:px-6 lg:px-8
                          py-1.5 xs:py-2 sm:py-2 md:py-2.5 lg:py-3
                          border-2 border-black dark:border-white
@@ -828,7 +828,8 @@ const Hero = () => {
                          tracking-wider font-semibold
                          whitespace-nowrap
                          transition-all duration-300
-                         group/btn"
+                         group/btn
+                         w-fit mx-auto"
             >
               {currentSlide.buttonText || "Read More"}
               <span className="text-base transition-transform duration-300 group-hover/btn:translate-x-1">→</span>
@@ -851,7 +852,7 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* ─── Thumbnail rail (always visible, responsive) ── */}
+        {/* ─── Thumbnail rail ────────────────────────── */}
         <div className="flex gap-1.5 xs:gap-2 sm:gap-2.5 md:gap-3 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
           {slides.map((slide, index) => (
             <button
