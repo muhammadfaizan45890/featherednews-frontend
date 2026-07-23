@@ -1,11 +1,10 @@
 import React, { useRef } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Autoplay, EffectCoverflow } from 'swiper/modules';
-import { ChevronLeft, ChevronRight, Clock, Calendar, User } from 'lucide-react';
+import { Autoplay, EffectCoverflow } from 'swiper/modules';
+import { Clock, Calendar, User } from 'lucide-react';
 
 // Import Swiper styles
 import 'swiper/css';
-import 'swiper/css/navigation';
 import 'swiper/css/effect-coverflow';
 
 // ─── Blog Posts Data (replace with your API data) ─────────
@@ -76,9 +75,9 @@ const featuredPosts = [
 const Card = ({ post, isActive }) => (
   <div
     className={`
-      relative rounded-2xl overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]
+      relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]
       ${isActive 
-        ? 'scale-100 ' 
+        ? 'scale-100' 
         : 'scale-90 opacity-60 blur-[1px]'
       }
       group bg-white dark:bg-zinc-800
@@ -128,9 +127,6 @@ const Card = ({ post, isActive }) => (
 const FeaturedStories = ({ posts = featuredPosts }) => {
   const swiperRef = useRef(null);
 
-  const handlePrev = () => swiperRef.current?.slidePrev();
-  const handleNext = () => swiperRef.current?.slideNext();
-
   if (!posts.length) {
     return (
       <div className="text-center py-20 text-gray-500 dark:text-gray-400">
@@ -152,28 +148,13 @@ const FeaturedStories = ({ posts = featuredPosts }) => {
               Editor's Picks
             </h2>
           </div>
-          <div className="hidden sm:flex gap-2">
-            <button
-              onClick={handlePrev}
-              className="p-2 rounded-full border border-gray-300 dark:border-zinc-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
-              aria-label="Previous"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={handleNext}
-              className="p-2 rounded-full border border-gray-300 dark:border-zinc-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
-              aria-label="Next"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
+          {/* No arrows – removed */}
         </div>
 
         {/* ─── Swiper ─────────────────────────────────────────── */}
         <Swiper
           onSwiper={(swiper) => (swiperRef.current = swiper)}
-          modules={[Navigation, Autoplay, EffectCoverflow]}
+          modules={[Autoplay, EffectCoverflow]}
           effect="coverflow"
           grabCursor
           centeredSlides
@@ -207,24 +188,6 @@ const FeaturedStories = ({ posts = featuredPosts }) => {
             </SwiperSlide>
           ))}
         </Swiper>
-
-        {/* Mobile Navigation */}
-        <div className="flex sm:hidden justify-center gap-4 mt-4">
-          <button
-            onClick={handlePrev}
-            className="p-2 rounded-full border border-gray-300 dark:border-zinc-700"
-            aria-label="Previous"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            onClick={handleNext}
-            className="p-2 rounded-full border border-gray-300 dark:border-zinc-700"
-            aria-label="Next"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
 
         {/* ─── Custom Styles ────────────────────────────────── */}
         <style jsx>{`
