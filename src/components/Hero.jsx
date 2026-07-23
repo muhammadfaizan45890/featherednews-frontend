@@ -657,7 +657,7 @@ const Hero = () => {
         <div className="w-full max-w-[1800px] mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8">
           <div
             className="w-full bg-[#2b2b30] flex items-center justify-center"
-            style={{ height: "clamp(200px, 35vw, 480px)" }}
+            style={{ height: "clamp(200px, 42vw, 640px)" }}
           >
             <span className="text-white/70 text-xs xs:text-sm sm:text-base tracking-wide uppercase">
               Loading stories…
@@ -690,12 +690,13 @@ const Hero = () => {
     >
       <span ref={liveRegionRef} className="sr-only" aria-live="polite" />
 
+      {/* ─── Container: narrower on large screens ───── */}
       <div className="w-full max-w-[1800px] mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8">
-        <div className="relative w-full overflow-hidden shadow-2xl bg-black group">
+        <div className="relative w-full overflow-hidden shadow-2xl bg-black group max-w-7xl mx-auto lg:max-w-5xl xl:max-w-4xl 2xl:max-w-3xl">
           {/* ─── Image ─────────────────────────────────── */}
           <div
             className="relative w-full"
-            style={{ height: "clamp(200px, 35vw, 480px)" }}
+            style={{ height: "clamp(200px, 42vw, 640px)" }}
           >
             <img
               key={currentSlide._id || currentIndex}
@@ -725,7 +726,7 @@ const Hero = () => {
             </span>
           </div>
 
-          {/* ─── Text overlay – left, vertically centered ── */}
+          {/* ─── Text overlay ───────────────────────── */}
           <div
             className="absolute left-2.5 xs:left-3 sm:left-5 md:left-8 lg:left-12 xl:left-16 top-1/2 -translate-y-1/2 z-10 text-white"
             style={{ maxWidth: "min(92%, 560px)" }}
@@ -743,7 +744,7 @@ const Hero = () => {
 
             <h1
               className="font-extrabold leading-tight drop-shadow-xl line-clamp-3"
-              style={{ fontSize: "clamp(1rem, 3.6vw, 2.8rem)" }}
+              style={{ fontSize: "clamp(1rem, 3.6vw, 3rem)" }}
             >
               {currentSlide.title}
             </h1>
@@ -751,7 +752,7 @@ const Hero = () => {
             <p
               className="text-white/95 leading-relaxed line-clamp-2 sm:line-clamp-3 drop-shadow-lg"
               style={{
-                fontSize: "clamp(0.65rem, 1.4vw, 0.95rem)",
+                fontSize: "clamp(0.65rem, 1.4vw, 1rem)",
                 marginTop: "clamp(4px, 1vw, 14px)",
               }}
             >
@@ -764,7 +765,7 @@ const Hero = () => {
               style={{
                 marginTop: "clamp(6px, 1.4vw, 18px)",
                 padding: "clamp(6px, 1vw, 12px) clamp(12px, 2vw, 26px)",
-                fontSize: "clamp(0.55rem, 1.1vw, 0.85rem)",
+                fontSize: "clamp(0.55rem, 1.1vw, 0.9rem)",
                 letterSpacing: "1px",
               }}
             >
@@ -792,18 +793,18 @@ const Hero = () => {
         </div>
 
         {/* ─── Thumbnail rail ────────────────────────── */}
-        <div className="flex gap-1.5 xs:gap-2 sm:gap-2.5 md:gap-3 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+        <div className="flex gap-1 xs:gap-1.5 sm:gap-2 md:gap-3 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
           {slides.map((slide, index) => (
             <button
               key={slide._id || index}
               onClick={() => goToSlide(index)}
               aria-label={`Go to: ${slide.title}`}
               aria-current={index === currentIndex}
-              className="relative flex-shrink-0 flex items-center gap-1.5 xs:gap-2 pr-2 xs:pr-3 py-1.5 xs:py-2 text-left border-2 border-transparent"
-              style={{ maxWidth: "160px", minWidth: "88px" }}
+              className="relative flex-shrink-0 flex items-center gap-1 xs:gap-1.5 sm:gap-2 pr-1.5 xs:pr-2 sm:pr-3 py-1 xs:py-1.5 sm:py-2 text-left border-2 border-transparent"
+              style={{ maxWidth: "160px", minWidth: "70px" }}
             >
               <span
-                className="flex-shrink-0 w-7 h-5 xs:w-9 xs:h-6 sm:w-11 sm:h-8 md:w-14 md:h-10 lg:w-16 lg:h-12 bg-cover bg-center rounded"
+                className="flex-shrink-0 w-6 h-4 xs:w-8 xs:h-6 sm:w-10 sm:h-7 md:w-14 md:h-10 lg:w-16 lg:h-12 bg-cover bg-center rounded"
                 style={{ backgroundImage: `url(${slide.image})` }}
               />
               <span className="min-w-0">
