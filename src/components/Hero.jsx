@@ -425,17 +425,17 @@ import API from "../utils/api";
 // ─── Helper: reliable API instance ──────────────────
 const getApiInstance = () => {
   let instance;
-  if (API && typeof API.get === 'function') {
+  if (API && typeof API.get === "function") {
     instance = API;
   } else {
     instance = axios.create({
-      baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
-      headers: { 'Content-Type': 'application/json' },
+      baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
+      headers: { "Content-Type": "application/json" },
     });
   }
   instance.interceptors.request.use(
     (config) => {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem("accessToken");
       if (token) config.headers.Authorization = `Bearer ${token}`;
       return config;
     },
@@ -450,40 +450,48 @@ const api = getApiInstance();
 const staticSlides = [
   {
     _id: 1,
-    image: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1400&q=80",
+    image:
+      "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1400&q=80",
     category: "News • Featured",
     title: "At daybreak of the fifteenth day of my search",
-    description: "When the amphitheater had cleared I crept stealthily to the top and, as the great excavation lay far from the plaza...",
+    description:
+      "When the amphitheater had cleared I crept stealthily to the top and, as the great excavation lay far from the plaza...",
     alt: "City architecture",
     buttonText: "Read More",
     link: "/news",
   },
   {
     _id: 2,
-    image: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=1400&q=80",
+    image:
+      "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=1400&q=80",
     category: "Travel • Adventure",
     title: "Beyond the horizon lies a world of wonder",
-    description: "The journey of a thousand miles begins with a single step. Explore the unknown and discover the beauty that awaits.",
+    description:
+      "The journey of a thousand miles begins with a single step. Explore the unknown and discover the beauty that awaits.",
     alt: "Mountain landscape",
     buttonText: "Explore Now",
     link: "/news",
   },
   {
     _id: 3,
-    image: "https://images.unsplash.com/photo-1496568816309-51d7c20e3b21?w=1400&q=80",
+    image:
+      "https://images.unsplash.com/photo-1496568816309-51d7c20e3b21?w=1400&q=80",
     category: "Culture • Heritage",
     title: "Whispers of ancient civilizations",
-    description: "Through the corridors of time, stories of forgotten empires echo, inviting us to uncover their timeless secrets.",
+    description:
+      "Through the corridors of time, stories of forgotten empires echo, inviting us to uncover their timeless secrets.",
     alt: "Ancient ruins",
     buttonText: "Discover More",
     link: "/news",
   },
   {
     _id: 4,
-    image: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1400&q=80",
+    image:
+      "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1400&q=80",
     category: "Nature • Serenity",
     title: "Where the mountains meet the sky",
-    description: "In the quiet embrace of nature, find peace that transcends the chaos of everyday life and rejuvenates the soul.",
+    description:
+      "In the quiet embrace of nature, find peace that transcends the chaos of everyday life and rejuvenates the soul.",
     alt: "Mountain lake",
     buttonText: "View Gallery",
     link: "/news",
@@ -491,20 +499,22 @@ const staticSlides = [
 ];
 
 const SLIDE_DURATION = 3000;
+// short input-lock so rapid clicks/keys/swipes can't fire two slide
+// changes at once — this is NOT a visual transition, just a debounce.
+const INPUT_LOCK_MS = 150;
 
 const Hero = () => {
   const [slides, setSlides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchEndX, setTouchEndX] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const autoPlayRef = useRef(null);
-  const transitionTimeoutRef = useRef(null);
+  const lockTimeoutRef = useRef(null);
   const containerRef = useRef(null);
   const liveRegionRef = useRef(null);
 
@@ -515,7 +525,7 @@ const Hero = () => {
     const fetchSlides = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/api/hero');
+        const res = await api.get("/api/hero");
         if (res.data.success && res.data.data.length > 0) {
           setSlides(res.data.data);
         } else {
@@ -523,8 +533,8 @@ const Hero = () => {
         }
         setError(null);
       } catch (err) {
-        console.error('Error fetching hero slides:', err);
-        setError('Failed to load hero slides');
+        console.error("Error fetching hero slides:", err);
+        setError("Failed to load hero slides");
         setSlides(staticSlides);
       } finally {
         setLoading(false);
@@ -533,23 +543,21 @@ const Hero = () => {
     fetchSlides();
   }, []);
 
-  // ─── Navigation ────────────────────────────────────
+  // ─── Navigation (instant — no transition state) ───
   const goToSlide = useCallback(
     (index) => {
-      if (isTransitioning || totalSlides === 0) return;
+      if (isLocked || totalSlides === 0) return;
       const targetIndex = ((index % totalSlides) + totalSlides) % totalSlides;
-      setIsTransitioning(true);
+      setIsLocked(true);
       setCurrentIndex(targetIndex);
 
-      if (transitionTimeoutRef.current) {
-        clearTimeout(transitionTimeoutRef.current);
-      }
-      transitionTimeoutRef.current = setTimeout(() => {
-        setIsTransitioning(false);
-        transitionTimeoutRef.current = null;
-      }, 600);
+      if (lockTimeoutRef.current) clearTimeout(lockTimeoutRef.current);
+      lockTimeoutRef.current = setTimeout(() => {
+        setIsLocked(false);
+        lockTimeoutRef.current = null;
+      }, INPUT_LOCK_MS);
     },
-    [isTransitioning, totalSlides]
+    [isLocked, totalSlides]
   );
 
   const nextSlide = useCallback(() => {
@@ -560,7 +568,7 @@ const Hero = () => {
     goToSlide(currentIndex - 1);
   }, [currentIndex, goToSlide]);
 
-  // ─── Auto‑play with pause ─────────────────────────
+  // ─── Auto-play with pause ─────────────────────────
   useEffect(() => {
     if (totalSlides === 0 || isPaused) return;
     autoPlayRef.current = setInterval(nextSlide, SLIDE_DURATION);
@@ -572,25 +580,31 @@ const Hero = () => {
     };
   }, [nextSlide, totalSlides, isPaused]);
 
-  // ─── Preload next image ───────────────────────────
+  // ─── Preload next + previous image ────────────────
   useEffect(() => {
     if (totalSlides === 0) return;
     const nextIndex = (currentIndex + 1) % totalSlides;
-    const img = new Image();
-    img.src = slides[nextIndex]?.image;
+    const prevIndex = (currentIndex - 1 + totalSlides) % totalSlides;
+    [nextIndex, prevIndex].forEach((i) => {
+      const img = new Image();
+      img.src = slides[i]?.image;
+    });
   }, [currentIndex, slides, totalSlides]);
 
   // ─── Screen reader announcements ──────────────────
   useEffect(() => {
     if (totalSlides === 0 || !liveRegionRef.current) return;
-    liveRegionRef.current.textContent = `Slide ${currentIndex + 1} of ${totalSlides}: ${slides[currentIndex]?.title || ''}`;
+    liveRegionRef.current.textContent = `Slide ${currentIndex + 1} of ${totalSlides}: ${
+      slides[currentIndex]?.title || ""
+    }`;
   }, [currentIndex, slides, totalSlides]);
 
-  // ─── Keyboard ──────────────────────────────────────
+  // ─── Keyboard (scoped to the carousel, not the window) ──
   useEffect(() => {
     if (totalSlides === 0) return;
+    const node = containerRef.current;
+    if (!node) return;
     const handleKeyDown = (e) => {
-      if (!containerRef.current) return;
       if (e.key === "ArrowRight") {
         e.preventDefault();
         nextSlide();
@@ -599,55 +613,57 @@ const Hero = () => {
         prevSlide();
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    node.addEventListener("keydown", handleKeyDown);
+    return () => node.removeEventListener("keydown", handleKeyDown);
   }, [nextSlide, prevSlide, totalSlides]);
 
-  // ─── Mouse parallax ──────────────────────────────
-  const handleMouseMove = (e) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-    setMousePosition({ x, y });
-  };
-
-  // ─── Touch ─────────────────────────────────────────
+  // ─── Touch (works down to the smallest phones) ────
   const handleTouchStart = (e) => {
     setTouchStartX(e.touches[0].clientX);
+    setIsPaused(true);
   };
   const handleTouchMove = (e) => {
     setTouchEndX(e.touches[0].clientX);
   };
   const handleTouchEnd = () => {
     const diff = touchStartX - touchEndX;
-    if (Math.abs(diff) > 50) {
+    if (Math.abs(diff) > 40) {
       if (diff > 0) nextSlide();
       else prevSlide();
     }
     setTouchStartX(0);
     setTouchEndX(0);
+    setIsPaused(false);
   };
 
-  // ─── Pause on hover ──────────────────────────────
+  // ─── Pause on hover / focus ───────────────────────
   const handleMouseEnter = () => setIsPaused(true);
   const handleMouseLeave = () => setIsPaused(false);
+  const handleFocus = () => setIsPaused(true);
+  const handleBlur = (e) => {
+    if (!containerRef.current?.contains(e.relatedTarget)) setIsPaused(false);
+  };
 
   // ─── Cleanup ───────────────────────────────────────
   useEffect(() => {
     return () => {
-      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+      if (lockTimeoutRef.current) clearTimeout(lockTimeoutRef.current);
       if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     };
   }, []);
 
-  // ─── Loading ──────────────────────────────────────
+  // ─── Loading (static skeleton, no animation) ──────
   if (loading) {
     return (
-      <section className="w-full bg-white py-4 sm:py-6 md:py-10">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4">
-          <div className="flex justify-center items-center h-[240px] xs:h-[280px] sm:h-[380px] md:h-[460px] lg:h-[520px] bg-[#2b2b30]">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent" />
+      <section className="w-full bg-white py-3 xs:py-4 sm:py-6 md:py-8 lg:py-10">
+        <div className="w-full max-w-[1800px] mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8">
+          <div
+            className="w-full bg-[#2b2b30] flex items-center justify-center"
+            style={{ height: "clamp(200px, 42vw, 640px)" }}
+          >
+            <span className="text-white/70 text-xs xs:text-sm sm:text-base tracking-wide uppercase">
+              Loading stories…
+            </span>
           </div>
         </div>
       </section>
@@ -660,41 +676,39 @@ const Hero = () => {
 
   return (
     <section
-      className="w-full bg-white py-4 sm:py-6 md:py-10 overflow-hidden"
+      className="w-full bg-white py-3 xs:py-4 sm:py-6 md:py-8 lg:py-10 overflow-hidden"
       ref={containerRef}
+      tabIndex={-1}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onMouseMove={handleMouseMove}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       role="region"
       aria-roledescription="carousel"
       aria-label="Featured stories"
     >
       <span ref={liveRegionRef} className="sr-only" aria-live="polite" />
 
-      <div className="max-w-7xl mx-auto px-2 sm:px-4">
-        <div className="relative overflow-hidden shadow-2xl bg-black group">
-          {/* ─── Image with parallax ────────────────────── */}
+      <div className="w-full max-w-[1800px] mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8">
+        <div className="relative w-full overflow-hidden shadow-2xl bg-black group">
+          {/* ─── Image ─────────────────────────────────── */}
           <div
-            className="relative w-full h-[280px] xs:h-[320px] sm:h-[400px] md:h-[480px] lg:h-[560px] xl:h-[620px]"
-            style={{
-              transform: `translate(${mousePosition.x * 6}px, ${mousePosition.y * 6}px)`,
-              transition: 'transform 0.4s ease-out',
-            }}
+            className="relative w-full"
+            style={{ height: "clamp(200px, 42vw, 640px)" }}
           >
             <img
               key={currentSlide._id || currentIndex}
               src={currentSlide.image}
               alt={currentSlide.alt || currentSlide.title}
-              className={`w-full h-full object-cover transition-opacity duration-700 ease-in-out brightness-105 ${
-                isTransitioning ? 'opacity-60 scale-105' : 'opacity-100 scale-100'
-              }`}
+              className="w-full h-full object-cover"
               loading="eager"
-              style={{ filter: 'brightness(1.05) contrast(1.05)' }}
+              style={{ filter: "brightness(1.05) contrast(1.05)" }}
               onError={(e) => {
-                e.target.src = 'https://via.placeholder.com/1400x620?text=Image+Unavailable';
+                e.target.src =
+                  "https://via.placeholder.com/1400x620?text=Image+Unavailable";
               }}
             />
 
@@ -705,92 +719,125 @@ const Hero = () => {
             <div className="absolute inset-0 bg-black/10" />
           </div>
 
-          {/* ─── Navigation arrows ────────────────────── */}
-          <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2 sm:px-4 z-30 pointer-events-none">
+          {/* ─── Navigation arrows: always visible on touch/small screens, hover-revealed from md up ── */}
+          <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-1.5 xs:px-2 sm:px-3 md:px-4 z-30 pointer-events-none">
             <button
               onClick={prevSlide}
-              className="pointer-events-auto p-2 sm:p-3 bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-110 disabled:opacity-30"
+              disabled={isLocked}
+              className="pointer-events-auto p-1.5 xs:p-2 sm:p-2.5 md:p-3 bg-black/45 backdrop-blur-sm hover:bg-black/65 text-white rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 disabled:opacity-30"
               aria-label="Previous slide"
             >
-              <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg
+                className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
             <button
               onClick={nextSlide}
-              className="pointer-events-auto p-2 sm:p-3 bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-110 disabled:opacity-30"
+              disabled={isLocked}
+              className="pointer-events-auto p-1.5 xs:p-2 sm:p-2.5 md:p-3 bg-black/45 backdrop-blur-sm hover:bg-black/65 text-white rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 disabled:opacity-30"
               aria-label="Next slide"
             >
-              <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg
+                className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </button>
           </div>
 
           {/* ─── Slide counter ────────────────────────── */}
-          <div className="absolute top-4 sm:top-5 right-3 xs:right-4 lg:right-6 z-20 flex items-center gap-2">
-            <span className="text-white/90 text-[10px] xs:text-xs font-mono tracking-wider bg-black/40 backdrop-blur-sm px-2 py-1 rounded">
-              {String(currentIndex + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
+          <div className="absolute top-2 xs:top-3 sm:top-4 md:top-5 right-2 xs:right-3 sm:right-4 lg:right-6 z-20">
+            <span className="text-white/90 text-[9px] xs:text-[10px] sm:text-xs font-mono tracking-wider bg-black/40 backdrop-blur-sm px-1.5 xs:px-2 py-0.5 xs:py-1 rounded">
+              {String(currentIndex + 1).padStart(2, "0")} /{" "}
+              {String(totalSlides).padStart(2, "0")}
             </span>
           </div>
 
-          {/* ─── Text overlay – LEFT CENTER ───────────── */}
-          <div className="absolute left-3 xs:left-4 sm:left-6 md:left-10 lg:left-14
-                       top-1/2 -translate-y-1/2
-                       max-w-[calc(100%-24px)] xs:max-w-[280px] sm:max-w-[380px] md:max-w-[440px] lg:max-w-[480px] xl:max-w-[540px]
-                       w-auto z-10
-                       text-white"
+          {/* ─── Text overlay – left, vertically centered ── */}
+          <div
+            className="absolute left-2.5 xs:left-3 sm:left-5 md:left-8 lg:left-12 xl:left-16 top-1/2 -translate-y-1/2 z-10 text-white"
+            style={{ maxWidth: "min(92%, 560px)" }}
           >
-            <p className="uppercase text-[8px] xs:text-[10px] sm:text-xs tracking-[2px] xs:tracking-[3px] sm:tracking-[4px] text-red-400 font-semibold mb-1 xs:mb-1.5 sm:mb-2 md:mb-3 drop-shadow-lg">
+            <p
+              className="uppercase text-red-400 font-semibold drop-shadow-lg"
+              style={{
+                fontSize: "clamp(0.55rem, 1.4vw, 0.8rem)",
+                letterSpacing: "clamp(1px, 0.4vw, 4px)",
+                marginBottom: "clamp(2px, 0.8vw, 12px)",
+              }}
+            >
               ■ {currentSlide.category}
             </p>
 
-            <h1 className="text-sm xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold leading-tight drop-shadow-xl line-clamp-3">
+            <h1
+              className="font-extrabold leading-tight drop-shadow-xl line-clamp-3"
+              style={{ fontSize: "clamp(1rem, 3.6vw, 3rem)" }}
+            >
               {currentSlide.title}
             </h1>
 
-            <p className="text-[10px] xs:text-xs sm:text-sm md:text-base text-white/95 mt-1 xs:mt-1.5 sm:mt-2 md:mt-3 leading-relaxed line-clamp-2 sm:line-clamp-3 drop-shadow-lg">
+            <p
+              className="text-white/95 leading-relaxed line-clamp-2 sm:line-clamp-3 drop-shadow-lg"
+              style={{
+                fontSize: "clamp(0.65rem, 1.4vw, 1rem)",
+                marginTop: "clamp(4px, 1vw, 14px)",
+              }}
+            >
               {currentSlide.description}
             </p>
 
             <Link
               to={currentSlide.link || "/news"}
-              className="mt-2 xs:mt-2.5 sm:mt-3 md:mt-4
-                         inline-flex items-center gap-2
-                         px-3 xs:px-4 sm:px-5 md:px-6
-                         py-1.5 xs:py-2 sm:py-2 md:py-2.5
-                         border-2 border-white
-                         bg-transparent
-                         hover:bg-white hover:text-black
-                         uppercase text-[8px] xs:text-[10px] sm:text-xs md:text-sm
-                         tracking-wider font-semibold
-                         whitespace-nowrap
-                         transition-all duration-300
-                         group/btn
-                         shadow-lg"
+              className="inline-flex items-center gap-2 border-2 border-white bg-transparent hover:bg-white hover:text-black uppercase font-semibold whitespace-nowrap shadow-lg"
+              style={{
+                marginTop: "clamp(6px, 1.4vw, 18px)",
+                padding: "clamp(6px, 1vw, 12px) clamp(12px, 2vw, 26px)",
+                fontSize: "clamp(0.55rem, 1.1vw, 0.9rem)",
+                letterSpacing: "1px",
+              }}
             >
               {currentSlide.buttonText || "Read More"}
-              <span className="text-base transition-transform duration-300 group-hover/btn:translate-x-1">→</span>
+              <span aria-hidden="true">→</span>
             </Link>
           </div>
 
           {/* ─── Mobile dots ──────────────────────────── */}
-          <div className="absolute bottom-3 xs:bottom-4 left-1/2 -translate-x-1/2 flex sm:hidden gap-1.5 xs:gap-2 z-20">
+          <div className="absolute bottom-2.5 xs:bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex sm:hidden gap-1.5 z-20">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
                 aria-label={`Go to slide ${index + 1}`}
                 aria-current={index === currentIndex}
-                className={`h-1 xs:h-1.5 rounded-full transition-all duration-300 ${
-                  index === currentIndex ? "w-5 xs:w-6 bg-white" : "w-2 xs:w-3 bg-white/40"
+                className={`h-1 xs:h-1.5 rounded-full ${
+                  index === currentIndex
+                    ? "w-5 xs:w-6 bg-white"
+                    : "w-2 xs:w-3 bg-white/40"
                 }`}
               />
             ))}
           </div>
         </div>
 
-        {/* ─── Thumbnail rail – NO BORDERS, only text color ── */}
+        {/* ─── Thumbnail rail ────────────────────────── */}
         <div className="flex gap-1.5 xs:gap-2 sm:gap-2.5 md:gap-3 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
           {slides.map((slide, index) => (
             <button
@@ -798,11 +845,11 @@ const Hero = () => {
               onClick={() => goToSlide(index)}
               aria-label={`Go to: ${slide.title}`}
               aria-current={index === currentIndex}
-              className="flex-shrink-0 flex items-center gap-1.5 xs:gap-2 pr-2 xs:pr-3 py-1.5 xs:py-2 text-left transition-all duration-200 border-2 border-transparent"
-              style={{ maxWidth: "140px" }}
+              className="relative flex-shrink-0 flex items-center gap-1.5 xs:gap-2 pr-2 xs:pr-3 py-1.5 xs:py-2 text-left border-2 border-transparent"
+              style={{ maxWidth: "160px", minWidth: "88px" }}
             >
               <span
-                className="flex-shrink-0 w-8 h-6 xs:w-10 xs:h-7 sm:w-12 sm:h-9 md:w-14 md:h-10 bg-cover bg-center rounded"
+                className="flex-shrink-0 w-7 h-5 xs:w-9 xs:h-6 sm:w-11 sm:h-8 md:w-14 md:h-10 lg:w-16 lg:h-12 bg-cover bg-center rounded"
                 style={{ backgroundImage: `url(${slide.image})` }}
               />
               <span className="min-w-0">
@@ -813,15 +860,18 @@ const Hero = () => {
                 >
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <span className={`hidden xs:block text-[10px] sm:text-xs md:text-sm font-medium truncate ${
-                  index === currentIndex ? "text-black dark:text-white" : "text-gray-500 dark:text-gray-400"
-                }`}>
+                <span
+                  className={`hidden xs:block text-[10px] sm:text-xs md:text-sm font-medium truncate ${
+                    index === currentIndex
+                      ? "text-black dark:text-white"
+                      : "text-gray-500 dark:text-gray-400"
+                  }`}
+                >
                   {slide.title}
                 </span>
               </span>
-              {/* Active indicator – small underline */}
               {index === currentIndex && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500" style={{ position: 'relative', display: 'block', marginTop: '2px' }} />
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500" />
               )}
             </button>
           ))}
