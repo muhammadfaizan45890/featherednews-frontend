@@ -209,7 +209,7 @@ const News = () => {
               key={item._id}
               className="group border-b border-gray-200 pb-4 sm:pb-6 last:border-0"
             >
-              <Link to={`/news/${item.slug || item._id}`} className="block">
+              <Link to={`/article/${item.slug || item._id}`} className="block">
                 <div className="relative overflow-hidden bg-gray-100">
                   <img
                     src={item.images && item.images.length > 0 ? item.images[0] : "https://via.placeholder.com/600x400?text=No+Image"}
