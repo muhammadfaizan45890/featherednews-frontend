@@ -42,6 +42,9 @@ import Privacy from './pages/Privacy';
 import WriteForUs from './pages/WriteForUs';
 import Advertise from './pages/Advetise';
 import AdminAdvertise from './pages/Admin/AdminAdvertise';
+import AdminFeatured from './pages/Admin/AdminFeatured';
+import FeaturedDetail from './pages/FeaturedDetail';
+
 
 
 // ─── ScrollToTop ──────────────────────────────────────
@@ -101,6 +104,10 @@ const router = createBrowserRouter([
                         { path: '/privacy', element: <Privacy /> },
           { path: '/write-for-us', element: <WriteForUs /> },
                     { path: '/advertise', element: <Advertise /> },
+                          { path:"/article/:slug", element: <FeaturedDetail /> },
+
+                    
+                    
 
 
 
@@ -125,6 +132,8 @@ const router = createBrowserRouter([
           { path: '/admin/admin-hero', element: <AdminHero /> },
           { path: '/admin/admin-messages', element: <AdminMessages /> },
                     { path: '/admin/admin-advertise', element: <AdminAdvertise/> },
+                                        { path: '/admin/admin-featured', element: <AdminFeatured/> },
+
 
 
         ],
