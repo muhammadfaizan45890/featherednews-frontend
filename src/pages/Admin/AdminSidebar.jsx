@@ -28,6 +28,7 @@ import {
   MousePointerSquareDashed,
   MessagesSquare,
   AlignEndVertical,
+  FaEarthAsia
 } from "lucide-react";
 
 import { getData } from "@/context/userContext";
