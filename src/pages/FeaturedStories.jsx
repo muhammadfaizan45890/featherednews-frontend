@@ -13,7 +13,7 @@ const latestStories = [
     id: 1,
     title: 'Doomsday Protocol: New Thriller Ignites Box Office',
     excerpt:
-      'The action-packed film depicting a global cyber‑war has become the summer’s biggest hit, drawing audiences with its high‑stakes plot and stunning.',
+      'The action-packed film depicting a global cyber‑war has become the summer’s biggest hit, drawing audiences with its high‑stakes plot.',
     category: 'Entertainment',
     image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFnzDdNky79fA0GW3fiRFR7QnHgDV94juMKj0cEqlEfw&s=10', // cinema
     author: { name: 'Movie Insider' },
