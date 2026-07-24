@@ -84,6 +84,11 @@ const AdminSidebar = () => {
       icon: <AlignEndVertical size={20} />,
       path: "/admin/admin-advertise"
     },
+    {
+      title: "Featured",
+      icon: <FaEarthAsia size={20} />,
+      path: "/admin/admin-featured"
+    },
   ];
 
   const logoutHandler = () => {
