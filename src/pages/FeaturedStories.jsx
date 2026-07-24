@@ -7,128 +7,73 @@ import { Clock, Calendar, User } from 'lucide-react';
 import 'swiper/css';
 import 'swiper/css/effect-coverflow';
 
-// ─── Blog Posts Data (replace with your API data) ─────────
-const featuredPosts = [
-  
-  {
-    id: 1,
-    title: "The Future of AI in Content Creation",
-    excerpt: "Explore how artificial intelligence is transforming the way we create, distribute, and consume content across digital platforms.",
-    category: "Technology",
-    image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80",
-    author: { name: "Sarah Johnson" },
-    date: "July 15, 2026",
-    readTime: "5 min read",
-  },
-  {
-    id: 2,
-    title: "Sustainable Travel: A Guide to Eco-Friendly Adventures",
-    excerpt: "Discover how to explore the world while minimizing your environmental impact and supporting local communities.",
-    category: "Travel",
-    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80",
-    author: { name: "Michael Chen" },
-    date: "July 12, 2026",
-    readTime: "4 min read",
-  },
-  {
-    id: 3,
-    title: "Mastering the Art of Slow Living",
-    excerpt: "In a world that never stops, learn how embracing slowness can lead to greater fulfillment, creativity, and well-being.",
-    category: "Lifestyle",
-    image: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=800&q=80",
-    author: { name: "Emma Williams" },
-    date: "July 10, 2026",
-    readTime: "6 min read",
-  },
-  {
-    id: 4,
-    title: "The Psychology of Color in Branding",
-    excerpt: "Understanding how color choices influence consumer behavior and brand perception in the modern marketplace.",
-    category: "Business",
-    image: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=800&q=80",
-    author: { name: "David Rodriguez" },
-    date: "July 8, 2026",
-    readTime: "7 min read",
-  },
-  {
-    id: 5,
-    title: "Plant-Based Cooking for Beginners",
-    excerpt: "Simple, delicious, and nutritious plant-based recipes that will transform your kitchen and your health.",
-    category: "Food",
-    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80",
-    author: { name: "Lisa Park" },
-    date: "July 5, 2026",
-    readTime: "5 min read",
-  }.       Use current news ex movies war and others etc
-
-If you want your blog cards to show current and realistic news instead of placeholder articles, you can replace them with data like this:
-
+// ─── Realistic News Data (replace with your API data) ────
 const latestStories = [
   {
     id: 1,
-    title: "Global AI Race Accelerates as Tech Companies Unveil New Models",
+    title: 'Doomsday Protocol: New Thriller Ignites Box Office',
     excerpt:
-      "Leading AI companies continue releasing advanced language and multimodal models, increasing competition in artificial intelligence across industries.",
-    category: "Technology",
-    image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80",
-    author: { name: "News Desk" },
-    date: "July 24, 2026",
-    readTime: "4 min read",
+      'The action-packed film depicting a global cyber‑war has become the summer’s biggest hit, drawing audiences with its high‑stakes plot and stunning visual effects.',
+    category: 'Entertainment',
+    image: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&q=80', // cinema
+    author: { name: 'Movie Insider' },
+    date: 'July 24, 2026',
+    readTime: '5 min read',
   },
   {
     id: 2,
-    title: "Hollywood Box Office Sees Strong Summer with Major Movie Releases",
+    title: 'Iran–US Tensions Rise Amid Nuclear Standoff',
     excerpt:
-      "Several blockbuster films are attracting audiences worldwide, making this one of the busiest summer seasons for cinemas.",
-    category: "Entertainment",
-    image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&q=80",
-    author: { name: "Entertainment Reporter" },
-    date: "July 24, 2026",
-    readTime: "5 min read",
+      'Diplomatic efforts stall as both nations exchange warnings over uranium enrichment, raising fears of military confrontation in the Persian Gulf.',
+    category: 'World News',
+    image: 'https://images.unsplash.com/photo-1521295121783-8a321d551ad2?w=800&q=80', // geopolitics
+    author: { name: 'Global Affairs' },
+    date: 'July 24, 2026',
+    readTime: '6 min read',
   },
   {
     id: 3,
-    title: "International Leaders Continue Diplomatic Talks Over Middle East Tensions",
+    title: 'Tech Giants Pledge $50B for AI Safety Research',
     excerpt:
-      "Governments are pursuing negotiations while monitoring regional security developments and humanitarian concerns.",
-    category: "World",
-    image: "https://images.unsplash.com/photo-1521295121783-8a321d551ad2?w=800&q=80",
-    author: { name: "World News" },
-    date: "July 24, 2026",
-    readTime: "6 min read",
+      'Major companies join forces to fund new safety frameworks, aiming to ensure responsible development of advanced AI systems.',
+    category: 'Technology',
+    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80',
+    author: { name: 'Tech Daily' },
+    date: 'July 23, 2026',
+    readTime: '4 min read',
   },
   {
     id: 4,
-    title: "Championship Football Season Begins with Exciting Opening Fixtures",
+    title: 'Climate Deal Reached: Nations Agree to Cut Methane',
     excerpt:
-      "Fans around the world are following the opening matches as clubs begin their campaigns for domestic and international titles.",
-    category: "Sports",
-    image: "https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=800&q=80",
-    author: { name: "Sports Desk" },
-    date: "July 24, 2026",
-    readTime: "4 min read",
+      'After intense negotiations, over 100 countries commit to reducing methane emissions by 30% before 2030, a major step toward curbing global warming.',
+    category: 'Environment',
+    image: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=800&q=80',
+    author: { name: 'Eco Watch' },
+    date: 'July 22, 2026',
+    readTime: '5 min read',
   },
   {
     id: 5,
-    title: "Scientists Announce New Breakthrough in Renewable Energy Storage",
+    title: 'Champions League Final Sets Viewership Record',
     excerpt:
-      "Researchers have developed improved battery technology aimed at making renewable energy more efficient and reliable.",
-    category: "Science",
-    image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=800&q=80",
-    author: { name: "Science Daily" },
-    date: "July 24, 2026",
-    readTime: "5 min read",
+      'The thrilling match between two European giants drew over 600 million viewers worldwide, solidifying football’s status as the world’s most popular sport.',
+    category: 'Sports',
+    image: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=800&q=80',
+    author: { name: 'Sports Desk' },
+    date: 'July 21, 2026',
+    readTime: '3 min read',
   },
   {
     id: 6,
-    title: "Global Markets React to Fresh Economic Data and Inflation Reports",
+    title: 'Inflation Cools, Markets Rally on Fed Signals',
     excerpt:
-      "Investors are closely watching central bank decisions as markets respond to the latest inflation and employment figures.",
-    category: "Business",
-    image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&q=80",
-    author: { name: "Business News" },
-    date: "July 24, 2026",
-    readTime: "4 min read",
+      'New data shows a slowdown in price growth, prompting a surge in global stock markets as investors anticipate a pause in interest rate hikes.',
+    category: 'Business',
+    image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&q=80',
+    author: { name: 'Market Analyst' },
+    date: 'July 20, 2026',
+    readTime: '4 min read',
   },
 ];
 
@@ -185,7 +130,7 @@ const Card = ({ post, isActive }) => (
 );
 
 // ─── Main Slider Component ──────────────────────────────────
-const FeaturedStories = ({ posts = featuredPosts }) => {
+const FeaturedStories = ({ posts = latestStories }) => {
   const swiperRef = useRef(null);
 
   if (!posts.length) {
