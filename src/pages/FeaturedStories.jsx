@@ -15,7 +15,7 @@ const latestStories = [
     excerpt:
       'The action-packed film depicting a global cyber‑war has become the summer’s biggest hit, drawing audiences with its high‑stakes plot and stunning visual effects.',
     category: 'Entertainment',
-    image: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&q=80', // cinema
+    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFnzDdNky79fA0GW3fiRFR7QnHgDV94juMKj0cEqlEfw&s=10', // cinema
     author: { name: 'Movie Insider' },
     date: 'July 24, 2026',
     readTime: '5 min read',
