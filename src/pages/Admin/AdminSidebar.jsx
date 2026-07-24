@@ -28,8 +28,11 @@ import {
   MousePointerSquareDashed,
   MessagesSquare,
   AlignEndVertical,
-  FaEarthAsia
+  Globe, // ✅ use Globe from lucide-react instead of FaEarthAsia
 } from "lucide-react";
+
+// If you prefer react-icons/fa6, uncomment this and remove Globe above:
+// import { FaEarthAsia } from "react-icons/fa6";
 
 import { getData } from "@/context/userContext";
 
@@ -87,7 +90,7 @@ const AdminSidebar = () => {
     },
     {
       title: "Featured",
-      icon: <FaEarthAsia size={20} />,
+      icon: <Globe size={20} />, // ✅ changed from FaEarthAsia to Globe
       path: "/admin/admin-featured"
     },
   ];
@@ -96,7 +99,7 @@ const AdminSidebar = () => {
     localStorage.clear();
     setUser(null);
     navigate("/login", { replace: true });
-    window.location.reload();
+    // ✅ remove window.location.reload() – navigation already handles redirect
   };
 
   return (
