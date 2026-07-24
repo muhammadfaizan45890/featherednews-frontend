@@ -58,17 +58,7 @@ const featuredPosts = [
     author: { name: "Lisa Park" },
     date: "July 5, 2026",
     readTime: "5 min read",
-  },
-  {
-    id: 6,
-    title: "The Rise of Decentralized Finance",
-    excerpt: "How blockchain technology is reshaping the financial landscape and creating new opportunities for individuals worldwide.",
-    category: "Finance",
-    image: "https://images.unsplash.com/photo-1639762681485-074b7f5c8268?w=800&q=80",
-    author: { name: "James Kim" },
-    date: "July 3, 2026",
-    readTime: "8 min read",
-  },
+  }
 ];
 
 // ─── Individual Card Component ─────────────────────────────
