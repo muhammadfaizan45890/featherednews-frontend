@@ -1,142 +1,133 @@
-import React, { useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectCoverflow } from 'swiper/modules';
 import { Clock, Calendar, User } from 'lucide-react';
+import axios from 'axios';
+import API from '../utils/api';
 
-// Import Swiper styles
 import 'swiper/css';
 import 'swiper/css/effect-coverflow';
 
-// ─── Realistic News Data (replace with your API data) ────
-const latestStories = [
-  {
-    id: 1,
-    title: 'Doomsday Protocol: New Thriller Ignites Box Office',
-    excerpt:
-      'The action-packed film depicting a global cyber‑war has become the summer’s biggest hit, drawing audiences with its high‑stakes plot.',
-    category: 'Entertainment',
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFnzDdNky79fA0GW3fiRFR7QnHgDV94juMKj0cEqlEfw&s=10', // cinema
-    author: { name: 'Movie Insider' },
-    date: 'July 24, 2026',
-    readTime: '5 min read',
+// ─── API instance ──────────────────────────────────────────
+const api = axios.create({
+  baseURL: API || import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  headers: { 'Content-Type': 'application/json' },
+});
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
   },
-  {
-    id: 2,
-    title: 'Iran–US Tensions Rise Amid Nuclear Standoff',
-    excerpt:
-      'Diplomatic efforts stall as both nations exchange warnings over uranium enrichment, raising fears of military confrontation in the Persian Gulf.',
-    category: 'World News',
-    image: 'https://images.unsplash.com/photo-1521295121783-8a321d551ad2?w=800&q=80', // geopolitics
-    author: { name: 'Global Affairs' },
-    date: 'July 24, 2026',
-    readTime: '6 min read',
-  },
-  {
-    id: 3,
-    title: 'Tech Giants Pledge $50B for AI Safety Research',
-    excerpt:
-      'Major companies join forces to fund new safety frameworks, aiming to ensure responsible development of advanced AI systems.',
-    category: 'Technology',
-    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80',
-    author: { name: 'Tech Daily' },
-    date: 'July 23, 2026',
-    readTime: '4 min read',
-  },
-  {
-    id: 4,
-    title: 'Climate Deal Reached: Nations Agree to Cut Methane',
-    excerpt:
-      'After intense negotiations, over 100 countries commit to reducing methane emissions by 30% before 2030, a major step toward curbing global warming.',
-    category: 'Environment',
-    image: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=800&q=80',
-    author: { name: 'Eco Watch' },
-    date: 'July 22, 2026',
-    readTime: '5 min read',
-  },
-  {
-    id: 5,
-    title: 'Champions League Final Sets Viewership Record',
-    excerpt:
-      'The thrilling match between two European giants drew over 600 million viewers worldwide, solidifying football’s status as the world’s most popular sport.',
-    category: 'Sports',
-    image: 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=800&q=80',
-    author: { name: 'Sports Desk' },
-    date: 'July 21, 2026',
-    readTime: '3 min read',
-  },
-  {
-    id: 6,
-    title: 'Inflation Cools, Markets Rally on Fed Signals',
-    excerpt:
-      'New data shows a slowdown in price growth, prompting a surge in global stock markets as investors anticipate a pause in interest rate hikes.',
-    category: 'Business',
-    image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&q=80',
-    author: { name: 'Market Analyst' },
-    date: 'July 20, 2026',
-    readTime: '4 min read',
-  },
+  (error) => Promise.reject(error)
+);
+
+// ─── Static fallback data ──────────────────────────────────
+const staticStories = [
+  // ... (your existing static data)
 ];
 
 // ─── Individual Card Component ─────────────────────────────
-const Card = ({ post, isActive }) => (
-  <div
-    className={`
-      relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]
-      ${isActive 
-        ? 'scale-100' 
-        : 'scale-90 opacity-60 blur-[1px]'
-      }
-      group bg-white dark:bg-zinc-800
-    `}
-  >
-    <div className="aspect-[4/3] sm:aspect-[16/10] md:aspect-[4/3] lg:aspect-[16/9] relative">
-      <img
-        src={post.image}
-        alt={post.title}
-        loading="lazy"
-        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-      />
-      {/* Gradient overlay for text readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+const Card = ({ post, isActive }) => {
+  const slug = post.slug || post.id || post._id;
 
-      {/* Content overlay */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
-        <span className="inline-block text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-red-500 px-3 py-1 mb-2">
-          {post.category}
-        </span>
-        <h3 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight line-clamp-2">
-          {post.title}
-        </h3>
-        <p className="text-sm text-white/80 line-clamp-2 mt-1 hidden sm:block">
-          {post.excerpt}
-        </p>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-white/70 mt-2">
-          <span className="flex items-center gap-1">
-            <Calendar size={12} />
-            {post.date}
+  return (
+    <Link
+      to={`/article/${slug}`} // ✅ changed from /news to /article
+      className={`
+        block relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]
+        ${isActive 
+          ? 'scale-100' 
+          : 'scale-90 opacity-60 blur-[1px]'
+        }
+        group bg-white dark:bg-zinc-800
+      `}
+    >
+      <div className="aspect-[4/3] sm:aspect-[16/10] md:aspect-[4/3] lg:aspect-[16/9] relative">
+        <img
+          src={post.image}
+          alt={post.title}
+          loading="lazy"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          onError={(e) => {
+            e.target.src = 'https://via.placeholder.com/800x600?text=No+Image';
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
+          <span className="inline-block text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-red-500 px-3 py-1 mb-2">
+            {post.category}
           </span>
-          <span className="flex items-center gap-1">
-            <Clock size={12} />
-            {post.readTime}
-          </span>
-          <span className="flex items-center gap-1 ml-auto">
-            <User size={12} />
-            {post.author.name}
-          </span>
+          <h3 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight line-clamp-2">
+            {post.title}
+          </h3>
+          <p className="text-sm text-white/80 line-clamp-2 mt-1 hidden sm:block">
+            {post.excerpt}
+          </p>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-white/70 mt-2">
+            <span className="flex items-center gap-1">
+              <Calendar size={12} />
+              {post.date}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock size={12} />
+              {post.readTime}
+            </span>
+            <span className="flex items-center gap-1 ml-auto">
+              <User size={12} />
+              {post.author?.name || 'Unknown'}
+            </span>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-);
+    </Link>
+  );
+};
 
-// ─── Main Slider Component ──────────────────────────────────
-const FeaturedStories = ({ posts = latestStories }) => {
+// ─── Main Component ─────────────────────────────────────────
+const FeaturedStories = () => {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const swiperRef = useRef(null);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get('/api/featured');
+        if (res.data.success && res.data.data.length > 0) {
+          setPosts(res.data.data);
+        } else {
+          setPosts(staticStories);
+        }
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching featured stories:', err);
+        setError('Failed to load featured stories');
+        setPosts(staticStories);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeatured();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="w-full py-12 text-center text-gray-500 dark:text-gray-400">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-red-500 border-t-transparent" />
+        <p className="mt-2 text-sm">Loading featured stories…</p>
+      </div>
+    );
+  }
 
   if (!posts.length) {
     return (
       <div className="text-center py-20 text-gray-500 dark:text-gray-400">
-        <p className="text-xl font-medium">No featured posts</p>
+        <p className="text-xl font-medium">No featured stories available</p>
       </div>
     );
   }
@@ -144,7 +135,6 @@ const FeaturedStories = ({ posts = latestStories }) => {
   return (
     <div className="relative w-full bg-gradient-to-b from-gray-50/50 to-white dark:from-zinc-900/50 dark:to-zinc-900 py-8 sm:py-12 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <span className="text-xs font-bold uppercase tracking-[4px] text-red-500">
@@ -154,10 +144,8 @@ const FeaturedStories = ({ posts = latestStories }) => {
               Editor's Picks
             </h2>
           </div>
-          {/* No arrows – removed */}
         </div>
 
-        {/* ─── Swiper ─────────────────────────────────────────── */}
         <Swiper
           onSwiper={(swiper) => (swiperRef.current = swiper)}
           modules={[Autoplay, EffectCoverflow]}
@@ -189,13 +177,12 @@ const FeaturedStories = ({ posts = latestStories }) => {
           className="hero-slider"
         >
           {posts.map((post) => (
-            <SwiperSlide key={post.id} className="py-4">
+            <SwiperSlide key={post.id || post._id} className="py-4">
               {({ isActive }) => <Card post={post} isActive={isActive} />}
             </SwiperSlide>
           ))}
         </Swiper>
 
-        {/* ─── Custom Styles ────────────────────────────────── */}
         <style jsx>{`
           .hero-slider .swiper-slide {
             width: 260px;
