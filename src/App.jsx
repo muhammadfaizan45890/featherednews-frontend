@@ -21,6 +21,7 @@ import News from './pages/News';
 import PostDetail from './pages/PostDetail';
 import About from './pages/About';
 
+
 // ─── Components ──────────────────────────────────────
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
