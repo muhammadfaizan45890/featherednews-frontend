@@ -518,7 +518,7 @@ const LatestStories = () => {
 
       {/* Heading */}
       <div className="mb-8 sm:mb-12">
-        <p className="uppercase text-gray-500 tracking-[3px] sm:tracking-[4px] text-xs sm:text-sm">
+       <p className="uppercase text-[oklch(0.637_0.237_25.331)] tracking-[3px] sm:tracking-[4px] text-xs sm:text-sm">
           Browse &amp; Read
         </p>
         <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mt-1 sm:mt-2">
