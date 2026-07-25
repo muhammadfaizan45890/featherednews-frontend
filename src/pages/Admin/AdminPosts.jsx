@@ -751,7 +751,8 @@ const ToolbarButton = ({ onClick, isActive, icon: Icon, label }) => (
 );
 
 const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
-  if (!editor) return null;
+  // ✅ Guard against destroyed editor
+  if (!editor || editor.isDestroyed) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-0.5 p-1.5 bg-gray-50 border-b border-gray-300 overflow-x-auto">
@@ -1006,21 +1007,26 @@ const PublishToggle = ({ isPublished, onToggle }) => (
   </div>
 );
 
-const DescriptionEditor = ({ editor, charCount, onSetLink, onAddImage }) => (
-  <div>
-    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Description (content) *</label>
-    <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-black">
-      <EditorToolbar editor={editor} onSetLink={onSetLink} onAddImage={onAddImage} />
-      <EditorContent
-        editor={editor}
-        className="p-3 sm:p-4 min-h-[140px] sm:min-h-[200px] md:min-h-[280px] prose prose-sm max-w-none focus:outline-none text-sm"
-      />
+// ✅ Updated DescriptionEditor to check editor.isDestroyed
+const DescriptionEditor = ({ editor, charCount, onSetLink, onAddImage }) => {
+  if (!editor || editor.isDestroyed) return null;
+
+  return (
+    <div>
+      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Description (content) *</label>
+      <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-black">
+        <EditorToolbar editor={editor} onSetLink={onSetLink} onAddImage={onAddImage} />
+        <EditorContent
+          editor={editor}
+          className="p-3 sm:p-4 min-h-[140px] sm:min-h-[200px] md:min-h-[280px] prose prose-sm max-w-none focus:outline-none text-sm"
+        />
+      </div>
+      <div className="flex justify-end text-[10px] sm:text-xs text-gray-500 mt-1">
+        <span className={charCount > 5000 ? 'text-red-500' : ''}>{charCount} characters (plain text)</span>
+      </div>
     </div>
-    <div className="flex justify-end text-[10px] sm:text-xs text-gray-500 mt-1">
-      <span className={charCount > 5000 ? 'text-red-500' : ''}>{charCount} characters (plain text)</span>
-    </div>
-  </div>
-);
+  );
+};
 
 // ───────────────────────────────────────────────────────
 // Modal (create / edit)
@@ -1093,7 +1099,19 @@ const PostFormModal = ({
             onRemove={handleImageRemove}
           />
 
-          <DescriptionEditor editor={editor} charCount={charCount} onSetLink={onSetLink} onAddImage={onAddImage} />
+          {/* ✅ Conditional rendering with destroyed check */}
+          {editor && !editor.isDestroyed ? (
+            <DescriptionEditor
+              editor={editor}
+              charCount={charCount}
+              onSetLink={onSetLink}
+              onAddImage={onAddImage}
+            />
+          ) : (
+            <div className="border border-gray-300 rounded-lg p-4 text-gray-400 text-sm">
+              Editor is loading…
+            </div>
+          )}
 
           <PublishToggle
             isPublished={formData.isPublished}
@@ -1160,8 +1178,9 @@ const AdminPosts = () => {
     },
   });
 
+  // ✅ Sync effect with destroyed check
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editor.isDestroyed) return;
     if (isInternalUpdate.current) return;
 
     const currentContent = editor.getHTML();
@@ -1223,12 +1242,13 @@ const AdminPosts = () => {
     setModalOpen(true);
   };
 
+  // ✅ Close modal with destroyed check
   const closeModal = () => {
     setModalOpen(false);
     setEditingPost(null);
     setFormData(EMPTY_FORM);
     setImageInput('');
-    if (editor) {
+    if (editor && !editor.isDestroyed) {
       editor.commands.setContent('');
     }
   };
@@ -1291,7 +1311,7 @@ const AdminPosts = () => {
   };
 
   const setLink = () => {
-    if (!editor) return;
+    if (!editor || editor.isDestroyed) return;
     const url = window.prompt('Enter the URL:');
     if (url) {
       editor.chain().focus().setLink({ href: url }).run();
@@ -1299,7 +1319,7 @@ const AdminPosts = () => {
   };
 
   const addImage = () => {
-    if (!editor) return;
+    if (!editor || editor.isDestroyed) return;
     const url = window.prompt('Enter the image URL:');
     if (url) {
       editor.chain().focus().setImage({ src: url }).run();
