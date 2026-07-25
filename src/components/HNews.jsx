@@ -521,14 +521,14 @@ const HNews = () => {
       )}
 
       {/* "See All" link */}
-      <div className="mt-10 sm:mt-12 md:mt-14 text-center">
+      {/* <div className="mt-10 sm:mt-12 md:mt-14 text-center">
         <Link
           to="/news"
           className="inline-block px-6 py-2 border-2 border-black hover:bg-black hover:text-white transition-all duration-300 text-sm sm:text-base font-semibold uppercase tracking-wider"
         >
           See All Stories →
         </Link>
-      </div>
+      </div> */}
     </section>
   );
 };
