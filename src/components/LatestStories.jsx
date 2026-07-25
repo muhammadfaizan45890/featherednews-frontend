@@ -344,11 +344,10 @@ const CardSkeleton = () => (
   </div>
 );
 
-// ─── Skeleton row for trending list ─────────────────
+// ─── Skeleton row for trending list (no image) ─────────
 const TrendingSkeleton = () => (
   <div className="flex items-start gap-2 p-1.5 animate-pulse">
     <div className="w-4 sm:w-5 h-3 bg-gray-200 rounded flex-shrink-0" />
-    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 flex-shrink-0" />
     <div className="flex-1 space-y-1.5 pt-0.5">
       <div className="h-2 bg-gray-200 rounded w-full" />
       <div className="h-2 bg-gray-200 rounded w-2/3" />
@@ -450,13 +449,12 @@ const LatestStories = () => {
         setFeaturedLoading(true);
         const res = await api.get("/api/featured");
         if (res.data.success && res.data.data.length > 0) {
-          setTrendingPosts(res.data.data.slice(0, 9)); // show max 9
+          setTrendingPosts(res.data.data.slice(0, 9));
         } else {
           setTrendingPosts([]);
         }
       } catch (err) {
         console.error("Error fetching featured:", err);
-        // Fallback: use the first 9 posts from the main feed if available
         if (posts.length > 0) {
           setTrendingPosts(posts.slice(0, 9));
         } else {
@@ -467,7 +465,7 @@ const LatestStories = () => {
       }
     };
     fetchFeatured();
-  }, []); // runs only on mount
+  }, []);
 
   // ─── Fallback: if featured fails, use posts when they load ──
   useEffect(() => {
@@ -674,7 +672,7 @@ const LatestStories = () => {
           )}
         </div>
 
-        {/* ===== RIGHT SIDEBAR: TRENDING (now featuring) ===== */}
+        {/* ===== RIGHT SIDEBAR: TRENDING (no images) ===== */}
         <aside className="w-[34%] xs:w-[30%] min-w-[110px] sm:min-w-[160px] lg:w-[28%] xl:w-[25%] flex-shrink-0">
           <div className="bg-white overflow-hidden border border-gray-100 sticky top-4">
             <div className="px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-2 border-b border-gray-200">
@@ -698,15 +696,6 @@ const LatestStories = () => {
                       <span className="text-[8px] sm:text-[10px] font-bold text-red-500 w-4 sm:w-5 flex-shrink-0 text-right pt-0.5">
                         #{idx + 1}
                       </span>
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 overflow-hidden bg-gray-100">
-                        <img
-                          src={getImageSrc(post)}
-                          alt=""
-                          loading="lazy"
-                          onError={() => handleImgError(post._id)}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-[8px] sm:text-[10px] font-semibold line-clamp-2 text-gray-900 group-hover:text-red-500 transition-colors">
                           {post.title}
