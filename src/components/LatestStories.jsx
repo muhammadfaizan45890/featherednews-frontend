@@ -368,8 +368,9 @@ const LatestStories = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
 
-  // ─── Trending posts (first 9 of the fetched posts) ──
+  // ─── Featured stories (for the trending sidebar) ──
   const [trendingPosts, setTrendingPosts] = useState([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
 
   // ─── Broken image tracking (per post id) ────────────
   const [brokenImages, setBrokenImages] = useState(() => new Set());
@@ -386,10 +387,9 @@ const LatestStories = () => {
     hasMoreRef.current = hasMore;
   }, [hasMore]);
 
-  // ─── Fetch posts ─────────────────────────────────────
+  // ─── Fetch posts (main grid) ──────────────────────
   const fetchPosts = useCallback(
     async (pageNum = 1, append = false) => {
-      // cancel any in-flight request before starting a new one
       if (abortRef.current) abortRef.current.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -425,15 +425,11 @@ const LatestStories = () => {
 
         setPosts((prev) => (append ? [...prev, ...data] : data));
 
-        if (!append) {
-          setTrendingPosts(data.slice(0, 9)); // Show 9 trending
-        }
-
         setTotalPages(pagination.totalPages);
         setHasMore(pagination.hasMore);
       } catch (err) {
         if (axios.isCancel(err) || err.name === "CanceledError" || err.code === "ERR_CANCELED") {
-          return; // stale request, ignore silently
+          return;
         }
         console.error("Fetch posts error:", err);
         setError(err.response?.data?.message || "Failed to load stories");
@@ -446,6 +442,39 @@ const LatestStories = () => {
     },
     [selectedCategory]
   );
+
+  // ─── Fetch featured stories (for the sidebar) ──────
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        setFeaturedLoading(true);
+        const res = await api.get("/api/featured");
+        if (res.data.success && res.data.data.length > 0) {
+          setTrendingPosts(res.data.data.slice(0, 9)); // show max 9
+        } else {
+          setTrendingPosts([]);
+        }
+      } catch (err) {
+        console.error("Error fetching featured:", err);
+        // Fallback: use the first 9 posts from the main feed if available
+        if (posts.length > 0) {
+          setTrendingPosts(posts.slice(0, 9));
+        } else {
+          setTrendingPosts([]);
+        }
+      } finally {
+        setFeaturedLoading(false);
+      }
+    };
+    fetchFeatured();
+  }, []); // runs only on mount
+
+  // ─── Fallback: if featured fails, use posts when they load ──
+  useEffect(() => {
+    if (!featuredLoading && trendingPosts.length === 0 && posts.length > 0) {
+      setTrendingPosts(posts.slice(0, 9));
+    }
+  }, [featuredLoading, posts, trendingPosts.length]);
 
   // ─── Initial load & category changes ──────────────
   useEffect(() => {
@@ -645,7 +674,7 @@ const LatestStories = () => {
           )}
         </div>
 
-        {/* ===== RIGHT SIDEBAR: TRENDING ===== */}
+        {/* ===== RIGHT SIDEBAR: TRENDING (now featuring) ===== */}
         <aside className="w-[34%] xs:w-[30%] min-w-[110px] sm:min-w-[160px] lg:w-[28%] xl:w-[25%] flex-shrink-0">
           <div className="bg-white overflow-hidden border border-gray-100 sticky top-4">
             <div className="px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-2 border-b border-gray-200">
@@ -658,7 +687,7 @@ const LatestStories = () => {
             </div>
 
             <div className="p-1.5 sm:p-2 space-y-1 max-h-[500px] overflow-y-auto">
-              {loading && initialLoad
+              {featuredLoading
                 ? Array.from({ length: 4 }).map((_, i) => <TrendingSkeleton key={i} />)
                 : trendingPosts.map((post, idx) => (
                     <Link
@@ -691,9 +720,9 @@ const LatestStories = () => {
                     </Link>
                   ))}
 
-              {!loading && trendingPosts.length === 0 && (
+              {!featuredLoading && trendingPosts.length === 0 && (
                 <p className="text-[9px] sm:text-[10px] text-gray-400 text-center py-4">
-                  Nothing trending yet.
+                  Nothing featured yet.
                 </p>
               )}
             </div>
