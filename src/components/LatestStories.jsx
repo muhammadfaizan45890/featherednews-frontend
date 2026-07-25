@@ -368,17 +368,11 @@ const LatestStories = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
 
-  // ─── Trending posts (first 7 of the fetched posts) ──
+  // ─── Trending posts (first 9 of the fetched posts) ──
   const [trendingPosts, setTrendingPosts] = useState([]);
-  const [showAllTrending, setShowAllTrending] = useState(false);
 
   // ─── Broken image tracking (per post id) ────────────
   const [brokenImages, setBrokenImages] = useState(() => new Set());
-
-  const displayedTrending = useMemo(
-    () => (showAllTrending ? trendingPosts : trendingPosts.slice(0, 4)),
-    [showAllTrending, trendingPosts]
-  );
 
   const abortRef = useRef(null);
   const sentinelRef = useRef(null);
@@ -432,7 +426,7 @@ const LatestStories = () => {
         setPosts((prev) => (append ? [...prev, ...data] : data));
 
         if (!append) {
-          setTrendingPosts(data.slice(0, 7));
+          setTrendingPosts(data.slice(0, 9)); // Show 9 trending
         }
 
         setTotalPages(pagination.totalPages);
@@ -457,7 +451,6 @@ const LatestStories = () => {
   useEffect(() => {
     setPage(1);
     setPosts([]);
-    setShowAllTrending(false);
     fetchPosts(1, false);
     return () => {
       if (abortRef.current) abortRef.current.abort();
@@ -518,7 +511,7 @@ const LatestStories = () => {
 
       {/* Heading */}
       <div className="mb-8 sm:mb-12">
-       <p className="uppercase text-[oklch(0.637_0.237_25.331)] tracking-[3px] sm:tracking-[4px] text-xs sm:text-sm">
+        <p className="uppercase text-[oklch(0.637_0.237_25.331)] tracking-[3px] sm:tracking-[4px] text-xs sm:text-sm font-bold">
           Browse &amp; Read
         </p>
         <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mt-1 sm:mt-2">
@@ -526,10 +519,10 @@ const LatestStories = () => {
         </h2>
       </div>
 
-      {/* ─── Category Filters (scrollable on mobile) ─── */}
+      {/* ─── Category Filters (wrapping, no scroll) ─── */}
       <div className="relative mb-6 -mx-3 px-3 sm:mx-0 sm:px-0">
         <div
-          className="flex flex-nowrap sm:flex-wrap gap-2 overflow-x-auto sm:overflow-visible pb-2 sm:pb-0 scrollbar-hide"
+          className="flex flex-wrap gap-2"
           role="tablist"
           aria-label="Filter stories by category"
         >
@@ -551,7 +544,7 @@ const LatestStories = () => {
         </div>
       </div>
 
-      {/* ─── Two‑column layout (kept on all breakpoints) ── */}
+      {/* ─── Two‑column layout ── */}
       <div className="flex flex-row gap-3 sm:gap-6 lg:gap-8 items-start">
         {/* ===== LEFT: NEWS GRID ===== */}
         <div className="flex-1 min-w-0">
@@ -615,17 +608,9 @@ const LatestStories = () => {
               {/* Infinite-scroll sentinel */}
               <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />
 
-              {/* Load More (manual fallback) */}
-              <div className="text-center mt-6 sm:mt-8 md:mt-10">
-                {hasMore && !isLoadingMore && (
-                  <button
-                    onClick={loadMore}
-                    className="border-2 border-black bg-white text-black hover:bg-black hover:text-white px-6 py-2 text-sm sm:text-base font-semibold uppercase tracking-wider transition-colors"
-                  >
-                    More Posts
-                  </button>
-                )}
-                {isLoadingMore && (
+              {/* Loading indicator while fetching more */}
+              {isLoadingMore && (
+                <div className="text-center mt-4">
                   <span className="inline-flex items-center gap-2 text-sm text-gray-600">
                     <svg
                       className="animate-spin h-4 w-4 text-black"
@@ -647,33 +632,35 @@ const LatestStories = () => {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    Loading...
+                    Loading more...
                   </span>
-                )}
-                {!hasMore && !isLoadingMore && posts.length > 0 && (
-                  <p className="text-gray-400 text-xs sm:text-sm">You're all caught up</p>
-                )}
-              </div>
+                </div>
+              )}
+              {!hasMore && !isLoadingMore && posts.length > 0 && (
+                <p className="text-center text-gray-400 text-xs sm:text-sm mt-4">
+                  You're all caught up
+                </p>
+              )}
             </>
           )}
         </div>
 
         {/* ===== RIGHT SIDEBAR: TRENDING ===== */}
         <aside className="w-[34%] xs:w-[30%] min-w-[110px] sm:min-w-[160px] lg:w-[28%] xl:w-[25%] flex-shrink-0">
-          <div className="bg-white overflow-hidden border border-gray-100 sticky top-4 shadow-sm">
+          <div className="bg-white overflow-hidden border border-gray-100 sticky top-4">
             <div className="px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-2 border-b border-gray-200">
               <span className="text-[9px] sm:text-xs font-bold uppercase tracking-wider text-gray-900">
                 Trending
               </span>
               <span className="ml-auto text-[8px] sm:text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
-                {displayedTrending.length}
+                {trendingPosts.length}
               </span>
             </div>
 
             <div className="p-1.5 sm:p-2 space-y-1 max-h-[500px] overflow-y-auto">
               {loading && initialLoad
                 ? Array.from({ length: 4 }).map((_, i) => <TrendingSkeleton key={i} />)
-                : displayedTrending.map((post, idx) => (
+                : trendingPosts.map((post, idx) => (
                     <Link
                       key={post._id}
                       to={`/news/${post.slug || post._id}`}
@@ -710,17 +697,6 @@ const LatestStories = () => {
                 </p>
               )}
             </div>
-
-            {trendingPosts.length > 4 && (
-              <div className="p-1.5 border-t border-gray-100">
-                <button
-                  onClick={() => setShowAllTrending((prev) => !prev)}
-                  className="w-full text-center text-[8px] sm:text-[10px] font-medium text-red-500 hover:text-red-700 hover:bg-red-50 py-1.5 transition-colors"
-                >
-                  {showAllTrending ? "Show Less" : `Show More (${trendingPosts.length - 4})`}
-                </button>
-              </div>
-            )}
           </div>
         </aside>
       </div>
