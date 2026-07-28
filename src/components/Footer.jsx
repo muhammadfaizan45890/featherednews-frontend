@@ -171,10 +171,10 @@ const Footer = () => {
           {/* ── About / Brand ── */}
           <div className="lg:col-span-3 space-y-4">
             <div className="flex items-center gap-2">
-              <FiFeather className="text-2xl text-white" />
+              {/* <FiFeather className="text-2xl text-white" /> */}
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-                <span className="font-light text-white">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span>
-                <span className="font-extrabold text-white">NEWS</span>
+                {/* <span className="font-light text-white">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span> */}
+                <span className="font-extrabold text-white">Summary</span>
               </h2>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed max-w-sm">
