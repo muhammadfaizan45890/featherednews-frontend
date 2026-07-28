@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import axios from "axios";
+import axios from "axios"; // ✅ Required for fallback instance
 import API from "../../utils/api";
 import {
   FiPlus,
@@ -80,6 +80,7 @@ const AdminHero = () => {
     category: "",
     buttonText: "Read More",
     alt: "",
+    link: "/news",
     order: 0,
     isActive: true,
   });
@@ -114,6 +115,7 @@ const AdminHero = () => {
       category: "",
       buttonText: "Read More",
       alt: "",
+      link: "/news",
       order: slides.length,
       isActive: true,
     });
@@ -129,6 +131,7 @@ const AdminHero = () => {
       category: slide.category || "",
       buttonText: slide.buttonText || "Read More",
       alt: slide.alt || "",
+      link: slide.link || "/news",
       order: slide.order || 0,
       isActive: slide.isActive !== undefined ? slide.isActive : true,
     });
@@ -145,6 +148,7 @@ const AdminHero = () => {
       category: "",
       buttonText: "Read More",
       alt: "",
+      link: "/news",
       order: 0,
       isActive: true,
     });
@@ -228,6 +232,7 @@ const AdminHero = () => {
     newSlides[index] = newSlides[newIndex];
     newSlides[newIndex] = temp;
 
+    // Update order values
     const orderMap = newSlides.map((slide, idx) => ({
       id: slide._id,
       order: idx,
@@ -433,6 +438,18 @@ const AdminHero = () => {
                     rows="3"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm resize-none"
                     placeholder="Brief description for the slide..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Link (slug or URL)</label>
+                  <input
+                    type="text"
+                    name="link"
+                    value={formData.link}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                    placeholder="/news/my-post"
                   />
                 </div>
 
