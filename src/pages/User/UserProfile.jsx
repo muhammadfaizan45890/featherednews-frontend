@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import API from "../../utils/api";
 import { getData } from "@/context/userContext";
 import { toast } from "sonner";
 import {
@@ -40,19 +39,13 @@ import {
 import { FaXTwitter } from "react-icons/fa6";
 
 /* ────────────────────────────────────────────────────────────
-   Design notes
-   A profile page for a writing/publishing product should read
-   like a masthead & byline, not a settings screen. This pass
-   pairs a serif display face (Newsreader) for names & headings
-   with Inter for body copy and IBM Plex Mono for labels, meta,
-   and numerals — the classic "editorial data" contrast. Layout
-   moves to a sticky bio sidebar + tabbed main column so the
-   page can hold real content (posts / activity) later without
-   another redesign. Accent stays the app's existing black/white
-   ink so it doesn't fight the rest of the product.
+   Profile page with a clean white background.
+   Removed cover image; avatar and name are now flush.
    ──────────────────────────────────────────────────────────── */
 
 // ─── Helpers ───────────────────────────────────────────
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 const stringToColor = (str) => {
   if (!str) return "hsl(220, 70%, 45%)";
   let hash = 0;
@@ -68,9 +61,9 @@ const getAvatarUrl = (avatarPath) => {
   if (avatarPath.startsWith("http://") || avatarPath.startsWith("https://")) {
     return avatarPath;
   }
-  const base = API ? API.replace(/\/+$/, "") : "";
+  const base = API_BASE_URL.replace(/\/+$/, "");
   const path = avatarPath.replace(/^\/+/, "");
-  return base ? `${base}/${path}` : null;
+  return `${base}/${path}`;
 };
 
 // ─── Global type/keyframe injection ───────────────────
@@ -110,13 +103,12 @@ const EditorialStyles = () => (
 
 // ─── Skeleton ──────────────────────────────────────────
 const SkeletonProfile = () => (
-  <div className="min-h-screen bg-[#FAFAF8] dark:bg-[#0B0D10] px-3 sm:px-4 md:px-6">
+  <div className="min-h-screen bg-white dark:bg-[#0B0D10] px-3 sm:px-4 md:px-6">
     <EditorialStyles />
     <div className="max-w-6xl mx-auto pt-4 sm:pt-10 md:pt-14">
-      <div className="h-20 sm:h-32 md:h-44 lg:h-52 rounded-2xl shimmer" />
-      <div className="px-2 sm:px-4 -mt-8 sm:-mt-12 flex items-end gap-4">
-        <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-[#FAFAF8] dark:border-[#0B0D10] shimmer" />
-        <div className="flex-1 pb-2 space-y-2">
+      <div className="flex items-start gap-4">
+        <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white dark:border-[#0B0D10] shimmer" />
+        <div className="flex-1 space-y-2">
           <div className="h-5 sm:h-7 w-40 sm:w-56 rounded shimmer" />
           <div className="h-3 sm:h-4 w-24 sm:w-32 rounded shimmer" />
         </div>
@@ -162,7 +154,7 @@ const EditableField = ({ icon: Icon, label, value, name, onChange, isEditing, ty
   </div>
 );
 
-// ─── Social Icon (Cubic Form) ─────────────────────────
+// ─── Social Icon ──────────────────────────────────────
 const SocialCube = ({ icon: Icon, href, label, color }) => {
   if (!href) return null;
   return (
@@ -269,7 +261,7 @@ const UserProfile = () => {
       setLoading(true);
       const token = localStorage.getItem("accessToken");
       if (token) {
-        const res = await axios.get(`${API}/user/profile`, {
+        const res = await axios.get(`${API_BASE_URL}/user/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const userData = res.data.data;
@@ -284,7 +276,8 @@ const UserProfile = () => {
         }
       }
 
-      const res2 = await axios.get(`${API}/admin/users`);
+      // Fallback: fetch all users (admin) – not ideal but kept as is
+      const res2 = await axios.get(`${API_BASE_URL}/admin/users`);
       const found = res2.data.find((u) => u._id === userId);
       if (found) {
         setUserState(found);
@@ -343,7 +336,7 @@ const UserProfile = () => {
         formDataToSend.append("avatar", avatarFile);
       }
 
-      const res = await axios.put(`${API}/user/profile`, formDataToSend, {
+      const res = await axios.put(`${API_BASE_URL}/user/profile`, formDataToSend, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -378,7 +371,7 @@ const UserProfile = () => {
       const token = localStorage.getItem("accessToken");
       if (token) {
         await axios.post(
-          `${API}/user/logout`,
+          `${API_BASE_URL}/user/logout`,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -411,7 +404,7 @@ const UserProfile = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#FAFAF8] p-5 dark:bg-[#0B0D10] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-white dark:bg-[#0B0D10] p-5 flex items-center justify-center px-4">
         <EditorialStyles />
         <div className="text-center rise-in">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-3 sm:mb-4">
@@ -432,139 +425,132 @@ const UserProfile = () => {
 
   // ─── Render ─────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#FAFAF8] dark:bg-[#0B0D10] pb-16 sm:pb-20">
+    <div className="min-h-screen bg-white dark:bg-[#0B0D10] pb-16 sm:pb-20">
       <EditorialStyles />
       <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 pt-4 sm:pt-10 md:pt-14">
 
-        {/* ─── Masthead / Cover ────────────────────────── */}
-        <div className="relative rise-in">
-          <div className="h-20 sm:h-32 md:h-44 lg:h-52 rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900">
-            {/* subtle overlay can go here if needed */}
-          </div>
-
-          <div className="relative px-2 sm:px-4 -mt-8 sm:-mt-12 flex flex-wrap items-end gap-3 sm:gap-5 md:gap-6">
-            <div className="relative group flex-shrink-0">
-              <div
-                className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 border-[#FAFAF8] dark:border-[#0B0D10] shadow-lg overflow-hidden flex items-center justify-center bg-white dark:bg-black transition-shadow duration-300 group-hover:shadow-xl"
-                style={{ backgroundColor: avatarUrl ? undefined : avatarColor }}
-              >
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <User size={34} className="sm:w-10 sm:h-10 md:w-12 md:h-12 text-white" />
-                )}
-              </div>
-              {isEditing && (
-                <>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="ink-focus absolute bottom-0 right-0 sm:bottom-1 sm:right-1 bg-black dark:bg-white text-white dark:text-black rounded-full p-1.5 sm:p-2 shadow-lg hover:scale-110 transition duration-300"
-                    aria-label="Change avatar"
-                  >
-                    <Camera size={13} className="sm:w-4 sm:h-4" />
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleAvatarChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                </>
-              )}
-            </div>
-
-            {/* Name & byline */}
-            <div className="flex-1 min-w-[160px] pb-2 sm:pb-3">
-              {isEditing ? (
-                <input
-                  name="fullname"
-                  value={formData.fullname}
-                  onChange={handleInputChange}
-                  className="ink-focus font-display text-xl sm:text-2xl md:text-3xl font-semibold bg-transparent border-b-2 border-zinc-300 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none w-full text-zinc-900 dark:text-white transition"
-                  placeholder="Full name"
-                />
+        {/* ─── Header: Avatar + name + actions ────────── */}
+        <div className="relative rise-in flex flex-wrap items-start gap-4 sm:gap-6">
+          <div className="relative group flex-shrink-0">
+            <div
+              className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 border-white dark:border-[#0B0D10] shadow-lg overflow-hidden flex items-center justify-center bg-white dark:bg-black transition-shadow duration-300 group-hover:shadow-xl"
+              style={{ backgroundColor: avatarUrl ? undefined : avatarColor }}
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
               ) : (
-                <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-semibold text-zinc-900 dark:text-white truncate">
-                  {user.fullname || user.username}
-                </h1>
+                <User size={34} className="sm:w-10 sm:h-10 md:w-12 md:h-12 text-white" />
               )}
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 font-meta text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">
-                <span>@{user.username}</span>
-                {user.location && (
-                  <>
-                    <span className="text-zinc-300 dark:text-zinc-700">·</span>
-                    <span className="flex items-center gap-1"><MapPin size={11} />{user.location}</span>
-                  </>
-                )}
-                <span className="text-zinc-300 dark:text-zinc-700">·</span>
-                <span className="flex items-center gap-1"><Calendar size={11} />Joined {memberSince}</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                {user.role && (
-                  <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-semibold font-meta bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded-full uppercase tracking-wide">
-                    <Award size={10} />
-                    {user.role}
-                  </span>
-                )}
-                {user.isVerified && (
-                  <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-semibold font-meta bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full uppercase tracking-wide">
-                    <CheckCircle2 size={10} />
-                    Verified
-                  </span>
-                )}
-              </div>
             </div>
-
-            {/* Edit/Save buttons */}
-            <div className="flex flex-wrap gap-2 pb-2 sm:pb-3">
-              {!isEditing ? (
+            {isEditing && (
+              <>
                 <button
-                  onClick={() => setIsEditing(true)}
-                  className="ink-focus flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-xl text-xs sm:text-sm font-semibold hover:opacity-90 transition shadow-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="ink-focus absolute bottom-0 right-0 sm:bottom-1 sm:right-1 bg-black dark:bg-white text-white dark:text-black rounded-full p-1.5 sm:p-2 shadow-lg hover:scale-110 transition duration-300"
+                  aria-label="Change avatar"
                 >
-                  <Edit2 size={14} className="sm:w-4 sm:h-4" />
-                  Edit profile
+                  <Camera size={13} className="sm:w-4 sm:h-4" />
                 </button>
-              ) : (
-                <>
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="ink-focus flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-xl text-xs sm:text-sm font-semibold hover:opacity-90 transition disabled:opacity-60 shadow-sm"
-                  >
-                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                    Save
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    className="ink-focus flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl text-xs sm:text-sm font-semibold hover:bg-zinc-300 dark:hover:bg-zinc-700 transition"
-                  >
-                    <X size={14} />
-                    Cancel
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* ─── Follow us social bar ────────────────── */}
-          <div className="relative px-2 sm:px-4 mt-2 sm:mt-3 flex flex-wrap items-center gap-3 sm:gap-4">
-            <span className="font-meta text-[10px] sm:text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-              <Feather size={12} className="sm:w-3.5 sm:h-3.5" />
-              Follow us
-            </span>
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-              <SocialCube icon={FaXTwitter} href={user.twitter} label="Twitter / X" color="hover:bg-black" />
-              <SocialCube icon={FaFacebookF} href={user.facebook} label="Facebook" color="hover:bg-blue-600" />
-              <SocialCube icon={FaInstagram} href={user.instagram} label="Instagram" color="hover:bg-pink-600" />
-              <SocialCube icon={FaYoutube} href={user.youtube} label="YouTube" color="hover:bg-red-600" />
-              <SocialCube icon={FaLinkedinIn} href={user.linkedin} label="LinkedIn" color="hover:bg-blue-700" />
-            </div>
-            {!hasSocials && !isEditing && (
-              <span className="text-xs sm:text-sm text-zinc-400 dark:text-zinc-500 italic">No links added yet.</span>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleAvatarChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+              </>
             )}
           </div>
+
+          <div className="flex-1 min-w-[160px]">
+            {isEditing ? (
+              <input
+                name="fullname"
+                value={formData.fullname}
+                onChange={handleInputChange}
+                className="ink-focus font-display text-xl sm:text-2xl md:text-3xl font-semibold bg-transparent border-b-2 border-zinc-300 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none w-full text-zinc-900 dark:text-white transition"
+                placeholder="Full name"
+              />
+            ) : (
+              <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-semibold text-zinc-900 dark:text-white truncate">
+                {user.fullname || user.username}
+              </h1>
+            )}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 font-meta text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">
+              <span>@{user.username}</span>
+              {user.location && (
+                <>
+                  <span className="text-zinc-300 dark:text-zinc-700">·</span>
+                  <span className="flex items-center gap-1"><MapPin size={11} />{user.location}</span>
+                </>
+              )}
+              <span className="text-zinc-300 dark:text-zinc-700">·</span>
+              <span className="flex items-center gap-1"><Calendar size={11} />Joined {memberSince}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              {user.role && (
+                <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-semibold font-meta bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                  <Award size={10} />
+                  {user.role}
+                </span>
+              )}
+              {user.isVerified && (
+                <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-semibold font-meta bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                  <CheckCircle2 size={10} />
+                  Verified
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Edit/Save buttons */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            {!isEditing ? (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="ink-focus flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-xl text-xs sm:text-sm font-semibold hover:opacity-90 transition shadow-sm"
+              >
+                <Edit2 size={14} className="sm:w-4 sm:h-4" />
+                Edit profile
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="ink-focus flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-xl text-xs sm:text-sm font-semibold hover:opacity-90 transition disabled:opacity-60 shadow-sm"
+                >
+                  {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Save
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="ink-focus flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl text-xs sm:text-sm font-semibold hover:bg-zinc-300 dark:hover:bg-zinc-700 transition"
+                >
+                  <X size={14} />
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ─── Social bar ──────────────────────────────── */}
+        <div className="mt-4 flex flex-wrap items-center gap-3 sm:gap-4">
+          <span className="font-meta text-[10px] sm:text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+            <Feather size={12} className="sm:w-3.5 sm:h-3.5" />
+            Follow us
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <SocialCube icon={FaXTwitter} href={user.twitter} label="Twitter / X" color="hover:bg-black" />
+            <SocialCube icon={FaFacebookF} href={user.facebook} label="Facebook" color="hover:bg-blue-600" />
+            <SocialCube icon={FaInstagram} href={user.instagram} label="Instagram" color="hover:bg-pink-600" />
+            <SocialCube icon={FaYoutube} href={user.youtube} label="YouTube" color="hover:bg-red-600" />
+            <SocialCube icon={FaLinkedinIn} href={user.linkedin} label="LinkedIn" color="hover:bg-blue-700" />
+          </div>
+          {!hasSocials && !isEditing && (
+            <span className="text-xs sm:text-sm text-zinc-400 dark:text-zinc-500 italic">No links added yet.</span>
+          )}
         </div>
 
         {/* ─── Body: sidebar + tabbed content ──────────── */}
@@ -663,8 +649,10 @@ const UserProfile = () => {
               </div>
             )}
           </main>
+        </div>
 
-          {/* Logout */}
+        {/* Logout (moved below content for better placement) */}
+        <div className="mt-6 sm:mt-8">
           <button
             onClick={handleLogout}
             className="ink-focus w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition font-medium text-sm"
