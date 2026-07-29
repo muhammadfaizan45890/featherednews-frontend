@@ -93,6 +93,11 @@ const AdminSidebar = () => {
       icon: <Globe size={20} />, // ✅ changed from FaEarthAsia to Globe
       path: "/admin/admin-featured"
     },
+            {
+      title: "Audio",
+      icon: <Music size={20} />,
+      path: "/admin/admin-audio"
+    },
   ];
 
   const logoutHandler = () => {
