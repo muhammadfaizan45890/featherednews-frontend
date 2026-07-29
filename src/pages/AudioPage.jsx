@@ -1,11 +1,46 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import API from '../utils/api';
-import { FiClock, FiCalendar, FiUser, FiPlay, FiPause, FiHeadphones } from 'react-icons/fi';
+import { FiClock, FiCalendar, FiUser, FiPlay, FiPause, FiHeadphones, FiSearch, FiX, FiLoader } from 'react-icons/fi';
 import DOMPurify from 'dompurify';
 
 const api = axios.create({ baseURL: API, headers: { 'Content-Type': 'application/json' } });
+
+// ─── Helpers ────────────────────────────────────────────────
+// Pulls a playable media URL out of the sanitized embed markup so we can
+// drive our own custom controls instead of relying on the native
+// <audio>/<video> control bar (play button, scrubber, volume, etc.).
+const extractMediaSrc = (embedCode) => {
+  if (!embedCode) return null;
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(embedCode, 'text/html');
+    const media = doc.querySelector('audio, video');
+    if (media) {
+      const directSrc = media.getAttribute('src');
+      if (directSrc) return { type: 'media', src: directSrc };
+      const source = media.querySelector('source');
+      if (source && source.getAttribute('src')) {
+        return { type: 'media', src: source.getAttribute('src') };
+      }
+    }
+    const iframe = doc.querySelector('iframe');
+    if (iframe && iframe.getAttribute('src')) {
+      return { type: 'iframe', src: iframe.getAttribute('src'), raw: embedCode };
+    }
+  } catch (e) {
+    console.error('Failed to parse embed code:', e);
+  }
+  return null;
+};
+
+const formatTime = (seconds) => {
+  if (!seconds || Number.isNaN(seconds) || !Number.isFinite(seconds)) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
 
 // ─── Skeleton Card ──────────────────────────────────────────
 const SkeletonCard = () => (
@@ -24,26 +59,149 @@ const SkeletonCard = () => (
   </div>
 );
 
+// ─── Custom Play / Pause Button ─────────────────────────────
+// Circular button with a thin progress ring (not a horizontal bar),
+// fully responsive, and no focus outline.
+const CirclePlayButton = ({ isPlaying, isLoading, progress, onClick }) => {
+  const size = 56; // px, base size (scales via sm: classes on wrapper)
+  const stroke = 3;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - (progress || 0));
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={isPlaying ? 'Pause' : 'Play'}
+      className="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full
+                 bg-black dark:bg-white text-white dark:text-black shadow-lg
+                 transition-transform duration-200 ease-out
+                 hover:scale-105 active:scale-95
+                 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0"
+      style={{ WebkitTapHighlightColor: 'transparent' }}
+    >
+      <svg
+        className="absolute inset-0 w-full h-full -rotate-90"
+        viewBox={`0 0 ${size} ${size}`}
+      >
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          strokeWidth={stroke}
+          className="stroke-gray-300 dark:stroke-zinc-600"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          className="stroke-red-500 transition-[stroke-dashoffset] duration-150 ease-linear"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+        />
+      </svg>
+
+      <span className="relative z-10 flex items-center justify-center">
+        {isLoading ? (
+          <FiLoader className="animate-spin" size={20} />
+        ) : isPlaying ? (
+          <FiPause size={20} />
+        ) : (
+          <FiPlay size={20} className="ml-0.5" />
+        )}
+      </span>
+    </button>
+  );
+};
+
 // ─── Individual Audio Card ──────────────────────────────────
 const AudioCard = ({ audio }) => {
   const [showPlayer, setShowPlayer] = useState(false);
-  const [playerLoading, setPlayerLoading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef(null);
 
-  const handleListenClick = () => {
-    if (!showPlayer) {
-      setPlayerLoading(true);
-      // Simulate iframe load (actual load happens via React re-render)
-      setTimeout(() => setPlayerLoading(false), 600);
-      setShowPlayer(true);
-    } else {
+  const media = useMemo(() => extractMediaSrc(audio.embedCode), [audio.embedCode]);
+
+  const sanitizedIframe = useMemo(() => {
+    if (media?.type !== 'iframe') return null;
+    return DOMPurify.sanitize(media.raw, {
+      ADD_TAGS: ['iframe'],
+      ADD_ATTR: ['src', 'allow', 'allowtransparency', 'allowfullscreen', 'loading', 'style', 'width', 'height', 'frameborder'],
+    });
+  }, [media]);
+
+  const togglePlayer = () => {
+    if (showPlayer) {
+      const el = audioRef.current;
+      if (el) {
+        el.pause();
+        el.currentTime = 0;
+      }
+      setIsPlaying(false);
       setShowPlayer(false);
+    } else {
+      setIsLoading(true);
+      setShowPlayer(true);
     }
   };
 
-  const sanitizedEmbed = DOMPurify.sanitize(audio.embedCode, {
-    ADD_TAGS: ['iframe'],
-    ADD_ATTR: ['src', 'allow', 'allowtransparency', 'allowfullscreen', 'loading', 'style', 'width', 'height', 'frameborder'],
-  });
+  const togglePlayPause = () => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (isPlaying) {
+      el.pause();
+    } else {
+      const playPromise = el.play();
+      if (playPromise) playPromise.catch(() => setIsLoading(false));
+    }
+  };
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el || media?.type !== 'media') return;
+
+    const onLoadedMeta = () => {
+      setDuration(el.duration || 0);
+      setIsLoading(false);
+    };
+    const onTimeUpdate = () => setCurrentTime(el.currentTime || 0);
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onWaiting = () => setIsLoading(true);
+    const onCanPlay = () => setIsLoading(false);
+    const onEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    el.addEventListener('loadedmetadata', onLoadedMeta);
+    el.addEventListener('timeupdate', onTimeUpdate);
+    el.addEventListener('play', onPlay);
+    el.addEventListener('pause', onPause);
+    el.addEventListener('waiting', onWaiting);
+    el.addEventListener('canplay', onCanPlay);
+    el.addEventListener('ended', onEnded);
+
+    return () => {
+      el.removeEventListener('loadedmetadata', onLoadedMeta);
+      el.removeEventListener('timeupdate', onTimeUpdate);
+      el.removeEventListener('play', onPlay);
+      el.removeEventListener('pause', onPause);
+      el.removeEventListener('waiting', onWaiting);
+      el.removeEventListener('canplay', onCanPlay);
+      el.removeEventListener('ended', onEnded);
+    };
+  }, [showPlayer, media]);
+
+  const progress = duration > 0 ? currentTime / duration : 0;
 
   return (
     <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
@@ -86,36 +244,96 @@ const AudioCard = ({ audio }) => {
         <div className="mt-3">
           {!showPlayer ? (
             <button
-              onClick={handleListenClick}
-              className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors text-sm font-medium"
+              onClick={togglePlayer}
+              className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors text-sm font-medium outline-none focus:outline-none focus-visible:outline-none"
             >
               <FiPlay size={16} /> Listen Now
             </button>
-          ) : (
-            <div className="relative">
-              {playerLoading ? (
-                <div className="flex items-center justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-black dark:border-white border-t-transparent" />
-                </div>
-              ) : (
-                <div
-                  className="audio-embed-container"
-                  dangerouslySetInnerHTML={{ __html: sanitizedEmbed }}
-                />
-              )}
+          ) : media?.type === 'media' ? (
+            <div className="flex items-center gap-4 py-1">
+              {/* Hidden native element — audio only, no visible controls */}
+              <audio ref={audioRef} src={media.src} preload="metadata" className="hidden" />
+
+              <CirclePlayButton
+                isPlaying={isPlaying}
+                isLoading={isLoading}
+                progress={progress}
+                onClick={togglePlayPause}
+              />
+
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                  {isPlaying ? 'Now playing' : isLoading ? 'Loading…' : 'Paused'}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </p>
+              </div>
+
               <button
-                onClick={handleListenClick}
-                className="mt-2 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1"
+                onClick={togglePlayer}
+                aria-label="Stop and close player"
+                className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full
+                           text-gray-400 hover:text-gray-700 dark:hover:text-gray-200
+                           hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors
+                           outline-none focus:outline-none focus-visible:outline-none"
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+          ) : media?.type === 'iframe' ? (
+            <div className="relative">
+              <div
+                className="audio-embed-container"
+                dangerouslySetInnerHTML={{ __html: sanitizedIframe }}
+              />
+              <button
+                onClick={togglePlayer}
+                className="mt-2 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1 outline-none focus:outline-none focus-visible:outline-none"
               >
                 <FiPause size={12} /> Hide player
               </button>
             </div>
+          ) : (
+            <p className="text-xs text-red-500">Unable to load audio.</p>
           )}
         </div>
       </div>
     </div>
   );
 };
+
+// ─── Search Bar ──────────────────────────────────────────────
+const SearchBar = ({ value, onChange }) => (
+  <div className="relative w-full sm:max-w-md">
+    <FiSearch
+      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+      size={18}
+    />
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="Search episodes, authors, topics…"
+      className="w-full pl-10 pr-9 py-2.5 rounded-full border border-gray-200 dark:border-zinc-700
+                 bg-white dark:bg-zinc-800 text-sm text-black dark:text-white
+                 placeholder-gray-400 dark:placeholder-gray-500
+                 transition-colors duration-200
+                 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0"
+    />
+    {value && (
+      <button
+        type="button"
+        onClick={() => onChange('')}
+        aria-label="Clear search"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600
+                   dark:hover:text-gray-200 outline-none focus:outline-none focus-visible:outline-none"
+      >
+        <FiX size={16} />
+      </button>
+    )}
+  </div>
+);
 
 // ─── Main Component ─────────────────────────────────────────
 const AudioPage = () => {
@@ -124,6 +342,7 @@ const AudioPage = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
 
   const fetchAudio = useCallback(async (pageNum = 1) => {
     setLoading(true);
@@ -148,6 +367,16 @@ const AudioPage = () => {
     fetchAudio(page);
   }, [page, fetchAudio]);
 
+  const filteredAudioList = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return audioList;
+    return audioList.filter((a) =>
+      [a.title, a.description, a.author]
+        .filter(Boolean)
+        .some((field) => field.toLowerCase().includes(q))
+    );
+  }, [audioList, search]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-zinc-900 dark:to-zinc-800 py-8 sm:py-12 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
@@ -165,6 +394,10 @@ const AudioPage = () => {
           <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm sm:text-base">
             Explore our latest episodes and audio content – press play and immerse yourself.
           </p>
+
+          <div className="mt-5">
+            <SearchBar value={search} onChange={setSearch} />
+          </div>
         </div>
 
         {/* Content */}
@@ -179,7 +412,7 @@ const AudioPage = () => {
             <p className="text-red-500 dark:text-red-400">{error}</p>
             <button
               onClick={() => fetchAudio(page)}
-              className="mt-4 px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg"
+              className="mt-4 px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg outline-none focus:outline-none focus-visible:outline-none"
             >
               Retry
             </button>
@@ -190,21 +423,27 @@ const AudioPage = () => {
             <p className="text-xl text-gray-500 dark:text-gray-400">No audio content yet.</p>
             <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Check back soon for new episodes.</p>
           </div>
+        ) : filteredAudioList.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">🔍</div>
+            <p className="text-xl text-gray-500 dark:text-gray-400">No results for "{search}".</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Try a different search term.</p>
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-              {audioList.map((audio) => (
+              {filteredAudioList.map((audio) => (
                 <AudioCard key={audio._id} audio={audio} />
               ))}
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {totalPages > 1 && !search && (
               <div className="flex flex-wrap items-center justify-center gap-2 mt-8 sm:mt-10">
                 <button
                   onClick={() => setPage((p) => Math.max(p - 1, 1))}
                   disabled={page === 1}
-                  className="px-4 py-2 border rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-sm"
+                  className="px-4 py-2 border rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none"
                 >
                   Previous
                 </button>
@@ -214,7 +453,7 @@ const AudioPage = () => {
                 <button
                   onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                   disabled={page === totalPages}
-                  className="px-4 py-2 border rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-sm"
+                  className="px-4 py-2 border rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none"
                 >
                   Next
                 </button>
@@ -236,6 +475,14 @@ const AudioPage = () => {
           .audio-embed-container iframe {
             height: 120px;
           }
+        }
+        /* Remove focus outline app-wide within this page */
+        button:focus,
+        input:focus,
+        button:focus-visible,
+        input:focus-visible {
+          outline: none;
+          box-shadow: none;
         }
       `}</style>
     </div>
