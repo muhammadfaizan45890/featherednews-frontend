@@ -28,7 +28,8 @@ import {
   MousePointerSquareDashed,
   MessagesSquare,
   AlignEndVertical,
-  Globe, // ✅ use Globe from lucide-react instead of FaEarthAsia
+  Globe,
+  Music,// ✅ use Globe from lucide-react instead of FaEarthAsia
 } from "lucide-react";
 
 // If you prefer react-icons/fa6, uncomment this and remove Globe above:
