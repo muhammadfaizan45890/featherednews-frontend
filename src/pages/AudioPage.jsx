@@ -31,7 +31,7 @@ const extractMediaSrc = (embedCode) => {
   return null;
 };
 
-// ─── Skeleton Card ──────────────────────────────────────────
+// ─── Skeleton Card (sharp corners) ──────────────────────────
 const SkeletonCard = () => (
   <div className="animate-pulse bg-white dark:bg-zinc-800 shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700">
     <div className="w-full h-48 bg-gray-300 dark:bg-zinc-600" />
@@ -82,7 +82,7 @@ const ListenButton = ({ isPlaying, isLoading, onClick }) => (
   </button>
 );
 
-// ─── Individual Audio Card ──────────────────────────────────
+// ─── Individual Audio Card (sharp corners) ─────────────────
 const AudioCard = ({ audio }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -206,7 +206,7 @@ const AudioCard = ({ audio }) => {
   );
 };
 
-// ─── Search Bar ──────────────────────────────────────────────
+// ─── Search Bar (rounded) ──────────────────────────────────
 const SearchBar = ({ value, onChange }) => (
   <div className="relative w-full sm:max-w-md">
     <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
@@ -215,7 +215,7 @@ const SearchBar = ({ value, onChange }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder="Search episodes, authors, topics…"
-      className="w-full pl-10 pr-9 py-2.5 border border-gray-200 dark:border-zinc-700
+      className="w-full pl-10 pr-9 py-2.5 rounded-full border border-gray-200 dark:border-zinc-700
                  bg-white dark:bg-zinc-800 text-sm text-black dark:text-white
                  placeholder-gray-400 dark:placeholder-gray-500
                  transition-colors duration-200
@@ -283,7 +283,7 @@ const AudioPage = () => {
         {/* Header */}
         <div className="mb-8 sm:mb-10">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-black dark:bg-white">
+            <div className="p-2 bg-black dark:bg-white rounded-lg">
               <FiHeadphones className="text-white dark:text-black" size={24} />
             </div>
             <span className="text-xs font-bold uppercase tracking-[4px] text-red-500">Listen</span>
@@ -312,7 +312,7 @@ const AudioPage = () => {
             <p className="text-red-500 dark:text-red-400">{error}</p>
             <button
               onClick={() => fetchAudio(page)}
-              className="mt-4 px-6 py-2 bg-black dark:bg-white text-white dark:text-black outline-none focus:outline-none focus-visible:outline-none"
+              className="mt-4 px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg outline-none focus:outline-none focus-visible:outline-none"
             >
               Retry
             </button>
@@ -343,7 +343,7 @@ const AudioPage = () => {
                 <button
                   onClick={() => setPage((p) => Math.max(p - 1, 1))}
                   disabled={page === 1}
-                  className="px-4 py-2 border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none"
+                  className="px-4 py-2 border rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none"
                 >
                   Previous
                 </button>
@@ -353,7 +353,7 @@ const AudioPage = () => {
                 <button
                   onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                   disabled={page === totalPages}
-                  className="px-4 py-2 border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none"
+                  className="px-4 py-2 border rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none"
                 >
                   Next
                 </button>
