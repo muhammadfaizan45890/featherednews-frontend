@@ -8,9 +8,6 @@ import DOMPurify from 'dompurify';
 const api = axios.create({ baseURL: API, headers: { 'Content-Type': 'application/json' } });
 
 // ─── Helpers ────────────────────────────────────────────────
-// Pulls a playable media URL out of the sanitized embed markup so we can
-// drive our own custom controls instead of relying on the native
-// <audio>/<video> control bar (play button, scrubber, volume, etc.).
 const extractMediaSrc = (embedCode) => {
   if (!embedCode) return null;
   try {
@@ -35,13 +32,6 @@ const extractMediaSrc = (embedCode) => {
   return null;
 };
 
-const formatTime = (seconds) => {
-  if (!seconds || Number.isNaN(seconds) || !Number.isFinite(seconds)) return '0:00';
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-};
-
 // ─── Skeleton Card ──────────────────────────────────────────
 const SkeletonCard = () => (
   <div className="animate-pulse bg-white dark:bg-zinc-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700">
@@ -60,8 +50,6 @@ const SkeletonCard = () => (
 );
 
 // ─── Listen / Pause Toggle Button ───────────────────────────
-// Single advanced button: animated icon swap, subtle playing pulse,
-// loading state — no progress bar, no extra controls.
 const ListenButton = ({ isPlaying, isLoading, onClick }) => (
   <button
     type="button"
@@ -99,7 +87,7 @@ const ListenButton = ({ isPlaying, isLoading, onClick }) => (
 const AudioCard = ({ audio }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [iframeVisible, setIframeVisible] = useState(false);
+  const [iframeVisible, setIframeVisible] = useState(false);   // ✅ CORRECTED
   const audioRef = useRef(null);
 
   const media = useMemo(() => extractMediaSrc(audio.embedCode), [audio.embedCode]);
@@ -195,58 +183,21 @@ const AudioCard = ({ audio }) => {
         </div>
 
         <div className="mt-3">
-          {!showPlayer ? (
-            <button
-              onClick={togglePlayer}
-              className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors text-sm font-medium outline-none focus:outline-none focus-visible:outline-none"
-            >
-              <FiPlay size={16} /> Listen Now
-            </button>
-          ) : media?.type === 'media' ? (
-            <div className="flex items-center gap-4 py-1">
-              {/* Hidden native element — audio only, no visible controls */}
-              <audio ref={audioRef} src={media.src} preload="metadata" className="hidden" />
-
-              <CirclePlayButton
-                isPlaying={isPlaying}
-                isLoading={isLoading}
-                progress={progress}
-                onClick={togglePlayPause}
-              />
-
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
-                  {isPlaying ? 'Now playing' : isLoading ? 'Loading…' : 'Paused'}
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </p>
-              </div>
-
-              <button
-                onClick={togglePlayer}
-                aria-label="Stop and close player"
-                className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full
-                           text-gray-400 hover:text-gray-700 dark:hover:text-gray-200
-                           hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors
-                           outline-none focus:outline-none focus-visible:outline-none"
-              >
-                <FiX size={16} />
-              </button>
-            </div>
+          {media?.type === 'media' ? (
+            <>
+              <audio ref={audioRef} src={media.src} preload="none" className="hidden" />
+              <ListenButton isPlaying={isPlaying} isLoading={isLoading} onClick={handleToggle} />
+            </>
           ) : media?.type === 'iframe' ? (
-            <div className="relative">
-              <div
-                className="audio-embed-container"
-                dangerouslySetInnerHTML={{ __html: sanitizedIframe }}
-              />
-              <button
-                onClick={togglePlayer}
-                className="mt-2 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1 outline-none focus:outline-none focus-visible:outline-none"
-              >
-                <FiPause size={12} /> Hide player
-              </button>
-            </div>
+            <>
+              <ListenButton isPlaying={iframeVisible} isLoading={false} onClick={handleToggle} />
+              {iframeVisible && (
+                <div
+                  className="audio-embed-container mt-2"
+                  dangerouslySetInnerHTML={{ __html: sanitizedIframe }}
+                />
+              )}
+            </>
           ) : (
             <p className="text-xs text-red-500">Unable to load audio.</p>
           )}
@@ -331,7 +282,7 @@ const AudioPage = () => {
   }, [audioList, search]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-zinc-900 dark:to-zinc-800 py-8 sm:py-12 px-4 sm:px-6">
+    <div className="min-h-screen bg-white dark:bg-zinc-900 py-8 sm:py-12 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8 sm:mb-10">
