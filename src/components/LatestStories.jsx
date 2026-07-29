@@ -315,7 +315,7 @@ const api = getApiInstance();
 
 const FALLBACK_IMG = "https://via.placeholder.com/500x500/111111/FFFFFF?text=No+Image";
 
-// ─── Helper: relative time, falls back to date ──────
+// ─── Helper: relative time ──────────────────────────
 const timeAgo = (dateStr) => {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return "";
@@ -334,7 +334,15 @@ const timeAgo = (dateStr) => {
   return "just now";
 };
 
-// ─── Skeleton block for the news grid ───────────────
+// ─── Check if post is less than 24h old ─────────────
+const isNew = (dateStr) => {
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return false;
+  const diff = Date.now() - date.getTime();
+  return diff < 24 * 60 * 60 * 1000;
+};
+
+// ─── Skeleton block ──────────────────────────────────
 const CardSkeleton = () => (
   <div
     className="relative bg-gray-200 overflow-hidden animate-pulse"
@@ -344,7 +352,6 @@ const CardSkeleton = () => (
   </div>
 );
 
-// ─── Skeleton row for trending list (no image) ─────────
 const TrendingSkeleton = () => (
   <div className="flex items-start gap-2 p-1.5 animate-pulse">
     <div className="w-4 sm:w-5 h-3 bg-gray-200 rounded flex-shrink-0" />
@@ -354,6 +361,29 @@ const TrendingSkeleton = () => (
     </div>
   </div>
 );
+
+// ─── Scroll to Top Button ─────────────────────────────
+const ScrollToTop = () => {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setVisible(window.scrollY > 600);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      className="fixed bottom-6 right-6 z-50 p-3 bg-black text-white rounded-full shadow-lg hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+      aria-label="Scroll to top"
+    >
+      ↑
+    </button>
+  );
+};
 
 const LatestStories = () => {
   const [posts, setPosts] = useState([]);
@@ -367,11 +397,8 @@ const LatestStories = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
 
-  // ─── Featured stories (for the trending sidebar) ──
   const [trendingPosts, setTrendingPosts] = useState([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
-
-  // ─── Broken image tracking (per post id) ────────────
   const [brokenImages, setBrokenImages] = useState(() => new Set());
 
   const abortRef = useRef(null);
@@ -386,7 +413,7 @@ const LatestStories = () => {
     hasMoreRef.current = hasMore;
   }, [hasMore]);
 
-  // ─── Fetch posts (main grid) ──────────────────────
+  // ─── Fetch posts ──────────────────────────────────────
   const fetchPosts = useCallback(
     async (pageNum = 1, append = false) => {
       if (abortRef.current) abortRef.current.abort();
@@ -442,7 +469,7 @@ const LatestStories = () => {
     [selectedCategory]
   );
 
-  // ─── Fetch featured stories (for the sidebar) ──────
+  // ─── Fetch featured ──────────────────────────────────
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
@@ -467,7 +494,7 @@ const LatestStories = () => {
     fetchFeatured();
   }, []);
 
-  // ─── Fallback: if featured fails, use posts when they load ──
+  // ─── Fallback for trending ──────────────────────────
   useEffect(() => {
     if (!featuredLoading && trendingPosts.length === 0 && posts.length > 0) {
       setTrendingPosts(posts.slice(0, 9));
@@ -495,7 +522,7 @@ const LatestStories = () => {
     });
   }, [fetchPosts]);
 
-  // ─── Infinite scroll via IntersectionObserver ───────
+  // ─── Infinite scroll ──────────────────────────────
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return undefined;
@@ -526,7 +553,6 @@ const LatestStories = () => {
     return post.images && post.images.length > 0 ? post.images[0] : FALLBACK_IMG;
   };
 
-  // ─── Render ──────────────────────────────────────────
   return (
     <section className="max-w-7xl mx-auto py-10 sm:py-16 md:py-20 px-3 sm:px-6">
       <style>{`
@@ -536,23 +562,31 @@ const LatestStories = () => {
         }
       `}</style>
 
-      {/* Heading */}
-      <div className="mb-8 sm:mb-12">
-        <p className="uppercase text-[oklch(0.637_0.237_25.331)] tracking-[3px] sm:tracking-[4px] text-xs sm:text-sm font-bold">
-          Browse &amp; Read
-        </p>
-        <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mt-1 sm:mt-2">
-          Latest Stories
-        </h2>
+      {/* ─── Enhanced Header ────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 sm:mb-10">
+        <div>
+          <p className="uppercase text-red-500 tracking-[3px] sm:tracking-[4px] text-xs sm:text-sm font-bold">
+            Browse &amp; Read
+          </p>
+          <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mt-1 sm:mt-2">
+            Latest Stories
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
+            Stay up to date with the most recent posts from our writers. 
+            Fresh perspectives, curated for you.
+          </p>
+        </div>
+        <Link
+          to="/news"
+          className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors hidden sm:inline-block mt-2 sm:mt-0"
+        >
+          View All →
+        </Link>
       </div>
 
-      {/* ─── Category Filters (wrapping, no scroll) ─── */}
+      {/* ─── Category Filters ────────────────────────── */}
       <div className="relative mb-6 -mx-3 px-3 sm:mx-0 sm:px-0">
-        <div
-          className="flex flex-wrap gap-2"
-          role="tablist"
-          aria-label="Filter stories by category"
-        >
+        <div className="flex flex-wrap gap-2" role="tablist">
           {categories.map((cat) => (
             <button
               key={cat}
@@ -614,6 +648,12 @@ const LatestStories = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
                     <div className="absolute inset-0 p-2 sm:p-3 md:p-4 flex flex-col justify-end text-white">
+                      {/* "New" badge for posts < 24h */}
+                      {isNew(post.createdAt) && (
+                        <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider bg-green-500 px-1.5 py-0.5 inline-block w-fit mb-1">
+                          New
+                        </span>
+                      )}
                       <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider bg-red-500 px-1.5 py-0.5 inline-block w-fit mb-1">
                         {post.category}
                       </span>
@@ -632,10 +672,9 @@ const LatestStories = () => {
                 ))}
               </div>
 
-              {/* Infinite-scroll sentinel */}
+              {/* Infinite‑scroll sentinel + load indicator */}
               <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />
 
-              {/* Loading indicator while fetching more */}
               {isLoadingMore && (
                 <div className="text-center mt-4">
                   <span className="inline-flex items-center gap-2 text-sm text-gray-600">
@@ -672,7 +711,7 @@ const LatestStories = () => {
           )}
         </div>
 
-        {/* ===== RIGHT SIDEBAR: TRENDING (no images) ===== */}
+        {/* ===== RIGHT SIDEBAR: TRENDING ===== */}
         <aside className="w-[34%] xs:w-[30%] min-w-[110px] sm:min-w-[160px] lg:w-[28%] xl:w-[25%] flex-shrink-0">
           <div className="bg-white overflow-hidden border border-gray-100 sticky top-4">
             <div className="px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-2 border-b border-gray-200">
@@ -718,6 +757,9 @@ const LatestStories = () => {
           </div>
         </aside>
       </div>
+
+      {/* ─── Scroll to Top ────────────────────────────── */}
+      <ScrollToTop />
     </section>
   );
 };
