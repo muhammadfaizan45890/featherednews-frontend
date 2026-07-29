@@ -33,17 +33,17 @@ const extractMediaSrc = (embedCode) => {
 
 // ─── Skeleton Card ──────────────────────────────────────────
 const SkeletonCard = () => (
-  <div className="animate-pulse bg-white dark:bg-zinc-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700">
+  <div className="animate-pulse bg-white dark:bg-zinc-800 shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700">
     <div className="w-full h-48 bg-gray-300 dark:bg-zinc-600" />
     <div className="p-4 space-y-3">
-      <div className="h-5 bg-gray-300 dark:bg-zinc-600 rounded w-3/4" />
-      <div className="h-4 bg-gray-300 dark:bg-zinc-600 rounded w-full" />
-      <div className="h-4 bg-gray-300 dark:bg-zinc-600 rounded w-2/3" />
+      <div className="h-5 bg-gray-300 dark:bg-zinc-600 w-3/4" />
+      <div className="h-4 bg-gray-300 dark:bg-zinc-600 w-full" />
+      <div className="h-4 bg-gray-300 dark:bg-zinc-600 w-2/3" />
       <div className="flex gap-3">
-        <div className="h-3 bg-gray-300 dark:bg-zinc-600 rounded w-16" />
-        <div className="h-3 bg-gray-300 dark:bg-zinc-600 rounded w-16" />
+        <div className="h-3 bg-gray-300 dark:bg-zinc-600 w-16" />
+        <div className="h-3 bg-gray-300 dark:bg-zinc-600 w-16" />
       </div>
-      <div className="h-10 bg-gray-300 dark:bg-zinc-600 rounded w-full" />
+      <div className="h-10 bg-gray-300 dark:bg-zinc-600 w-full" />
     </div>
   </div>
 );
@@ -55,7 +55,7 @@ const ListenButton = ({ isPlaying, isLoading, onClick }) => (
     onClick={onClick}
     disabled={isLoading}
     aria-label={isPlaying ? 'Pause' : 'Listen now'}
-    className={`relative w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg
+    className={`relative w-full flex items-center justify-center gap-2 py-2.5 px-4
                 text-sm font-medium overflow-hidden select-none
                 transition-colors duration-300 ease-out
                 active:scale-[0.98] transition-transform
@@ -144,7 +144,7 @@ const AudioCard = ({ audio }) => {
   }, [media]);
 
   return (
-    <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
+    <div className="bg-white dark:bg-zinc-800 shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
       {audio.coverImage && (
         <div className="relative w-full h-48 overflow-hidden">
           <img
@@ -215,7 +215,7 @@ const SearchBar = ({ value, onChange }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder="Search episodes, authors, topics…"
-      className="w-full pl-10 pr-9 py-2.5 rounded-full border border-gray-200 dark:border-zinc-700
+      className="w-full pl-10 pr-9 py-2.5 border border-gray-200 dark:border-zinc-700
                  bg-white dark:bg-zinc-800 text-sm text-black dark:text-white
                  placeholder-gray-400 dark:placeholder-gray-500
                  transition-colors duration-200
@@ -283,7 +283,7 @@ const AudioPage = () => {
         {/* Header */}
         <div className="mb-8 sm:mb-10">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-black dark:bg-white rounded-lg">
+            <div className="p-2 bg-black dark:bg-white">
               <FiHeadphones className="text-white dark:text-black" size={24} />
             </div>
             <span className="text-xs font-bold uppercase tracking-[4px] text-red-500">Listen</span>
@@ -312,7 +312,7 @@ const AudioPage = () => {
             <p className="text-red-500 dark:text-red-400">{error}</p>
             <button
               onClick={() => fetchAudio(page)}
-              className="mt-4 px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg outline-none focus:outline-none focus-visible:outline-none"
+              className="mt-4 px-6 py-2 bg-black dark:bg-white text-white dark:text-black outline-none focus:outline-none focus-visible:outline-none"
             >
               Retry
             </button>
@@ -343,7 +343,7 @@ const AudioPage = () => {
                 <button
                   onClick={() => setPage((p) => Math.max(p - 1, 1))}
                   disabled={page === 1}
-                  className="px-4 py-2 border rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none"
+                  className="px-4 py-2 border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none"
                 >
                   Previous
                 </button>
@@ -353,7 +353,7 @@ const AudioPage = () => {
                 <button
                   onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                   disabled={page === totalPages}
-                  className="px-4 py-2 border rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none"
+                  className="px-4 py-2 border disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none"
                 >
                   Next
                 </button>
@@ -367,7 +367,6 @@ const AudioPage = () => {
         .audio-embed-container iframe {
           width: 100%;
           max-width: 100%;
-          border-radius: 8px;
           height: 152px;
         }
         @media (max-width: 480px) {
