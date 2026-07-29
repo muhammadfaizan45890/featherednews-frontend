@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import axios from 'axios';
 import API from '../utils/api';
 import { FiClock, FiCalendar, FiUser, FiPlay, FiPause, FiHeadphones, FiSearch, FiX, FiLoader } from 'react-icons/fi';
@@ -87,7 +86,7 @@ const ListenButton = ({ isPlaying, isLoading, onClick }) => (
 const AudioCard = ({ audio }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [iframeVisible, setIframeVisible] = useState(false);   // ✅ CORRECTED
+  const [iframeVisible, setIframeVisible] = useState(false);
   const audioRef = useRef(null);
 
   const media = useMemo(() => extractMediaSrc(audio.embedCode), [audio.embedCode]);
@@ -210,10 +209,7 @@ const AudioCard = ({ audio }) => {
 // ─── Search Bar ──────────────────────────────────────────────
 const SearchBar = ({ value, onChange }) => (
   <div className="relative w-full sm:max-w-md">
-    <FiSearch
-      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
-      size={18}
-    />
+    <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
     <input
       type="text"
       value={value}
@@ -367,7 +363,6 @@ const AudioPage = () => {
         )}
       </div>
 
-      {/* ─── Custom Styles ────────────────────────────────── */}
       <style jsx>{`
         .audio-embed-container iframe {
           width: 100%;
