@@ -59,73 +59,47 @@ const SkeletonCard = () => (
   </div>
 );
 
-// ─── Custom Play / Pause Button ─────────────────────────────
-// Circular button with a thin progress ring (not a horizontal bar),
-// fully responsive, and no focus outline.
-const CirclePlayButton = ({ isPlaying, isLoading, progress, onClick }) => {
-  const size = 56; // px, base size (scales via sm: classes on wrapper)
-  const stroke = 3;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - (progress || 0));
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={isPlaying ? 'Pause' : 'Play'}
-      className="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full
-                 bg-black dark:bg-white text-white dark:text-black shadow-lg
-                 transition-transform duration-200 ease-out
-                 hover:scale-105 active:scale-95
-                 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0"
-      style={{ WebkitTapHighlightColor: 'transparent' }}
-    >
-      <svg
-        className="absolute inset-0 w-full h-full -rotate-90"
-        viewBox={`0 0 ${size} ${size}`}
-      >
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          strokeWidth={stroke}
-          className="stroke-gray-300 dark:stroke-zinc-600"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          className="stroke-red-500 transition-[stroke-dashoffset] duration-150 ease-linear"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-        />
-      </svg>
-
-      <span className="relative z-10 flex items-center justify-center">
-        {isLoading ? (
-          <FiLoader className="animate-spin" size={20} />
-        ) : isPlaying ? (
-          <FiPause size={20} />
-        ) : (
-          <FiPlay size={20} className="ml-0.5" />
-        )}
-      </span>
-    </button>
-  );
-};
+// ─── Listen / Pause Toggle Button ───────────────────────────
+// Single advanced button: animated icon swap, subtle playing pulse,
+// loading state — no progress bar, no extra controls.
+const ListenButton = ({ isPlaying, isLoading, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={isLoading}
+    aria-label={isPlaying ? 'Pause' : 'Listen now'}
+    className={`relative w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg
+                text-sm font-medium overflow-hidden select-none
+                transition-colors duration-300 ease-out
+                active:scale-[0.98] transition-transform
+                disabled:opacity-70 disabled:cursor-wait
+                outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0
+                ${isPlaying
+                  ? 'bg-red-500 hover:bg-red-600 text-white'
+                  : 'bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200'}`}
+    style={{ WebkitTapHighlightColor: 'transparent' }}
+  >
+    {isPlaying && !isLoading && (
+      <span className="absolute inset-0 bg-white/15 animate-pulse" aria-hidden="true" />
+    )}
+    <span className="relative flex items-center gap-2">
+      {isLoading ? (
+        <FiLoader size={16} className="animate-spin" />
+      ) : isPlaying ? (
+        <FiPause size={16} />
+      ) : (
+        <FiPlay size={16} />
+      )}
+      {isLoading ? 'Loading…' : isPlaying ? 'Pause' : 'Listen Now'}
+    </span>
+  </button>
+);
 
 // ─── Individual Audio Card ──────────────────────────────────
 const AudioCard = ({ audio }) => {
-  const [showPlayer, setShowPlayer] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [iframeVisible, setIframeVisible] = useState(false);
   const audioRef = useRef(null);
 
   const media = useMemo(() => extractMediaSrc(audio.embedCode), [audio.embedCode]);
@@ -138,27 +112,17 @@ const AudioCard = ({ audio }) => {
     });
   }, [media]);
 
-  const togglePlayer = () => {
-    if (showPlayer) {
-      const el = audioRef.current;
-      if (el) {
-        el.pause();
-        el.currentTime = 0;
-      }
-      setIsPlaying(false);
-      setShowPlayer(false);
-    } else {
-      setIsLoading(true);
-      setShowPlayer(true);
+  const handleToggle = () => {
+    if (media?.type === 'iframe') {
+      setIframeVisible((v) => !v);
+      return;
     }
-  };
-
-  const togglePlayPause = () => {
     const el = audioRef.current;
     if (!el) return;
     if (isPlaying) {
       el.pause();
     } else {
+      setIsLoading(true);
       const playPromise = el.play();
       if (playPromise) playPromise.catch(() => setIsLoading(false));
     }
@@ -168,22 +132,15 @@ const AudioCard = ({ audio }) => {
     const el = audioRef.current;
     if (!el || media?.type !== 'media') return;
 
-    const onLoadedMeta = () => {
-      setDuration(el.duration || 0);
+    const onPlay = () => {
+      setIsPlaying(true);
       setIsLoading(false);
     };
-    const onTimeUpdate = () => setCurrentTime(el.currentTime || 0);
-    const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
     const onWaiting = () => setIsLoading(true);
     const onCanPlay = () => setIsLoading(false);
-    const onEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
+    const onEnded = () => setIsPlaying(false);
 
-    el.addEventListener('loadedmetadata', onLoadedMeta);
-    el.addEventListener('timeupdate', onTimeUpdate);
     el.addEventListener('play', onPlay);
     el.addEventListener('pause', onPause);
     el.addEventListener('waiting', onWaiting);
@@ -191,17 +148,13 @@ const AudioCard = ({ audio }) => {
     el.addEventListener('ended', onEnded);
 
     return () => {
-      el.removeEventListener('loadedmetadata', onLoadedMeta);
-      el.removeEventListener('timeupdate', onTimeUpdate);
       el.removeEventListener('play', onPlay);
       el.removeEventListener('pause', onPause);
       el.removeEventListener('waiting', onWaiting);
       el.removeEventListener('canplay', onCanPlay);
       el.removeEventListener('ended', onEnded);
     };
-  }, [showPlayer, media]);
-
-  const progress = duration > 0 ? currentTime / duration : 0;
+  }, [media]);
 
   return (
     <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
