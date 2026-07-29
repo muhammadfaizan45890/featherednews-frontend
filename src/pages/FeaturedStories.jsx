@@ -48,7 +48,7 @@ const Card = ({ post, isActive }) => {
 
   return (
     <Link
-      to={`/article/${slug}`} // ✅ changed from /news to /article
+      to={`/article/${slug}`}
       className={`
         block relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]
         ${isActive 
@@ -167,7 +167,8 @@ const FeaturedStories = () => {
   return (
     <div className="relative w-full bg-gradient-to-b from-gray-50/50 to-white dark:from-zinc-900/50 dark:to-zinc-900 py-8 sm:py-12 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between mb-8">
+        {/* ─── Enhanced Header ────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8">
           <div>
             <span className="text-xs font-bold uppercase tracking-[4px] text-red-500">
               Featured Stories
@@ -175,7 +176,19 @@ const FeaturedStories = () => {
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black dark:text-white">
               Editor's Picks
             </h2>
+            {/* ✅ Advanced descriptive text */}
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
+              Our handpicked selection of the most compelling stories from around the world.
+              Curated just for you.
+            </p>
           </div>
+          {/* ✅ "View All" link – hidden on mobile, visible on tablet+ */}
+          <Link
+            to="/news"
+            className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors hidden sm:inline-block mt-2 sm:mt-0"
+          >
+            View All →
+          </Link>
         </div>
 
         <Swiper
