@@ -206,6 +206,8 @@ const Navbar = () => {
   const navItems = [
     { label: "Home", link: "/" },
     { label: "News", link: "/news" },
+            { label: "Listen", link: "/audio" },
+
     {
       label: "Categories",
       sub: categories.map((cat) => ({
@@ -454,11 +456,11 @@ const Navbar = () => {
             Advertise
           </Link>
           <Link
-            to="/about"
+            to="/audio"
             className="text-sm font-semibold text-gray-700 hover:text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded px-2 py-1"
             onClick={() => setMobileMenuOpen(false)}
           >
-            About
+            Audio
           </Link>
         </div>
       </div>
