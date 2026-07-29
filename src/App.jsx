@@ -45,6 +45,10 @@ import Advertise from './pages/Advetise';
 import AdminAdvertise from './pages/Admin/AdminAdvertise';
 import AdminFeatured from './pages/Admin/AdminFeatured';
 import FeaturedDetail from './pages/FeaturedDetail';
+import AdminAudio from './pages/Admin/AdminAudio';
+import AudioPage from './pages/AudioPage';
+
+
 
 
 
@@ -106,6 +110,8 @@ const router = createBrowserRouter([
           { path: '/write-for-us', element: <WriteForUs /> },
                     { path: '/advertise', element: <Advertise /> },
                           { path:"/article/:slug", element: <FeaturedDetail /> },
+                                      { path: '/audio', element: <AudioPage /> },
+
 
                     
                     
@@ -134,6 +140,8 @@ const router = createBrowserRouter([
           { path: '/admin/admin-messages', element: <AdminMessages /> },
                     { path: '/admin/admin-advertise', element: <AdminAdvertise/> },
                                         { path: '/admin/admin-featured', element: <AdminFeatured/> },
+                      { path: '/admin/admin-audio', element: <AdminAudio/> },
+
 
 
 
