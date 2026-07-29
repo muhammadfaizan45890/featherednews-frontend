@@ -31,10 +31,10 @@ const extractMediaSrc = (embedCode) => {
   return null;
 };
 
-// ─── Skeleton Card (sharp corners) ──────────────────────────
+// ─── Skeleton Card (square image) ──────────────────────────
 const SkeletonCard = () => (
   <div className="animate-pulse bg-white dark:bg-zinc-800 shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700">
-    <div className="w-full h-48 bg-gray-300 dark:bg-zinc-600" />
+    <div className="w-full aspect-square bg-gray-300 dark:bg-zinc-600" />
     <div className="p-4 space-y-3">
       <div className="h-5 bg-gray-300 dark:bg-zinc-600 w-3/4" />
       <div className="h-4 bg-gray-300 dark:bg-zinc-600 w-full" />
@@ -82,7 +82,7 @@ const ListenButton = ({ isPlaying, isLoading, onClick }) => (
   </button>
 );
 
-// ─── Individual Audio Card (sharp corners) ─────────────────
+// ─── Individual Audio Card (square image, text outside) ──
 const AudioCard = ({ audio }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -145,21 +145,25 @@ const AudioCard = ({ audio }) => {
 
   return (
     <div className="bg-white dark:bg-zinc-800 shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
-      {audio.coverImage && (
-        <div className="relative w-full h-48 overflow-hidden">
-          <img
-            src={audio.coverImage}
-            alt={audio.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-          <div className="absolute bottom-3 left-3 flex items-center gap-2">
-            <FiHeadphones className="text-white/80" size={16} />
-            <span className="text-white/80 text-xs font-medium">Listen</span>
-          </div>
+      {/* Square image */}
+      <div className="relative w-full aspect-square overflow-hidden">
+        <img
+          src={audio.coverImage || 'https://via.placeholder.com/400x400/111111/FFFFFF?text=No+Image'}
+          alt={audio.title}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+          onError={(e) => {
+            e.target.src = 'https://via.placeholder.com/400x400/111111/FFFFFF?text=No+Image';
+          }}
+        />
+        {/* Subtle "Listen" badge */}
+        <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/50 backdrop-blur-sm px-2 py-1 rounded">
+          <FiHeadphones className="text-white/80" size={14} />
+          <span className="text-white/80 text-xs font-medium">Listen</span>
         </div>
-      )}
+      </div>
+
+      {/* Content outside image */}
       <div className="p-4">
         <h3 className="text-lg font-bold text-black dark:text-white line-clamp-2 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">
           {audio.title}
