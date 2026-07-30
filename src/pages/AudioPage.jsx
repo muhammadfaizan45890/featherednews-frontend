@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import API from '../utils/api';
-import { FiClock, FiCalendar, FiUser, FiPlay, FiPause, FiHeadphones, FiSearch, FiX, FiLoader } from 'react-icons/fi';
+import {
+  FiClock, FiCalendar, FiUser, FiPlay, FiPause, FiHeadphones,
+  FiSearch, FiX, FiLoader, FiChevronLeft, FiChevronRight
+} from 'react-icons/fi';
 import DOMPurify from 'dompurify';
 
 const api = axios.create({ baseURL: API, headers: { 'Content-Type': 'application/json' } });
@@ -38,24 +41,19 @@ const formatTime = (secs) => {
   return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
-// ─── Skeleton (responsive: stacked on mobile, horizontal from sm up) ─
+// ─── Skeleton ──────────────────────────────────────────────
 const SkeletonCard = () => (
-  <div className="animate-pulse bg-white dark:bg-zinc-800 rounded-2xl shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700 flex flex-col sm:flex-row">
-    <div className="w-full sm:w-32 md:w-36 aspect-[16/9] sm:aspect-square bg-gray-300 dark:bg-zinc-700 flex-shrink-0" />
-    <div className="flex-1 p-4 space-y-2.5">
+  <div className="animate-pulse bg-white dark:bg-zinc-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700">
+    <div className="aspect-square bg-gray-300 dark:bg-zinc-700" />
+    <div className="p-3 space-y-2">
       <div className="h-4 bg-gray-300 dark:bg-zinc-700 rounded w-3/4" />
       <div className="h-3 bg-gray-300 dark:bg-zinc-700 rounded w-full" />
-      <div className="h-3 bg-gray-300 dark:bg-zinc-700 rounded w-2/3" />
-      <div className="flex gap-3 pt-1">
-        <div className="h-3 bg-gray-300 dark:bg-zinc-700 rounded w-14" />
-        <div className="h-3 bg-gray-300 dark:bg-zinc-700 rounded w-14" />
-      </div>
-      <div className="h-9 bg-gray-300 dark:bg-zinc-700 rounded-full w-28" />
+      <div className="h-3 bg-gray-300 dark:bg-zinc-700 rounded w-1/2" />
     </div>
   </div>
 );
 
-// ─── Tiny animated equalizer, shown only while actually playing ────
+// ─── Tiny equalizer bars ──────────────────────────────────
 const EqBars = () => (
   <span className="flex items-end gap-[2px] h-3" aria-hidden="true">
     {[0, 1, 2].map((i) => (
@@ -68,218 +66,151 @@ const EqBars = () => (
   </span>
 );
 
-// ─── Listen / Pause Toggle Button ───────────────────────────
-const ListenButton = ({ isPlaying, isLoading, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={isLoading}
-    aria-label={isPlaying ? 'Pause' : 'Listen now'}
-    className={`relative overflow-hidden flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5
-                rounded-full text-xs sm:text-sm font-semibold tracking-wide
-                transition-all duration-300 ease-out
-                active:scale-95
-                disabled:opacity-70 disabled:cursor-wait
-                outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2
-                dark:focus-visible:ring-offset-zinc-800
-                ${isPlaying
-                  ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30'
-                  : 'bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 shadow-md'}`}
-    style={{ WebkitTapHighlightColor: 'transparent' }}
-  >
-    {isPlaying && !isLoading && (
-      <span className="absolute inset-0 bg-white/10 animate-pulse" aria-hidden="true" />
-    )}
-    <span className="relative flex items-center gap-2">
-      {isLoading ? (
-        <FiLoader size={14} className="animate-spin" />
-      ) : isPlaying ? (
-        <>
-          <FiPause size={14} />
-          <EqBars />
-        </>
-      ) : (
-        <FiPlay size={14} />
-      )}
-      <span>{isLoading ? 'Loading…' : isPlaying ? 'Pause' : 'Listen'}</span>
-    </span>
-  </button>
-);
-
-// ─── Individual Audio Card ──────────────────────────────────
-// Mobile (<640px): stacked — full-width 16:9 cover on top, content below.
-// Tablet+/Desktop (≥640px): horizontal — square cover on the left, content fills the rest.
-const AudioCard = ({ audio }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [iframeVisible, setIframeVisible] = useState(false);
-  const [progress, setProgress] = useState({ current: 0, duration: 0 });
-  const audioRef = useRef(null);
-
-  const media = useMemo(() => extractMediaSrc(audio.embedCode), [audio.embedCode]);
-
-  const sanitizedIframe = useMemo(() => {
-    if (media?.type !== 'iframe') return null;
-    return DOMPurify.sanitize(media.raw, {
-      ADD_TAGS: ['iframe'],
-      ADD_ATTR: ['src', 'allow', 'allowtransparency', 'allowfullscreen', 'loading', 'style', 'width', 'height', 'frameborder'],
-    });
-  }, [media]);
-
-  const handleToggle = () => {
-    if (media?.type === 'iframe') {
-      setIframeVisible((v) => !v);
-      return;
-    }
-    const el = audioRef.current;
-    if (!el) return;
-    if (isPlaying) {
-      el.pause();
-    } else {
-      setIsLoading(true);
-      const playPromise = el.play();
-      if (playPromise) playPromise.catch(() => setIsLoading(false));
-    }
-  };
-
-  const handleSeek = (e) => {
-    const el = audioRef.current;
-    if (!el || !progress.duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
-    el.currentTime = ratio * progress.duration;
-  };
-
-  useEffect(() => {
-    const el = audioRef.current;
-    if (!el || media?.type !== 'media') return;
-
-    const onPlay = () => {
-      setIsPlaying(true);
-      setIsLoading(false);
-    };
-    const onPause = () => setIsPlaying(false);
-    const onWaiting = () => setIsLoading(true);
-    const onCanPlay = () => setIsLoading(false);
-    const onEnded = () => setIsPlaying(false);
-    const onTimeUpdate = () =>
-      setProgress({ current: el.currentTime, duration: el.duration || 0 });
-    const onLoadedMeta = () =>
-      setProgress((p) => ({ ...p, duration: el.duration || 0 }));
-
-    el.addEventListener('play', onPlay);
-    el.addEventListener('pause', onPause);
-    el.addEventListener('waiting', onWaiting);
-    el.addEventListener('canplay', onCanPlay);
-    el.addEventListener('ended', onEnded);
-    el.addEventListener('timeupdate', onTimeUpdate);
-    el.addEventListener('loadedmetadata', onLoadedMeta);
-
-    return () => {
-      el.removeEventListener('play', onPlay);
-      el.removeEventListener('pause', onPause);
-      el.removeEventListener('waiting', onWaiting);
-      el.removeEventListener('canplay', onCanPlay);
-      el.removeEventListener('ended', onEnded);
-      el.removeEventListener('timeupdate', onTimeUpdate);
-      el.removeEventListener('loadedmetadata', onLoadedMeta);
-    };
-  }, [media]);
-
-  const pct = progress.duration ? (progress.current / progress.duration) * 100 : 0;
+// ─── Player Overlay ───────────────────────────────────────
+const AudioPlayerOverlay = ({
+  audio,
+  isOpen,
+  onClose,
+  media,
+  sanitizedIframe,
+  audioRef,
+  isPlaying,
+  isLoading,
+  progress,
+  handleToggle,
+  handleSeek,
+}) => {
+  if (!isOpen) return null;
 
   return (
     <div
-      className="bg-white dark:bg-zinc-800 rounded-2xl shadow-md overflow-hidden
-                 border border-gray-200 dark:border-zinc-700
-                 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5
-                 group flex flex-col sm:flex-row"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-opacity duration-300"
+      onClick={onClose}
     >
-      {/* Cover image — full-width 16:9 on mobile, square panel on sm+ */}
-      <div className="relative w-full sm:w-32 md:w-40 lg:w-44 aspect-[16/9] sm:aspect-square flex-shrink-0 overflow-hidden">
-        <img
-          src={audio.coverImage || 'https://via.placeholder.com/240x240/111111/FFFFFF?text=No+Image'}
-          alt={audio.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-          onError={(e) => {
-            e.target.src = 'https://via.placeholder.com/240x240/111111/FFFFFF?text=No+Image';
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent sm:hidden" />
-        <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/55 backdrop-blur-sm px-2 py-1 rounded-full">
-          <FiHeadphones className="text-white/90" size={11} />
-          <span className="text-white/90 text-[9px] sm:text-[8px] font-medium uppercase tracking-wide">Listen</span>
-        </div>
-      </div>
+      <div
+        className="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl max-w-md w-full p-6 relative transition-transform duration-300 scale-100"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          <FiX size={24} />
+        </button>
 
-      {/* Content */}
-      <div className="flex-1 p-3.5 sm:p-4 md:p-5 flex flex-col justify-between min-w-0 gap-3">
-        <div>
-          <h3 className="text-sm sm:text-base md:text-lg font-bold text-black dark:text-white line-clamp-2 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">
-            {audio.title}
-          </h3>
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-            {audio.description}
-          </p>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-2">
-            <span className="flex items-center gap-1">
-              <FiUser size={11} /> {audio.author}
-            </span>
-            <span className="flex items-center gap-1">
-              <FiCalendar size={11} /> {new Date(audio.publishedAt).toLocaleDateString()}
-            </span>
-            {audio.duration && (
-              <span className="flex items-center gap-1">
-                <FiClock size={11} /> {audio.duration}
-              </span>
-            )}
-          </div>
+        {/* Cover */}
+        <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-zinc-700 mb-4">
+          <img
+            src={audio.coverImage || 'https://via.placeholder.com/400x400/111111/FFFFFF?text=No+Image'}
+            alt={audio.title}
+            className="w-full h-full object-cover"
+          />
         </div>
 
-        <div className="flex flex-col gap-2">
+        {/* Title & metadata */}
+        <h3 className="text-xl font-bold text-black dark:text-white line-clamp-2">{audio.title}</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{audio.description}</p>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-2">
+          <span className="flex items-center gap-1"><FiUser size={12} /> {audio.author}</span>
+          <span className="flex items-center gap-1"><FiCalendar size={12} /> {new Date(audio.publishedAt).toLocaleDateString()}</span>
+        </div>
+
+        {/* Player controls */}
+        <div className="mt-4">
           {media?.type === 'media' ? (
             <>
               <audio ref={audioRef} src={media.src} preload="none" className="hidden" />
-              <div className="flex items-center gap-3 flex-wrap">
-                <ListenButton isPlaying={isPlaying} isLoading={isLoading} onClick={handleToggle} />
-                {progress.duration > 0 && (
-                  <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 tabular-nums">
-                    {formatTime(progress.current)} / {formatTime(progress.duration)}
-                  </span>
-                )}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleToggle}
+                  disabled={isLoading}
+                  className="p-3 bg-black dark:bg-white text-white dark:text-black rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <FiLoader size={20} className="animate-spin" />
+                  ) : isPlaying ? (
+                    <FiPause size={20} />
+                  ) : (
+                    <FiPlay size={20} />
+                  )}
+                </button>
+                <span className="text-sm text-gray-500 dark:text-gray-400 tabular-nums">
+                  {formatTime(progress.current)} / {formatTime(progress.duration)}
+                </span>
               </div>
               {progress.duration > 0 && (
                 <div
                   role="slider"
                   aria-label="Seek"
-                  aria-valuemin={0}
-                  aria-valuemax={progress.duration}
-                  aria-valuenow={progress.current}
                   tabIndex={0}
                   onClick={handleSeek}
-                  className="h-1.5 w-full max-w-xs rounded-full bg-gray-200 dark:bg-zinc-700 cursor-pointer overflow-hidden"
+                  className="h-1.5 w-full mt-2 rounded-full bg-gray-200 dark:bg-zinc-700 cursor-pointer overflow-hidden"
                 >
                   <div
                     className="h-full bg-red-500 rounded-full transition-[width] duration-150"
-                    style={{ width: `${pct}%` }}
+                    style={{ width: `${(progress.current / progress.duration) * 100}%` }}
                   />
                 </div>
               )}
             </>
           ) : media?.type === 'iframe' ? (
-            <>
-              <ListenButton isPlaying={iframeVisible} isLoading={false} onClick={handleToggle} />
-              {iframeVisible && (
-                <div
-                  className="audio-embed-container rounded-lg overflow-hidden"
-                  dangerouslySetInnerHTML={{ __html: sanitizedIframe }}
-                />
-              )}
-            </>
+            <div
+              className="audio-embed-container"
+              dangerouslySetInnerHTML={{ __html: sanitizedIframe }}
+            />
           ) : (
-            <p className="text-xs text-red-500">Unable to load audio.</p>
+            <p className="text-red-500 text-sm">Unable to load audio.</p>
           )}
+        </div>
+
+        {/* Now playing indicator */}
+        {isPlaying && media?.type === 'media' && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-red-500">
+            <EqBars />
+            <span>Now playing</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── Individual Audio Card ────────────────────────────────
+const AudioCard = ({ audio, onClick }) => {
+  const coverUrl = audio.coverImage || 'https://via.placeholder.com/200x200/111111/FFFFFF?text=No+Image';
+
+  return (
+    <div
+      onClick={() => onClick(audio)}
+      className="bg-white dark:bg-zinc-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700
+                 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer group"
+    >
+      <div className="aspect-square overflow-hidden">
+        <img
+          src={coverUrl}
+          alt={audio.title}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+          onError={(e) => {
+            e.target.src = 'https://via.placeholder.com/200x200/111111/FFFFFF?text=No+Image';
+          }}
+        />
+      </div>
+      <div className="p-2.5 sm:p-3">
+        <h3 className="text-xs sm:text-sm font-bold text-black dark:text-white line-clamp-2 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">
+          {audio.title}
+        </h3>
+        <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-2">
+          {audio.description}
+        </p>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+          <span className="flex items-center gap-0.5">
+            <FiUser size={10} /> {audio.author}
+          </span>
+          <span className="flex items-center gap-0.5">
+            <FiCalendar size={10} /> {new Date(audio.publishedAt).toLocaleDateString()}
+          </span>
         </div>
       </div>
     </div>
@@ -324,6 +255,14 @@ const AudioPage = () => {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
 
+  // Player state
+  const [selectedAudio, setSelectedAudio] = useState(null);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, duration: 0 });
+  const audioRef = useRef(null);
+
   const fetchAudio = useCallback(async (pageNum = 1) => {
     setLoading(true);
     setError(null);
@@ -357,9 +296,106 @@ const AudioPage = () => {
     );
   }, [audioList, search]);
 
+  // ─── Player handlers ─────────────────────────────────────
+  const openPlayer = (audio) => {
+    setSelectedAudio(audio);
+    setIsPlayerOpen(true);
+    // Reset progress
+    setProgress({ current: 0, duration: 0 });
+  };
+
+  const closePlayer = () => {
+    setIsPlayerOpen(false);
+    setSelectedAudio(null);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsPlaying(false);
+    setIsLoading(false);
+  };
+
+  const handleToggle = () => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (isPlaying) {
+      el.pause();
+    } else {
+      setIsLoading(true);
+      const playPromise = el.play();
+      if (playPromise) playPromise.catch(() => setIsLoading(false));
+    }
+  };
+
+  const handleSeek = (e) => {
+    const el = audioRef.current;
+    if (!el || !progress.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+    el.currentTime = ratio * progress.duration;
+  };
+
+  // ─── Audio element events ──────────────────────────────
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+
+    const onPlay = () => {
+      setIsPlaying(true);
+      setIsLoading(false);
+    };
+    const onPause = () => setIsPlaying(false);
+    const onWaiting = () => setIsLoading(true);
+    const onCanPlay = () => setIsLoading(false);
+    const onEnded = () => setIsPlaying(false);
+    const onTimeUpdate = () =>
+      setProgress({ current: el.currentTime, duration: el.duration || 0 });
+    const onLoadedMeta = () =>
+      setProgress((p) => ({ ...p, duration: el.duration || 0 }));
+
+    el.addEventListener('play', onPlay);
+    el.addEventListener('pause', onPause);
+    el.addEventListener('waiting', onWaiting);
+    el.addEventListener('canplay', onCanPlay);
+    el.addEventListener('ended', onEnded);
+    el.addEventListener('timeupdate', onTimeUpdate);
+    el.addEventListener('loadedmetadata', onLoadedMeta);
+
+    return () => {
+      el.removeEventListener('play', onPlay);
+      el.removeEventListener('pause', onPause);
+      el.removeEventListener('waiting', onWaiting);
+      el.removeEventListener('canplay', onCanPlay);
+      el.removeEventListener('ended', onEnded);
+      el.removeEventListener('timeupdate', onTimeUpdate);
+      el.removeEventListener('loadedmetadata', onLoadedMeta);
+    };
+  }, [selectedAudio]);
+
+  // When selectedAudio changes, reset progress and optionally preload
+  useEffect(() => {
+    if (selectedAudio) {
+      const media = extractMediaSrc(selectedAudio.embedCode);
+      if (media?.type === 'media') {
+        // audioRef will be attached later
+      }
+    }
+  }, [selectedAudio]);
+
+  // ─── Extract media for the overlay ──────────────────────
+  const selectedMedia = selectedAudio ? extractMediaSrc(selectedAudio.embedCode) : null;
+  const sanitizedIframe = useMemo(() => {
+    if (selectedMedia?.type !== 'iframe') return null;
+    return DOMPurify.sanitize(selectedMedia.raw, {
+      ADD_TAGS: ['iframe'],
+      ADD_ATTR: ['src', 'allow', 'allowtransparency', 'allowfullscreen', 'loading', 'style', 'width', 'height', 'frameborder'],
+    });
+  }, [selectedMedia]);
+
+  // ─── Render ──────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-900 py-6 sm:py-10 md:py-12 px-3 sm:px-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-6 sm:mb-10">
           <div className="flex items-center gap-2 sm:gap-3 mb-2">
@@ -372,9 +408,8 @@ const AudioPage = () => {
             Audio Library
           </h1>
           <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 max-w-prose">
-            Explore our latest episodes and audio content – press play and immerse yourself.
+            Explore our latest episodes and audio content – tap any card to listen.
           </p>
-
           <div className="mt-4 sm:mt-5">
             <SearchBar value={search} onChange={setSearch} />
           </div>
@@ -382,8 +417,8 @@ const AudioPage = () => {
 
         {/* Content */}
         {loading ? (
-          <div className="space-y-3 sm:space-y-4">
-            {[...Array(5)].map((_, i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {[...Array(8)].map((_, i) => (
               <SkeletonCard key={i} />
             ))}
           </div>
@@ -392,7 +427,7 @@ const AudioPage = () => {
             <p className="text-red-500 dark:text-red-400">{error}</p>
             <button
               onClick={() => fetchAudio(page)}
-              className="mt-4 px-5 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full outline-none focus-visible:ring-2 focus-visible:ring-red-500 text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+              className="mt-4 px-5 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
             >
               Retry
             </button>
@@ -411,9 +446,9 @@ const AudioPage = () => {
           </div>
         ) : (
           <>
-            <div className="space-y-3 sm:space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
               {filteredAudioList.map((audio) => (
-                <AudioCard key={audio._id} audio={audio} />
+                <AudioCard key={audio._id} audio={audio} onClick={openPlayer} />
               ))}
             </div>
 
@@ -423,7 +458,7 @@ const AudioPage = () => {
                 <button
                   onClick={() => setPage((p) => Math.max(p - 1, 1))}
                   disabled={page === 1}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-200 dark:border-zinc-700 rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-xs sm:text-sm outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-200 dark:border-zinc-700 rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-xs sm:text-sm"
                 >
                   Previous
                 </button>
@@ -433,7 +468,7 @@ const AudioPage = () => {
                 <button
                   onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                   disabled={page === totalPages}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-200 dark:border-zinc-700 rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-xs sm:text-sm outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-200 dark:border-zinc-700 rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-xs sm:text-sm"
                 >
                   Next
                 </button>
@@ -442,6 +477,21 @@ const AudioPage = () => {
           </>
         )}
       </div>
+
+      {/* ─── Player Overlay ────────────────────────────────── */}
+      <AudioPlayerOverlay
+        audio={selectedAudio}
+        isOpen={isPlayerOpen}
+        onClose={closePlayer}
+        media={selectedMedia}
+        sanitizedIframe={sanitizedIframe}
+        audioRef={audioRef}
+        isPlaying={isPlaying}
+        isLoading={isLoading}
+        progress={progress}
+        handleToggle={handleToggle}
+        handleSeek={handleSeek}
+      />
 
       <style jsx>{`
         @keyframes eq {
