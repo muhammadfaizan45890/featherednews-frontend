@@ -547,7 +547,7 @@ import axios from 'axios';
 import API from '../utils/api';
 import {
   FiClock, FiCalendar, FiUser, FiPlay, FiPause, FiHeadphones,
-  FiSearch, FiX, FiLoader, FiVolume2, FiVolumeX, FiSkipBack, FiSkipForward
+  FiSearch, FiX, FiLoader, FiChevronLeft, FiChevronRight
 } from 'react-icons/fi';
 import DOMPurify from 'dompurify';
 
@@ -597,20 +597,23 @@ const SkeletonCard = () => (
   </div>
 );
 
-// ─── Tiny equalizer bars (only for media) ──────────────────
+// ─── Tiny equalizer bars ──────────────────────────────────
 const EqBars = () => (
   <span className="flex items-end gap-[2px] h-3" aria-hidden="true">
     {[0, 1, 2].map((i) => (
       <span
         key={i}
-        className="w-[3px] bg-red-500 rounded-full animate-[eq_0.9s_ease-in-out_infinite]"
+        className="w-[3px] bg-white rounded-full animate-[eq_0.9s_ease-in-out_infinite]"
         style={{ animationDelay: `${i * 0.15}s` }}
       />
     ))}
   </span>
 );
 
-// ─── Advanced Popup Player ──────────────────────────────
+// ─── Player Overlay ───────────────────────────────────────
+// Centered dialog on sm+ screens; a swipe-to-dismiss bottom sheet on
+// phones — the layout an app of this kind actually needs on a small
+// viewport, not just a shrunk-down modal.
 const AudioPlayerOverlay = ({
   audio,
   isOpen,
@@ -623,219 +626,179 @@ const AudioPlayerOverlay = ({
   progress,
   handleToggle,
   handleSeek,
-  volume,
-  setVolume,
-  isMuted,
-  toggleMute,
-  nextTrack,
-  prevTrack,
-  hasNext,
-  hasPrev,
+  returnFocusRef,
 }) => {
-  if (!isOpen || !audio) return null;
+  const sheetRef = useRef(null);
+  const closeBtnRef = useRef(null);
+  const dragState = useRef({ startY: 0, currentY: 0, dragging: false });
+  const [dragOffset, setDragOffset] = useState(0);
 
-  const isIframe = media?.type === 'iframe';
-  const isMedia = media?.type === 'media';
+  // Lock background scroll, focus the sheet, restore focus on close, close on Esc
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeBtnRef.current?.focus();
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+      returnFocusRef?.current?.focus?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  // Drag-to-dismiss (pointer events cover touch + mouse)
+  const onDragStart = (e) => {
+    dragState.current = { startY: e.clientY, currentY: e.clientY, dragging: true };
+  };
+  const onDragMove = (e) => {
+    if (!dragState.current.dragging) return;
+    const delta = e.clientY - dragState.current.startY;
+    if (delta > 0) {
+      dragState.current.currentY = e.clientY;
+      setDragOffset(delta);
+    }
+  };
+  const onDragEnd = () => {
+    if (!dragState.current.dragging) return;
+    dragState.current.dragging = false;
+    if (dragOffset > 90) onClose();
+    setDragOffset(0);
+  };
+
+  if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 bg-black/70 backdrop-blur-md transition-opacity duration-300"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center
+                 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]"
       onClick={onClose}
+      role="presentation"
     >
       <div
-        className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-lg w-full max-h-[95vh] overflow-y-auto relative transition-transform duration-300 scale-100"
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={audio.title}
         onClick={(e) => e.stopPropagation()}
+        style={{ transform: `translateY(${dragOffset}px)`, transition: dragOffset ? 'none' : undefined }}
+        className="bg-white dark:bg-zinc-800 shadow-2xl w-full sm:max-w-md
+                   rounded-t-3xl sm:rounded-2xl
+                   max-h-[92dvh] overflow-y-auto
+                   pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6
+                   animate-[slideUp_0.28s_cubic-bezier(0.32,0.72,0,1)] sm:animate-[scaleIn_0.2s_ease-out]"
       >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-black/10 dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:bg-black/20 dark:hover:bg-white/20 transition-colors"
-          aria-label="Close player"
+        {/* Drag handle — mobile only */}
+        <div
+          className="sm:hidden flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none"
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
         >
-          <FiX size={22} />
-        </button>
+          <span className="h-1.5 w-10 rounded-full bg-gray-300 dark:bg-zinc-600" />
+        </div>
 
-        <div className="p-4 sm:p-6">
-          {/* Cover image */}
-          <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-zinc-800 shadow-lg mb-4">
+        <div className="px-5 sm:px-6 pt-2 sm:pt-6 relative">
+          {/* Close button */}
+          <button
+            ref={closeBtnRef}
+            onClick={onClose}
+            aria-label="Close player"
+            className="absolute top-2 sm:top-6 right-5 sm:right-6 text-gray-500 hover:text-gray-700
+                       dark:text-gray-400 dark:hover:text-gray-200 outline-none
+                       focus-visible:ring-2 focus-visible:ring-red-500 rounded-full p-1"
+          >
+            <FiX size={22} />
+          </button>
+
+          {/* Cover */}
+          <div className="aspect-square w-full max-w-[220px] sm:max-w-none mx-auto rounded-xl overflow-hidden bg-gray-100 dark:bg-zinc-700 mb-4 mt-2 sm:mt-0 shadow-lg">
             <img
               src={audio.coverImage || 'https://via.placeholder.com/400x400/111111/FFFFFF?text=No+Image'}
               alt={audio.title}
               className="w-full h-full object-cover"
-              loading="lazy"
-              onError={(e) => {
-                e.target.src = 'https://via.placeholder.com/400x400/111111/FFFFFF?text=No+Image';
-              }}
             />
           </div>
 
           {/* Title & metadata */}
-          <div className="text-center mb-4">
-            <h3 className="text-lg sm:text-xl font-bold text-black dark:text-white line-clamp-2">
-              {audio.title}
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-              {audio.description}
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-2">
-              <span className="flex items-center gap-1"><FiUser size={12} /> {audio.author}</span>
-              <span className="flex items-center gap-1"><FiCalendar size={12} /> {new Date(audio.publishedAt).toLocaleDateString()}</span>
-            </div>
+          <h3 className="text-lg sm:text-xl font-bold text-black dark:text-white line-clamp-2 pr-8">{audio.title}</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{audio.description}</p>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-2">
+            <span className="flex items-center gap-1"><FiUser size={12} /> {audio.author}</span>
+            <span className="flex items-center gap-1"><FiCalendar size={12} /> {new Date(audio.publishedAt).toLocaleDateString()}</span>
           </div>
 
           {/* Player controls */}
-          <div className="mt-2">
-            {isMedia ? (
+          <div className="mt-5">
+            {media?.type === 'media' ? (
               <>
                 <audio ref={audioRef} src={media.src} preload="none" className="hidden" />
-
-                {/* Progress bar */}
-                {progress.duration > 0 && (
-                  <div className="mb-3">
-                    <div
-                      role="slider"
-                      aria-label="Seek"
-                      aria-valuemin={0}
-                      aria-valuemax={progress.duration}
-                      aria-valuenow={progress.current}
-                      tabIndex={0}
-                      onClick={handleSeek}
-                      className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-zinc-700 cursor-pointer overflow-hidden group transition-colors"
-                    >
-                      <div
-                        className="h-full bg-red-500 rounded-full transition-[width] duration-150 group-hover:bg-red-400"
-                        style={{ width: `${(progress.current / progress.duration) * 100}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      <span>{formatTime(progress.current)}</span>
-                      <span>{formatTime(progress.duration)}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Playback controls */}
-                <div className="flex items-center justify-center gap-4 sm:gap-6">
-                  <button
-                    onClick={prevTrack}
-                    disabled={!hasPrev}
-                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 transition-colors"
-                    aria-label="Previous"
-                  >
-                    <FiSkipBack size={20} />
-                  </button>
-
+                <div className="flex items-center gap-4">
                   <button
                     onClick={handleToggle}
                     disabled={isLoading}
-                    className="p-4 bg-black dark:bg-white text-white dark:text-black rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 shadow-lg"
                     aria-label={isPlaying ? 'Pause' : 'Play'}
+                    className="p-3.5 sm:p-3 bg-black dark:bg-white text-white dark:text-black rounded-full
+                               hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50
+                               active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-500
+                               focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-800"
                   >
                     {isLoading ? (
-                      <FiLoader size={24} className="animate-spin" />
+                      <FiLoader size={20} className="animate-spin" />
                     ) : isPlaying ? (
-                      <FiPause size={24} />
+                      <FiPause size={20} />
                     ) : (
-                      <FiPlay size={24} />
+                      <FiPlay size={20} />
                     )}
                   </button>
-
-                  <button
-                    onClick={nextTrack}
-                    disabled={!hasNext}
-                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 transition-colors"
-                    aria-label="Next"
-                  >
-                    <FiSkipForward size={20} />
-                  </button>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 tabular-nums">
+                    {formatTime(progress.current)} / {formatTime(progress.duration)}
+                  </span>
                 </div>
-
-                {/* Volume control */}
-                <div className="flex items-center justify-center gap-2 mt-3">
-                  <button
-                    onClick={toggleMute}
-                    className="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
-                    aria-label={isMuted ? 'Unmute' : 'Mute'}
+                {progress.duration > 0 && (
+                  <div
+                    role="slider"
+                    aria-label="Seek"
+                    aria-valuemin={0}
+                    aria-valuemax={progress.duration}
+                    aria-valuenow={progress.current}
+                    tabIndex={0}
+                    onClick={handleSeek}
+                    className="h-2 sm:h-1.5 w-full mt-3 rounded-full bg-gray-200 dark:bg-zinc-700 cursor-pointer overflow-hidden"
                   >
-                    {isMuted || volume === 0 ? <FiVolumeX size={18} /> : <FiVolume2 size={18} />}
-                  </button>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={isMuted ? 0 : volume}
-                    onChange={(e) => setVolume(parseFloat(e.target.value))}
-                    className="w-24 sm:w-32 h-1 bg-gray-200 dark:bg-zinc-700 rounded-full appearance-none cursor-pointer"
-                  />
-                </div>
-
-                {/* Now playing indicator */}
-                {isPlaying && (
-                  <div className="mt-2 flex items-center justify-center gap-2 text-xs text-red-500">
-                    <EqBars />
-                    <span>Now playing</span>
+                    <div
+                      className="h-full bg-red-500 rounded-full transition-[width] duration-150"
+                      style={{ width: `${(progress.current / progress.duration) * 100}%` }}
+                    />
                   </div>
                 )}
               </>
-            ) : isIframe ? (
+            ) : media?.type === 'iframe' ? (
               <div
                 className="audio-embed-container rounded-lg overflow-hidden"
                 dangerouslySetInnerHTML={{ __html: sanitizedIframe }}
               />
             ) : (
-              <p className="text-red-500 text-sm text-center">Unable to load audio.</p>
+              <p className="text-red-500 text-sm">Unable to load audio.</p>
             )}
           </div>
+
+          {/* Now playing indicator */}
+          {isPlaying && media?.type === 'media' && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-red-500">
+              <EqBars />
+              <span>Now playing</span>
+            </div>
+          )}
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes eq {
-          0%, 100% { height: 4px; }
-          50% { height: 12px; }
-        }
-        .audio-embed-container iframe {
-          width: 100%;
-          max-width: 100%;
-          height: 100px;
-          border: 0;
-        }
-        @media (min-width: 640px) {
-          .audio-embed-container iframe {
-            height: 120px;
-          }
-        }
-        @media (min-width: 768px) {
-          .audio-embed-container iframe {
-            height: 152px;
-          }
-        }
-        /* Custom range input for volume */
-        input[type="range"]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 12px;
-          height: 12px;
-          background: #ef4444;
-          border-radius: 50%;
-          cursor: pointer;
-        }
-        input[type="range"]::-moz-range-thumb {
-          width: 12px;
-          height: 12px;
-          background: #ef4444;
-          border-radius: 50%;
-          cursor: pointer;
-          border: none;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          * {
-            animation-duration: 0.001ms !important;
-            transition-duration: 0.001ms !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };
@@ -843,14 +806,21 @@ const AudioPlayerOverlay = ({
 // ─── Individual Audio Card ────────────────────────────────
 const AudioCard = ({ audio, onClick }) => {
   const coverUrl = audio.coverImage || 'https://via.placeholder.com/200x200/111111/FFFFFF?text=No+Image';
+  const btnRef = useRef(null);
+
+  const handleActivate = () => onClick(audio, btnRef);
 
   return (
-    <div
-      onClick={() => onClick(audio)}
-      className="bg-white dark:bg-zinc-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700
-                 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer group"
+    <button
+      ref={btnRef}
+      type="button"
+      onClick={handleActivate}
+      className="text-left bg-white dark:bg-zinc-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700
+                 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] group w-full
+                 outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2
+                 dark:focus-visible:ring-offset-zinc-900"
     >
-      <div className="aspect-square overflow-hidden">
+      <div className="relative aspect-square overflow-hidden">
         <img
           src={coverUrl}
           alt={audio.title}
@@ -860,6 +830,17 @@ const AudioCard = ({ audio, onClick }) => {
             e.target.src = 'https://via.placeholder.com/200x200/111111/FFFFFF?text=No+Image';
           }}
         />
+        {/* Hover/focus play affordance */}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/25 group-focus-visible:bg-black/25 transition-colors duration-300">
+          <span className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 group-focus-visible:opacity-100 group-focus-visible:scale-100 transition-all duration-300">
+            <FiPlay size={16} className="text-black translate-x-[1px]" />
+          </span>
+        </div>
+        {audio.duration && (
+          <span className="absolute bottom-1.5 right-1.5 bg-black/60 backdrop-blur-sm text-white text-[9px] sm:text-[10px] font-medium px-1.5 py-0.5 rounded">
+            {audio.duration}
+          </span>
+        )}
       </div>
       <div className="p-2.5 sm:p-3">
         <h3 className="text-xs sm:text-sm font-bold text-black dark:text-white line-clamp-2 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">
@@ -869,11 +850,15 @@ const AudioCard = ({ audio, onClick }) => {
           {audio.description}
         </p>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 mt-1">
-          <span className="flex items-center gap-0.5"><FiUser size={10} /> {audio.author}</span>
-          <span className="flex items-center gap-0.5"><FiCalendar size={10} /> {new Date(audio.publishedAt).toLocaleDateString()}</span>
+          <span className="flex items-center gap-0.5">
+            <FiUser size={10} /> {audio.author}
+          </span>
+          <span className="flex items-center gap-0.5">
+            <FiCalendar size={10} /> {new Date(audio.publishedAt).toLocaleDateString()}
+          </span>
         </div>
       </div>
-    </div>
+    </button>
   );
 };
 
@@ -921,10 +906,8 @@ const AudioPage = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, duration: 0 });
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
   const audioRef = useRef(null);
-  const currentIndexRef = useRef(0);
+  const returnFocusRef = useRef(null);
 
   const fetchAudio = useCallback(async (pageNum = 1) => {
     setLoading(true);
@@ -960,10 +943,10 @@ const AudioPage = () => {
   }, [audioList, search]);
 
   // ─── Player handlers ─────────────────────────────────────
-  const openPlayer = (audio) => {
+  const openPlayer = (audio, triggerRef) => {
+    returnFocusRef.current = triggerRef?.current || null;
     setSelectedAudio(audio);
     setIsPlayerOpen(true);
-    currentIndexRef.current = filteredAudioList.indexOf(audio);
     setProgress({ current: 0, duration: 0 });
   };
 
@@ -998,38 +981,6 @@ const AudioPage = () => {
     el.currentTime = ratio * progress.duration;
   };
 
-  const toggleMute = () => {
-    if (audioRef.current) {
-      audioRef.current.muted = !isMuted;
-    }
-    setIsMuted(!isMuted);
-  };
-
-  const goToTrack = (direction) => {
-    const list = filteredAudioList;
-    const idx = currentIndexRef.current + direction;
-    if (idx < 0 || idx >= list.length) return;
-    const next = list[idx];
-    if (next) {
-      setSelectedAudio(next);
-      currentIndexRef.current = idx;
-      setProgress({ current: 0, duration: 0 });
-      // Reset audio element
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        setIsPlaying(false);
-        setIsLoading(false);
-        // The audio element will load the new src when the component re-renders with the new selectedAudio
-        // We need to trigger a re-render of the overlay with the new audio, which already happens via state.
-        // The audio element is controlled by the overlay, which uses the new selectedAudio.
-        // To force the audio element to load the new src, we'll use a key change or reset the src.
-        // Since the audio element is inside the overlay, it will re-mount when selectedAudio changes (if we use a key).
-        // We'll add a key to the overlay or audio element.
-      }
-    }
-  };
-
   // ─── Audio element events ──────────────────────────────
   useEffect(() => {
     const el = audioRef.current;
@@ -1045,13 +996,8 @@ const AudioPage = () => {
     const onEnded = () => setIsPlaying(false);
     const onTimeUpdate = () =>
       setProgress({ current: el.currentTime, duration: el.duration || 0 });
-    const onLoadedMeta = () => {
+    const onLoadedMeta = () =>
       setProgress((p) => ({ ...p, duration: el.duration || 0 }));
-      // Sync volume
-      if (el.volume !== undefined) {
-        el.volume = volume;
-      }
-    };
 
     el.addEventListener('play', onPlay);
     el.addEventListener('pause', onPause);
@@ -1070,15 +1016,7 @@ const AudioPage = () => {
       el.removeEventListener('timeupdate', onTimeUpdate);
       el.removeEventListener('loadedmetadata', onLoadedMeta);
     };
-  }, [selectedAudio, volume]);
-
-  // Sync volume when changed
-  useEffect(() => {
-    const el = audioRef.current;
-    if (el && !isMuted) {
-      el.volume = volume;
-    }
-  }, [volume, isMuted]);
+  }, [selectedAudio]);
 
   // ─── Extract media for the overlay ──────────────────────
   const selectedMedia = selectedAudio ? extractMediaSrc(selectedAudio.embedCode) : null;
@@ -1091,11 +1029,6 @@ const AudioPage = () => {
   }, [selectedMedia]);
 
   // ─── Render ──────────────────────────────────────────────
-  const list = filteredAudioList;
-  const currentIdx = list.indexOf(selectedAudio);
-  const hasPrev = currentIdx > 0;
-  const hasNext = currentIdx < list.length - 1;
-
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-900 py-6 sm:py-10 md:py-12 px-3 sm:px-6">
       <div className="max-w-6xl mx-auto">
@@ -1120,8 +1053,8 @@ const AudioPage = () => {
 
         {/* Content */}
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {[...Array(8)].map((_, i) => (
+          <div className="grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fill,minmax(135px,1fr))]">
+            {[...Array(10)].map((_, i) => (
               <SkeletonCard key={i} />
             ))}
           </div>
@@ -1130,7 +1063,7 @@ const AudioPage = () => {
             <p className="text-red-500 dark:text-red-400">{error}</p>
             <button
               onClick={() => fetchAudio(page)}
-              className="mt-4 px-5 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+              className="mt-4 px-5 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             >
               Retry
             </button>
@@ -1149,7 +1082,9 @@ const AudioPage = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* Fluid auto-fill grid: card count adapts to any viewport width
+                instead of snapping at fixed breakpoints. */}
+            <div className="grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fill,minmax(135px,1fr))]">
               {filteredAudioList.map((audio) => (
                 <AudioCard key={audio._id} audio={audio} onClick={openPlayer} />
               ))}
@@ -1161,9 +1096,11 @@ const AudioPage = () => {
                 <button
                   onClick={() => setPage((p) => Math.max(p - 1, 1))}
                   disabled={page === 1}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-200 dark:border-zinc-700 rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-xs sm:text-sm"
+                  aria-label="Previous page"
+                  className="flex items-center gap-1 px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-200 dark:border-zinc-700 rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-xs sm:text-sm outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                 >
-                  Previous
+                  <FiChevronLeft size={14} className="sm:hidden" />
+                  <span className="hidden sm:inline">Previous</span>
                 </button>
                 <span className="px-2 py-1.5 text-xs sm:text-sm text-gray-600 dark:text-gray-400 tabular-nums">
                   {page} / {totalPages}
@@ -1171,9 +1108,11 @@ const AudioPage = () => {
                 <button
                   onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                   disabled={page === totalPages}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-200 dark:border-zinc-700 rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-xs sm:text-sm"
+                  aria-label="Next page"
+                  className="flex items-center gap-1 px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-200 dark:border-zinc-700 rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-xs sm:text-sm outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                 >
-                  Next
+                  <span className="hidden sm:inline">Next</span>
+                  <FiChevronRight size={14} className="sm:hidden" />
                 </button>
               </div>
             )}
@@ -1182,33 +1121,39 @@ const AudioPage = () => {
       </div>
 
       {/* ─── Player Overlay ────────────────────────────────── */}
-      <AudioPlayerOverlay
-        key={selectedAudio?._id || 'player'}
-        audio={selectedAudio}
-        isOpen={isPlayerOpen}
-        onClose={closePlayer}
-        media={selectedMedia}
-        sanitizedIframe={sanitizedIframe}
-        audioRef={audioRef}
-        isPlaying={isPlaying}
-        isLoading={isLoading}
-        progress={progress}
-        handleToggle={handleToggle}
-        handleSeek={handleSeek}
-        volume={volume}
-        setVolume={setVolume}
-        isMuted={isMuted}
-        toggleMute={toggleMute}
-        nextTrack={() => goToTrack(1)}
-        prevTrack={() => goToTrack(-1)}
-        hasNext={hasNext}
-        hasPrev={hasPrev}
-      />
+      {isPlayerOpen && selectedAudio && (
+        <AudioPlayerOverlay
+          audio={selectedAudio}
+          isOpen={isPlayerOpen}
+          onClose={closePlayer}
+          media={selectedMedia}
+          sanitizedIframe={sanitizedIframe}
+          audioRef={audioRef}
+          isPlaying={isPlaying}
+          isLoading={isLoading}
+          progress={progress}
+          handleToggle={handleToggle}
+          handleSeek={handleSeek}
+          returnFocusRef={returnFocusRef}
+        />
+      )}
 
       <style jsx>{`
         @keyframes eq {
           0%, 100% { height: 4px; }
           50% { height: 12px; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.96); }
+          to { opacity: 1; transform: scale(1); }
         }
         .audio-embed-container iframe {
           width: 100%;
@@ -1225,24 +1170,6 @@ const AudioPage = () => {
           .audio-embed-container iframe {
             height: 152px;
           }
-        }
-        /* Custom range input for volume */
-        input[type="range"]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 12px;
-          height: 12px;
-          background: #ef4444;
-          border-radius: 50%;
-          cursor: pointer;
-        }
-        input[type="range"]::-moz-range-thumb {
-          width: 12px;
-          height: 12px;
-          background: #ef4444;
-          border-radius: 50%;
-          cursor: pointer;
-          border: none;
         }
         @media (prefers-reduced-motion: reduce) {
           * {
