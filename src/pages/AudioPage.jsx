@@ -875,7 +875,7 @@ const SearchBar = ({ value, onChange }) => (
                  bg-white dark:bg-zinc-800 text-sm text-black dark:text-white
                  placeholder-gray-400 dark:placeholder-gray-500
                  transition-colors duration-200
-                 outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                 outline-none"
     />
     {value && (
       <button
