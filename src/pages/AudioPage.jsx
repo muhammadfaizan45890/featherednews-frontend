@@ -815,7 +815,7 @@ const AudioCard = ({ audio, onClick }) => {
       ref={btnRef}
       type="button"
       onClick={handleActivate}
-      className="text-left bg-white dark:bg-zinc-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-zinc-700
+      className="text-left bg-white dark:bg-zinc-800 overflow-hidden border border-gray-200 dark:border-zinc-700
                  transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] group w-full
                  outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2
                  dark:focus-visible:ring-offset-zinc-900"
