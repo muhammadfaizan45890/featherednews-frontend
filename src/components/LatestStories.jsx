@@ -278,7 +278,6 @@
 
 
 
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -361,29 +360,6 @@ const TrendingSkeleton = () => (
     </div>
   </div>
 );
-
-// ─── Scroll to Top Button ─────────────────────────────
-const ScrollToTop = () => {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setVisible(window.scrollY > 600);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  if (!visible) return null;
-
-  return (
-    <button
-      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="fixed bottom-6 right-6 z-50 p-3 bg-black text-white rounded-full shadow-lg hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-      aria-label="Scroll to top"
-    >
-      ↑
-    </button>
-  );
-};
 
 const LatestStories = () => {
   const [posts, setPosts] = useState([]);
@@ -757,9 +733,6 @@ const LatestStories = () => {
           </div>
         </aside>
       </div>
-
-      {/* ─── Scroll to Top ────────────────────────────── */}
-      <ScrollToTop />
     </section>
   );
 };
