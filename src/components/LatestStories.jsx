@@ -368,8 +368,6 @@ const LatestStories = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [categories, setCategories] = useState(["All"]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
 
@@ -408,7 +406,6 @@ const LatestStories = () => {
           page: pageNum,
           limit: 8,
           sort: "desc",
-          ...(selectedCategory !== "All" && { category: selectedCategory }),
         };
 
         const res = await api.get("/api/posts", {
@@ -416,14 +413,6 @@ const LatestStories = () => {
           signal: controller.signal,
         });
         const { data, pagination } = res.data;
-
-        if (!append) {
-          const allCats = data.map((p) => p.category).filter(Boolean);
-          setCategories((prev) => {
-            const merged = new Set(["All", ...allCats]);
-            return prev.length > 1 ? prev : Array.from(merged);
-          });
-        }
 
         setPosts((prev) => (append ? [...prev, ...data] : data));
 
@@ -442,7 +431,7 @@ const LatestStories = () => {
         setInitialLoad(false);
       }
     },
-    [selectedCategory]
+    []
   );
 
   // ─── Fetch featured ──────────────────────────────────
@@ -477,7 +466,7 @@ const LatestStories = () => {
     }
   }, [featuredLoading, posts, trendingPosts.length]);
 
-  // ─── Initial load & category changes ──────────────
+  // ─── Initial load ──────────────────────────────
   useEffect(() => {
     setPage(1);
     setPosts([]);
@@ -486,7 +475,7 @@ const LatestStories = () => {
       if (abortRef.current) abortRef.current.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory]);
+  }, []);
 
   // ─── Load More ──────────────────────────────────────
   const loadMore = useCallback(() => {
@@ -560,27 +549,6 @@ const LatestStories = () => {
         </Link>
       </div>
 
-      {/* ─── Category Filters ────────────────────────── */}
-      <div className="relative mb-6 -mx-3 px-3 sm:mx-0 sm:px-0">
-        <div className="flex flex-wrap gap-2" role="tablist">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              role="tab"
-              aria-selected={selectedCategory === cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`shrink-0 px-3 py-1.5 text-xs sm:text-sm font-medium border-2 transition-colors duration-150 ${
-                selectedCategory === cat
-                  ? "bg-black text-white border-black"
-                  : "bg-white text-gray-700 border-gray-300 hover:border-black"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* ─── Two‑column layout ── */}
       <div className="flex flex-row gap-3 sm:gap-6 lg:gap-8 items-start">
         {/* ===== LEFT: NEWS GRID ===== */}
@@ -603,7 +571,7 @@ const LatestStories = () => {
             </div>
           ) : posts.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-gray-200">
-              <p className="text-gray-500">No stories found in this category.</p>
+              <p className="text-gray-500">No stories found.</p>
             </div>
           ) : (
             <>
@@ -630,9 +598,6 @@ const LatestStories = () => {
                           New
                         </span>
                       )}
-                      <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider bg-red-500 px-1.5 py-0.5 inline-block w-fit mb-1">
-                        {post.category}
-                      </span>
                       <h3 className="text-[11px] sm:text-sm md:text-base font-bold leading-tight line-clamp-2">
                         {post.title}
                       </h3>
@@ -716,8 +681,6 @@ const LatestStories = () => {
                           {post.title}
                         </h4>
                         <div className="flex items-center gap-1 mt-0.5 text-[6px] sm:text-[8px] text-gray-500">
-                          <span className="truncate">{post.category}</span>
-                          <span>•</span>
                           <span className="whitespace-nowrap">{timeAgo(post.createdAt)}</span>
                         </div>
                       </div>
