@@ -4,7 +4,7 @@ import API from '../utils/api';
 import {
   FiClock, FiCalendar, FiUser, FiPlay, FiPause, FiHeadphones,
   FiSearch, FiX, FiLoader, FiChevronLeft, FiChevronRight,
-  FiStopCircle, FiVolume2, FiVolumeX
+  FiSquare, FiVolume2, FiVolume1, FiVolumeX
 } from 'react-icons/fi';
 import DOMPurify from 'dompurify';
 
@@ -67,7 +67,129 @@ const EqBars = () => (
   </span>
 );
 
+// ─── Volume icon that reacts to level/mute ────────────────
+const VolumeIcon = ({ volume, isMuted, size = 16 }) => {
+  if (isMuted || volume === 0) return <FiVolumeX size={size} />;
+  if (volume < 0.5) return <FiVolume1 size={size} />;
+  return <FiVolume2 size={size} />;
+};
+
+// ─── Custom Audio Bar ──────────────────────────────────────
+// Fully custom, responsive transport bar. Replaces the native
+// <audio> controls entirely (the element itself stays hidden).
+const CustomAudioBar = ({
+  isPlaying,
+  isLoading,
+  progress,
+  volume,
+  isMuted,
+  onToggle,
+  onStop,
+  onSeek,
+  onVolumeChange,
+  onToggleMute,
+}) => {
+  const pct = progress.duration > 0 ? (progress.current / progress.duration) * 100 : 0;
+
+  return (
+    <div className="w-full rounded-2xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-700 p-3 sm:p-4">
+      {/* Transport row */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <button
+          onClick={onToggle}
+          disabled={isLoading}
+          aria-label={isPlaying ? 'Pause' : 'Play'}
+          className="shrink-0 p-3 sm:p-3 bg-black dark:bg-white text-white dark:text-black rounded-full
+                     hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50
+                     active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-500
+                     focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900"
+        >
+          {isLoading ? (
+            <FiLoader size={18} className="animate-spin" />
+          ) : isPlaying ? (
+            <FiPause size={18} />
+          ) : (
+            <FiPlay size={18} />
+          )}
+        </button>
+
+        <button
+          onClick={onStop}
+          disabled={isLoading}
+          aria-label="Stop"
+          className="shrink-0 p-2.5 sm:p-2.5 text-gray-600 dark:text-gray-300 rounded-full
+                     hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-40
+                     active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+        >
+          <FiSquare size={16} />
+        </button>
+
+        {/* Seek + time */}
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <span className="hidden xs:inline text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 tabular-nums w-9 text-right">
+            {formatTime(progress.current)}
+          </span>
+          <div
+            role="slider"
+            aria-label="Seek"
+            aria-valuemin={0}
+            aria-valuemax={progress.duration || 0}
+            aria-valuenow={progress.current}
+            tabIndex={isLoading ? -1 : 0}
+            onClick={isLoading ? undefined : onSeek}
+            className={`relative flex-1 h-2 rounded-full bg-gray-200 dark:bg-zinc-700 overflow-hidden
+                       ${isLoading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+          >
+            <div
+              className="h-full bg-red-500 rounded-full transition-[width] duration-150"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span className="hidden xs:inline text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 tabular-nums w-9">
+            {formatTime(progress.duration)}
+          </span>
+        </div>
+      </div>
+
+      {/* Mobile-only compact time row (shown when the inline labels are hidden) */}
+      <div className="flex xs:hidden justify-between mt-1.5 text-[10px] text-gray-500 dark:text-gray-400 tabular-nums">
+        <span>{formatTime(progress.current)}</span>
+        <span>{formatTime(progress.duration)}</span>
+      </div>
+
+      {/* Volume row */}
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-zinc-700">
+        <button
+          onClick={onToggleMute}
+          aria-label={isMuted ? 'Unmute' : 'Mute'}
+          className="shrink-0 p-1.5 text-gray-600 dark:text-gray-300 rounded-full
+                     hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors
+                     outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+        >
+          <VolumeIcon volume={volume} isMuted={isMuted} />
+        </button>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={isMuted ? 0 : volume}
+          onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+          aria-label="Volume"
+          className="w-full sm:w-32 accent-red-500 h-1.5 cursor-pointer"
+        />
+        <span className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 tabular-nums w-8 text-right">
+          {Math.round((isMuted ? 0 : volume) * 100)}%
+        </span>
+      </div>
+    </div>
+  );
+};
+
 // ─── Player Overlay ───────────────────────────────────────
+// Centered dialog on sm+ screens; a swipe-to-dismiss bottom sheet on
+// phones — the layout an app of this kind actually needs on a small
+// viewport, not just a shrunk-down modal.
 const AudioPlayerOverlay = ({
   audio,
   isOpen,
@@ -78,48 +200,19 @@ const AudioPlayerOverlay = ({
   isPlaying,
   isLoading,
   progress,
+  volume,
+  isMuted,
   handleToggle,
+  handleStop,
   handleSeek,
+  handleVolumeChange,
+  handleToggleMute,
   returnFocusRef,
 }) => {
   const sheetRef = useRef(null);
   const closeBtnRef = useRef(null);
   const dragState = useRef({ startY: 0, currentY: 0, dragging: false });
   const [dragOffset, setDragOffset] = useState(0);
-
-  // Volume state (local)
-  const [volume, setVolume] = useState(1);
-  const [prevVolume, setPrevVolume] = useState(1);
-
-  // Sync volume with audio element
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
-    }
-  }, [volume, audioRef]);
-
-  const toggleMute = () => {
-    if (volume > 0) {
-      setPrevVolume(volume);
-      setVolume(0);
-    } else {
-      setVolume(prevVolume || 1);
-    }
-  };
-
-  const handleVolumeChange = (e) => {
-    const val = parseFloat(e.target.value);
-    setVolume(val);
-  };
-
-  // Stop button: pause and reset to beginning
-  const handleStop = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      // The `pause` and `timeupdate` events will update UI automatically
-    }
-  };
 
   // Lock background scroll, focus the sheet, restore focus on close, close on Esc
   useEffect(() => {
@@ -207,12 +300,19 @@ const AudioPlayerOverlay = ({
           </button>
 
           {/* Cover */}
-          <div className="aspect-square w-full max-w-[220px] sm:max-w-none mx-auto rounded-xl overflow-hidden bg-gray-100 dark:bg-zinc-700 mb-4 mt-2 sm:mt-0 shadow-lg">
+          <div className="relative aspect-square w-full max-w-[220px] sm:max-w-none mx-auto rounded-xl overflow-hidden bg-gray-100 dark:bg-zinc-700 mb-4 mt-2 sm:mt-0 shadow-lg">
             <img
               src={audio.coverImage || 'https://via.placeholder.com/400x400/111111/FFFFFF?text=No+Image'}
               alt={audio.title}
               className="w-full h-full object-cover"
             />
+            {/* Loading veil over the cover art while audio is buffering/loading */}
+            {isLoading && media?.type === 'media' && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50 backdrop-blur-[2px]">
+                <FiLoader size={28} className="text-white animate-spin" />
+                <span className="text-white text-xs font-medium tracking-wide">Loading…</span>
+              </div>
+            )}
           </div>
 
           {/* Title & metadata */}
@@ -223,92 +323,24 @@ const AudioPlayerOverlay = ({
             <span className="flex items-center gap-1"><FiCalendar size={12} /> {new Date(audio.publishedAt).toLocaleDateString()}</span>
           </div>
 
-          {/* ─── Player controls ────────────────────────── */}
+          {/* Player controls */}
           <div className="mt-5">
             {media?.type === 'media' ? (
               <>
+                {/* Native element stays hidden — we never show its default bar */}
                 <audio ref={audioRef} src={media.src} preload="none" className="hidden" />
-
-                {/* Custom audio bar (volume + stop + play/pause) */}
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  {/* Play / Pause / Stop */}
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <button
-                      onClick={handleToggle}
-                      disabled={isLoading}
-                      aria-label={isPlaying ? 'Pause' : 'Play'}
-                      className="p-3 sm:p-3 bg-black dark:bg-white text-white dark:text-black rounded-full
-                                 hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50
-                                 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-500
-                                 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-800"
-                    >
-                      {isLoading ? (
-                        <FiLoader size={20} className="animate-spin" />
-                      ) : isPlaying ? (
-                        <FiPause size={20} />
-                      ) : (
-                        <FiPlay size={20} />
-                      )}
-                    </button>
-
-                    <button
-                      onClick={handleStop}
-                      aria-label="Stop"
-                      className="p-2.5 sm:p-2.5 bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-300 rounded-full
-                                 hover:bg-gray-300 dark:hover:bg-zinc-600 transition-colors
-                                 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                    >
-                      <FiStopCircle size={18} />
-                    </button>
-                  </div>
-
-                  {/* Time display */}
-                  <span className="text-sm text-gray-500 dark:text-gray-400 tabular-nums min-w-[80px]">
-                    {formatTime(progress.current)} / {formatTime(progress.duration)}
-                  </span>
-
-                  {/* Volume control */}
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    <button
-                      onClick={toggleMute}
-                      aria-label={volume === 0 ? 'Unmute' : 'Mute'}
-                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
-                                 outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-full p-0.5"
-                    >
-                      {volume === 0 ? <FiVolumeX size={18} /> : <FiVolume2 size={18} />}
-                    </button>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={volume}
-                      onChange={handleVolumeChange}
-                      className="w-16 sm:w-20 h-1.5 bg-gray-300 dark:bg-zinc-600 rounded-full appearance-none cursor-pointer
-                                 accent-red-500 outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                      aria-label="Volume"
-                    />
-                  </div>
-                </div>
-
-                {/* Seek bar */}
-                {progress.duration > 0 && (
-                  <div
-                    role="slider"
-                    aria-label="Seek"
-                    aria-valuemin={0}
-                    aria-valuemax={progress.duration}
-                    aria-valuenow={progress.current}
-                    tabIndex={0}
-                    onClick={handleSeek}
-                    className="h-2 sm:h-1.5 w-full mt-3 rounded-full bg-gray-200 dark:bg-zinc-700 cursor-pointer overflow-hidden"
-                  >
-                    <div
-                      className="h-full bg-red-500 rounded-full transition-[width] duration-150"
-                      style={{ width: `${(progress.current / progress.duration) * 100}%` }}
-                    />
-                  </div>
-                )}
+                <CustomAudioBar
+                  isPlaying={isPlaying}
+                  isLoading={isLoading}
+                  progress={progress}
+                  volume={volume}
+                  isMuted={isMuted}
+                  onToggle={handleToggle}
+                  onStop={handleStop}
+                  onSeek={handleSeek}
+                  onVolumeChange={handleVolumeChange}
+                  onToggleMute={handleToggleMute}
+                />
               </>
             ) : media?.type === 'iframe' ? (
               <div
@@ -435,6 +467,8 @@ const AudioPage = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, duration: 0 });
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
   const audioRef = useRef(null);
   const returnFocusRef = useRef(null);
 
@@ -498,6 +532,17 @@ const AudioPage = () => {
     }
   };
 
+  // Stop = pause + reset to the beginning (distinct from pause, which keeps position)
+  const handleStop = () => {
+    const el = audioRef.current;
+    if (!el) return;
+    el.pause();
+    el.currentTime = 0;
+    setIsPlaying(false);
+    setIsLoading(false);
+    setProgress((p) => ({ ...p, current: 0 }));
+  };
+
   const handleSeek = (e) => {
     const el = audioRef.current;
     if (!el || !progress.duration) return;
@@ -505,6 +550,22 @@ const AudioPage = () => {
     const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
     el.currentTime = ratio * progress.duration;
   };
+
+  const handleVolumeChange = (v) => {
+    setVolume(v);
+    if (v > 0 && isMuted) setIsMuted(false);
+    if (v === 0) setIsMuted(true);
+  };
+
+  const handleToggleMute = () => setIsMuted((m) => !m);
+
+  // Keep the underlying <audio> element in sync with volume/mute state
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    el.volume = isMuted ? 0 : volume;
+    el.muted = isMuted;
+  }, [volume, isMuted, selectedAudio]);
 
   // ─── Audio element events ──────────────────────────────
   useEffect(() => {
@@ -597,6 +658,8 @@ const AudioPage = () => {
           </div>
         ) : (
           <>
+            {/* Fluid auto-fill grid: card count adapts to any viewport width
+                instead of snapping at fixed breakpoints. */}
             <div className="grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fill,minmax(135px,1fr))]">
               {filteredAudioList.map((audio) => (
                 <AudioCard key={audio._id} audio={audio} onClick={openPlayer} />
@@ -645,8 +708,13 @@ const AudioPage = () => {
           isPlaying={isPlaying}
           isLoading={isLoading}
           progress={progress}
+          volume={volume}
+          isMuted={isMuted}
           handleToggle={handleToggle}
+          handleStop={handleStop}
           handleSeek={handleSeek}
+          handleVolumeChange={handleVolumeChange}
+          handleToggleMute={handleToggleMute}
           returnFocusRef={returnFocusRef}
         />
       )}
