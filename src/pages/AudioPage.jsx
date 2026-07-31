@@ -4,7 +4,7 @@ import API from '../utils/api';
 import {
   FiClock, FiCalendar, FiUser, FiPlay, FiPause, FiHeadphones,
   FiSearch, FiX, FiLoader, FiChevronLeft, FiChevronRight,
-  FiSquare, FiVolume2, FiVolume1, FiVolumeX
+  FiStopCircle, FiVolume2, FiVolumeX
 } from 'react-icons/fi';
 import DOMPurify from 'dompurify';
 
@@ -67,129 +67,126 @@ const EqBars = () => (
   </span>
 );
 
-// ─── Volume icon that reacts to level/mute ────────────────
-const VolumeIcon = ({ volume, isMuted, size = 16 }) => {
-  if (isMuted || volume === 0) return <FiVolumeX size={size} />;
-  if (volume < 0.5) return <FiVolume1 size={size} />;
-  return <FiVolume2 size={size} />;
-};
-
-// ─── Custom Audio Bar ──────────────────────────────────────
-// Fully custom, responsive transport bar. Replaces the native
-// <audio> controls entirely (the element itself stays hidden).
-const CustomAudioBar = ({
+// ════════════════════════════════════════════════════════════
+//  CUSTOM AUDIO CONTROLS (fully responsive, with loading)
+// ════════════════════════════════════════════════════════════
+const AudioControls = ({
+  audioRef,
   isPlaying,
   isLoading,
   progress,
-  volume,
-  isMuted,
   onToggle,
   onStop,
   onSeek,
-  onVolumeChange,
-  onToggleMute,
 }) => {
-  const pct = progress.duration > 0 ? (progress.current / progress.duration) * 100 : 0;
+  const [volume, setVolume] = useState(1);
+  const [prevVolume, setPrevVolume] = useState(1);
+
+  // Sync volume with the audio element
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume, audioRef]);
+
+  const toggleMute = () => {
+    if (volume > 0) {
+      setPrevVolume(volume);
+      setVolume(0);
+    } else {
+      setVolume(prevVolume || 1);
+    }
+  };
+
+  const handleVolumeChange = (e) => {
+    const val = parseFloat(e.target.value);
+    setVolume(val);
+  };
 
   return (
-    <div className="w-full rounded-2xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-700 p-3 sm:p-4">
-      {/* Transport row */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        <button
-          onClick={onToggle}
-          disabled={isLoading}
-          aria-label={isPlaying ? 'Pause' : 'Play'}
-          className="shrink-0 p-3 sm:p-3 bg-black dark:bg-white text-white dark:text-black rounded-full
-                     hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50
-                     active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-500
-                     focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900"
-        >
-          {isLoading ? (
-            <FiLoader size={18} className="animate-spin" />
-          ) : isPlaying ? (
-            <FiPause size={18} />
-          ) : (
-            <FiPlay size={18} />
-          )}
-        </button>
-
-        <button
-          onClick={onStop}
-          disabled={isLoading}
-          aria-label="Stop"
-          className="shrink-0 p-2.5 sm:p-2.5 text-gray-600 dark:text-gray-300 rounded-full
-                     hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-40
-                     active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-        >
-          <FiSquare size={16} />
-        </button>
-
-        {/* Seek + time */}
-        <div className="flex-1 min-w-0 flex items-center gap-2">
-          <span className="hidden xs:inline text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 tabular-nums w-9 text-right">
-            {formatTime(progress.current)}
-          </span>
-          <div
-            role="slider"
-            aria-label="Seek"
-            aria-valuemin={0}
-            aria-valuemax={progress.duration || 0}
-            aria-valuenow={progress.current}
-            tabIndex={isLoading ? -1 : 0}
-            onClick={isLoading ? undefined : onSeek}
-            className={`relative flex-1 h-2 rounded-full bg-gray-200 dark:bg-zinc-700 overflow-hidden
-                       ${isLoading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+    <div className="space-y-3">
+      {/* Top row: play/pause, stop, time, volume */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <button
+            onClick={onToggle}
+            disabled={isLoading}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+            className="p-3 sm:p-3 bg-black dark:bg-white text-white dark:text-black rounded-full
+                       hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50
+                       active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-500
+                       focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-800"
           >
-            <div
-              className="h-full bg-red-500 rounded-full transition-[width] duration-150"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <span className="hidden xs:inline text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 tabular-nums w-9">
-            {formatTime(progress.duration)}
-          </span>
+            {isLoading ? (
+              <FiLoader size={20} className="animate-spin" />
+            ) : isPlaying ? (
+              <FiPause size={20} />
+            ) : (
+              <FiPlay size={20} />
+            )}
+          </button>
+
+          <button
+            onClick={onStop}
+            aria-label="Stop"
+            className="p-2.5 sm:p-2.5 bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-300 rounded-full
+                       hover:bg-gray-300 dark:hover:bg-zinc-600 transition-colors
+                       active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          >
+            <FiStopCircle size={18} />
+          </button>
+        </div>
+
+        <span className="text-sm text-gray-500 dark:text-gray-400 tabular-nums min-w-[80px]">
+          {formatTime(progress.current)} / {formatTime(progress.duration)}
+        </span>
+
+        <div className="flex items-center gap-1.5 ml-auto">
+          <button
+            onClick={toggleMute}
+            aria-label={volume === 0 ? 'Unmute' : 'Mute'}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
+                       outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-full p-0.5"
+          >
+            {volume === 0 ? <FiVolumeX size={18} /> : <FiVolume2 size={18} />}
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={volume}
+            onChange={handleVolumeChange}
+            className="w-16 sm:w-20 h-1.5 bg-gray-300 dark:bg-zinc-600 rounded-full appearance-none cursor-pointer
+                       accent-red-500 outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            aria-label="Volume"
+          />
         </div>
       </div>
 
-      {/* Mobile-only compact time row (shown when the inline labels are hidden) */}
-      <div className="flex xs:hidden justify-between mt-1.5 text-[10px] text-gray-500 dark:text-gray-400 tabular-nums">
-        <span>{formatTime(progress.current)}</span>
-        <span>{formatTime(progress.duration)}</span>
-      </div>
-
-      {/* Volume row */}
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-zinc-700">
-        <button
-          onClick={onToggleMute}
-          aria-label={isMuted ? 'Unmute' : 'Mute'}
-          className="shrink-0 p-1.5 text-gray-600 dark:text-gray-300 rounded-full
-                     hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors
-                     outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+      {/* Seek bar */}
+      {progress.duration > 0 && (
+        <div
+          role="slider"
+          aria-label="Seek"
+          aria-valuemin={0}
+          aria-valuemax={progress.duration}
+          aria-valuenow={progress.current}
+          tabIndex={0}
+          onClick={onSeek}
+          className="h-2 sm:h-1.5 w-full rounded-full bg-gray-200 dark:bg-zinc-700 cursor-pointer overflow-hidden"
         >
-          <VolumeIcon volume={volume} isMuted={isMuted} />
-        </button>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={isMuted ? 0 : volume}
-          onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-          aria-label="Volume"
-          className="w-full sm:w-32 accent-red-500 h-1.5 cursor-pointer"
-        />
-        <span className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 tabular-nums w-8 text-right">
-          {Math.round((isMuted ? 0 : volume) * 100)}%
-        </span>
-      </div>
+          <div
+            className="h-full bg-red-500 rounded-full transition-[width] duration-150"
+            style={{ width: `${(progress.current / progress.duration) * 100}%` }}
+          />
+        </div>
+      )}
     </div>
   );
 };
 
 // ─── Player Overlay ───────────────────────────────────────
-// Centered dialog on sm+ screens; a swipe-to-dismiss bottom sheet on
-// phones — the layout an app of this kind actually needs on a small
-// viewport, not just a shrunk-down modal.
 const AudioPlayerOverlay = ({
   audio,
   isOpen,
@@ -200,13 +197,9 @@ const AudioPlayerOverlay = ({
   isPlaying,
   isLoading,
   progress,
-  volume,
-  isMuted,
   handleToggle,
   handleStop,
   handleSeek,
-  handleVolumeChange,
-  handleToggleMute,
   returnFocusRef,
 }) => {
   const sheetRef = useRef(null);
@@ -214,7 +207,6 @@ const AudioPlayerOverlay = ({
   const dragState = useRef({ startY: 0, currentY: 0, dragging: false });
   const [dragOffset, setDragOffset] = useState(0);
 
-  // Lock background scroll, focus the sheet, restore focus on close, close on Esc
   useEffect(() => {
     if (!isOpen) return;
     const prevOverflow = document.body.style.overflow;
@@ -231,10 +223,8 @@ const AudioPlayerOverlay = ({
       document.removeEventListener('keydown', onKeyDown);
       returnFocusRef?.current?.focus?.();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, onClose, returnFocusRef]);
 
-  // Drag-to-dismiss (pointer events cover touch + mouse)
   const onDragStart = (e) => {
     dragState.current = { startY: e.clientY, currentY: e.clientY, dragging: true };
   };
@@ -275,7 +265,6 @@ const AudioPlayerOverlay = ({
                    pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6
                    animate-[slideUp_0.28s_cubic-bezier(0.32,0.72,0,1)] sm:animate-[scaleIn_0.2s_ease-out]"
       >
-        {/* Drag handle — mobile only */}
         <div
           className="sm:hidden flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none"
           onPointerDown={onDragStart}
@@ -287,7 +276,6 @@ const AudioPlayerOverlay = ({
         </div>
 
         <div className="px-5 sm:px-6 pt-2 sm:pt-6 relative">
-          {/* Close button */}
           <button
             ref={closeBtnRef}
             onClick={onClose}
@@ -299,23 +287,14 @@ const AudioPlayerOverlay = ({
             <FiX size={22} />
           </button>
 
-          {/* Cover */}
-          <div className="relative aspect-square w-full max-w-[220px] sm:max-w-none mx-auto rounded-xl overflow-hidden bg-gray-100 dark:bg-zinc-700 mb-4 mt-2 sm:mt-0 shadow-lg">
+          <div className="aspect-square w-full max-w-[220px] sm:max-w-none mx-auto rounded-xl overflow-hidden bg-gray-100 dark:bg-zinc-700 mb-4 mt-2 sm:mt-0 shadow-lg">
             <img
               src={audio.coverImage || 'https://via.placeholder.com/400x400/111111/FFFFFF?text=No+Image'}
               alt={audio.title}
               className="w-full h-full object-cover"
             />
-            {/* Loading veil over the cover art while audio is buffering/loading */}
-            {isLoading && media?.type === 'media' && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50 backdrop-blur-[2px]">
-                <FiLoader size={28} className="text-white animate-spin" />
-                <span className="text-white text-xs font-medium tracking-wide">Loading…</span>
-              </div>
-            )}
           </div>
 
-          {/* Title & metadata */}
           <h3 className="text-lg sm:text-xl font-bold text-black dark:text-white line-clamp-2 pr-8">{audio.title}</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{audio.description}</p>
           <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-2">
@@ -323,23 +302,20 @@ const AudioPlayerOverlay = ({
             <span className="flex items-center gap-1"><FiCalendar size={12} /> {new Date(audio.publishedAt).toLocaleDateString()}</span>
           </div>
 
-          {/* Player controls */}
           <div className="mt-5">
             {media?.type === 'media' ? (
               <>
-                {/* Native element stays hidden — we never show its default bar */}
+                {/* The native audio element is hidden – we use our custom controls */}
                 <audio ref={audioRef} src={media.src} preload="none" className="hidden" />
-                <CustomAudioBar
+
+                <AudioControls
+                  audioRef={audioRef}
                   isPlaying={isPlaying}
                   isLoading={isLoading}
                   progress={progress}
-                  volume={volume}
-                  isMuted={isMuted}
                   onToggle={handleToggle}
                   onStop={handleStop}
                   onSeek={handleSeek}
-                  onVolumeChange={handleVolumeChange}
-                  onToggleMute={handleToggleMute}
                 />
               </>
             ) : media?.type === 'iframe' ? (
@@ -352,7 +328,6 @@ const AudioPlayerOverlay = ({
             )}
           </div>
 
-          {/* Now playing indicator */}
           {isPlaying && media?.type === 'media' && (
             <div className="mt-3 flex items-center gap-2 text-xs text-red-500">
               <EqBars />
@@ -392,7 +367,6 @@ const AudioCard = ({ audio, onClick }) => {
             e.target.src = 'https://via.placeholder.com/200x200/111111/FFFFFF?text=No+Image';
           }}
         />
-        {/* Hover/focus play affordance */}
         <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/25 group-focus-visible:bg-black/25 transition-colors duration-300">
           <span className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 group-focus-visible:opacity-100 group-focus-visible:scale-100 transition-all duration-300">
             <FiPlay size={16} className="text-black translate-x-[1px]" />
@@ -461,14 +435,11 @@ const AudioPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
 
-  // Player state
   const [selectedAudio, setSelectedAudio] = useState(null);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, duration: 0 });
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
   const audioRef = useRef(null);
   const returnFocusRef = useRef(null);
 
@@ -532,15 +503,11 @@ const AudioPage = () => {
     }
   };
 
-  // Stop = pause + reset to the beginning (distinct from pause, which keeps position)
   const handleStop = () => {
-    const el = audioRef.current;
-    if (!el) return;
-    el.pause();
-    el.currentTime = 0;
-    setIsPlaying(false);
-    setIsLoading(false);
-    setProgress((p) => ({ ...p, current: 0 }));
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
   };
 
   const handleSeek = (e) => {
@@ -551,31 +518,12 @@ const AudioPage = () => {
     el.currentTime = ratio * progress.duration;
   };
 
-  const handleVolumeChange = (v) => {
-    setVolume(v);
-    if (v > 0 && isMuted) setIsMuted(false);
-    if (v === 0) setIsMuted(true);
-  };
-
-  const handleToggleMute = () => setIsMuted((m) => !m);
-
-  // Keep the underlying <audio> element in sync with volume/mute state
-  useEffect(() => {
-    const el = audioRef.current;
-    if (!el) return;
-    el.volume = isMuted ? 0 : volume;
-    el.muted = isMuted;
-  }, [volume, isMuted, selectedAudio]);
-
   // ─── Audio element events ──────────────────────────────
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
 
-    const onPlay = () => {
-      setIsPlaying(true);
-      setIsLoading(false);
-    };
+    const onPlay = () => { setIsPlaying(true); setIsLoading(false); };
     const onPause = () => setIsPlaying(false);
     const onWaiting = () => setIsLoading(true);
     const onCanPlay = () => setIsLoading(false);
@@ -604,7 +552,6 @@ const AudioPage = () => {
     };
   }, [selectedAudio]);
 
-  // ─── Extract media for the overlay ──────────────────────
   const selectedMedia = selectedAudio ? extractMediaSrc(selectedAudio.embedCode) : null;
   const sanitizedIframe = useMemo(() => {
     if (selectedMedia?.type !== 'iframe') return null;
@@ -618,7 +565,6 @@ const AudioPage = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-900 py-6 sm:py-10 md:py-12 px-3 sm:px-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="mb-6 sm:mb-10">
           <div className="flex items-center gap-2 sm:gap-3 mb-2">
             <div className="p-1.5 sm:p-2 bg-black dark:bg-white rounded-lg">
@@ -637,12 +583,9 @@ const AudioPage = () => {
           </div>
         </div>
 
-        {/* Content */}
         {loading ? (
           <div className="grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fill,minmax(135px,1fr))]">
-            {[...Array(10)].map((_, i) => (
-              <SkeletonCard key={i} />
-            ))}
+            {[...Array(10)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : audioList.length === 0 ? (
           <div className="text-center py-12">
@@ -658,21 +601,17 @@ const AudioPage = () => {
           </div>
         ) : (
           <>
-            {/* Fluid auto-fill grid: card count adapts to any viewport width
-                instead of snapping at fixed breakpoints. */}
             <div className="grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fill,minmax(135px,1fr))]">
               {filteredAudioList.map((audio) => (
                 <AudioCard key={audio._id} audio={audio} onClick={openPlayer} />
               ))}
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && !search && (
               <div className="flex flex-wrap items-center justify-center gap-2 mt-6 sm:mt-8">
                 <button
                   onClick={() => setPage((p) => Math.max(p - 1, 1))}
                   disabled={page === 1}
-                  aria-label="Previous page"
                   className="flex items-center gap-1 px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-200 dark:border-zinc-700 rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-xs sm:text-sm outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                 >
                   <FiChevronLeft size={14} className="sm:hidden" />
@@ -684,7 +623,6 @@ const AudioPage = () => {
                 <button
                   onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                   disabled={page === totalPages}
-                  aria-label="Next page"
                   className="flex items-center gap-1 px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-200 dark:border-zinc-700 rounded-full disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors text-xs sm:text-sm outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                 >
                   <span className="hidden sm:inline">Next</span>
@@ -696,7 +634,6 @@ const AudioPage = () => {
         )}
       </div>
 
-      {/* ─── Player Overlay ────────────────────────────────── */}
       {isPlayerOpen && selectedAudio && (
         <AudioPlayerOverlay
           audio={selectedAudio}
@@ -708,13 +645,9 @@ const AudioPage = () => {
           isPlaying={isPlaying}
           isLoading={isLoading}
           progress={progress}
-          volume={volume}
-          isMuted={isMuted}
           handleToggle={handleToggle}
           handleStop={handleStop}
           handleSeek={handleSeek}
-          handleVolumeChange={handleVolumeChange}
-          handleToggleMute={handleToggleMute}
           returnFocusRef={returnFocusRef}
         />
       )}
