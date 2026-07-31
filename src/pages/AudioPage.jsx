@@ -897,7 +897,6 @@ const AudioPage = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
 
   // Player state
@@ -911,18 +910,14 @@ const AudioPage = () => {
 
   const fetchAudio = useCallback(async (pageNum = 1) => {
     setLoading(true);
-    setError(null);
     try {
       const res = await api.get('/api/audio', { params: { page: pageNum, limit: 12 } });
       if (res.data.success) {
         setAudioList(res.data.data);
         setTotalPages(res.data.pagination.totalPages);
-      } else {
-        setError(res.data.message || 'Failed to load audio');
       }
     } catch (err) {
       console.error('Fetch audio error:', err);
-      setError('Failed to load audio. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -1057,16 +1052,6 @@ const AudioPage = () => {
             {[...Array(10)].map((_, i) => (
               <SkeletonCard key={i} />
             ))}
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-red-500 dark:text-red-400">{error}</p>
-            <button
-              onClick={() => fetchAudio(page)}
-              className="mt-4 px-5 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-            >
-              Retry
-            </button>
           </div>
         ) : audioList.length === 0 ? (
           <div className="text-center py-12">
