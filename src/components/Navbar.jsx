@@ -139,10 +139,16 @@ const Navbar = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // ─── Close dropdowns on outside click ──────────────
+  // ─── Close dropdowns on outside click (desktop nav only) ──────────────
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+      const clickedInsideDesktopNav =
+        dropdownRef.current && dropdownRef.current.contains(e.target);
+      const clickedInsideMobileMenu =
+        mobileMenuRef.current && mobileMenuRef.current.contains(e.target);
+
+      // Only close if the click is outside BOTH the desktop nav and the mobile drawer
+      if (!clickedInsideDesktopNav && !clickedInsideMobileMenu) {
         setOpenDropdown(null);
       }
     };
