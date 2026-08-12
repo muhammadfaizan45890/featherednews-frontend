@@ -221,11 +221,7 @@ const Navbar = () => {
   }, [mobileMenuOpen]);
 
   // ─── Handlers ──────────────────────────────────────────
-  const toggleDropdown = (label, e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+  const toggleDropdown = (label) => {
     setOpenDropdown(openDropdown === label ? null : label);
   };
 
@@ -575,7 +571,7 @@ const Navbar = () => {
                 ) : hasSub ? (
                   <>
                     <button
-                      onClick={(e) => toggleDropdown(item.label, e)}
+                      onClick={() => toggleDropdown(item.label)}
                       className="flex items-center gap-1 hover:text-black transition duration-300 border-none rounded px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
                       aria-expanded={openDropdown === item.label}
                     >
@@ -705,9 +701,8 @@ const Navbar = () => {
                     <li key={item.label} className="border-b border-gray-100 last:border-0">
                       <button
                         onClick={(e) => {
-                          e.preventDefault();
                           e.stopPropagation();
-                          toggleDropdown(item.label, e);
+                          toggleDropdown(item.label);
                         }}
                         className={`flex items-center w-full px-4 py-3 text-left transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
                           isActive ? "bg-gray-50" : ""
