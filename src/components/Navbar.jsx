@@ -166,6 +166,7 @@ const Navbar = () => {
   // ─── Close mobile menu on outside click ──────────────
   useEffect(() => {
     const handleClickOutside = (e) => {
+      // Check if click is outside the mobile menu and outside the menu button
       if (
         mobileMenuOpen &&
         mobileMenuRef.current &&
@@ -222,7 +223,8 @@ const Navbar = () => {
   // ─── Handlers ──────────────────────────────────────────
   const toggleDropdown = (label, e) => {
     if (e) {
-      e.stopPropagation(); // Prevent event from bubbling up
+      e.preventDefault();
+      e.stopPropagation();
     }
     setOpenDropdown(openDropdown === label ? null : label);
   };
@@ -573,7 +575,7 @@ const Navbar = () => {
                 ) : hasSub ? (
                   <>
                     <button
-                      onClick={() => toggleDropdown(item.label)}
+                      onClick={(e) => toggleDropdown(item.label, e)}
                       className="flex items-center gap-1 hover:text-black transition duration-300 border-none rounded px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
                       aria-expanded={openDropdown === item.label}
                     >
@@ -703,6 +705,7 @@ const Navbar = () => {
                     <li key={item.label} className="border-b border-gray-100 last:border-0">
                       <button
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
                           toggleDropdown(item.label, e);
                         }}
@@ -731,7 +734,10 @@ const Navbar = () => {
                               <Link
                                 to={sub.link}
                                 className="block px-12 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                                onClick={closeMobileMenu}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  closeMobileMenu();
+                                }}
                               >
                                 {sub.label}
                               </Link>
@@ -750,7 +756,10 @@ const Navbar = () => {
                       className={`flex items-center px-4 py-3 transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
                         isActive ? "bg-gray-50 text-black" : "text-gray-700"
                       }`}
-                      onClick={closeMobileMenu}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        closeMobileMenu();
+                      }}
                     >
                       <Icon size={18} className="text-gray-500 mr-3 flex-shrink-0" />
                       <span className="font-medium">{item.label}</span>
@@ -806,14 +815,20 @@ const Navbar = () => {
                     <Link
                       to="/admin/dashboard"
                       className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                      onClick={closeMobileMenu}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        closeMobileMenu();
+                      }}
                     >
                       <FiSettings size={16} />
                       Admin Panel
                     </Link>
                   )}
                   <button
-                    onClick={logoutHandler}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      logoutHandler();
+                    }}
                     className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                   >
                     <FiLogOut size={16} />
@@ -825,7 +840,10 @@ const Navbar = () => {
                   <Link
                     to="/login"
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                    onClick={closeMobileMenu}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeMobileMenu();
+                    }}
                   >
                     <FiLogIn size={16} />
                     Log In
@@ -833,7 +851,10 @@ const Navbar = () => {
                   <Link
                     to="/register"
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                    onClick={closeMobileMenu}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeMobileMenu();
+                    }}
                   >
                     <FiUser size={16} />
                     Sign Up
