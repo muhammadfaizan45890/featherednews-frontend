@@ -849,7 +849,7 @@ const Navbar = () => {
                     Log In
                   </Link>
                   <Link
-                    to="/register"
+                    to="/signup"
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
                     onClick={(e) => {
                       e.stopPropagation();
