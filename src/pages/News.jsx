@@ -54,6 +54,8 @@ const News = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const debounceTimer = useRef(null);
+  const observerTarget = useRef(null);
+  const loadMoreTriggered = useRef(false);
 
   useEffect(() => {
     const cat = searchParams.get('category') || 'All';
@@ -100,6 +102,7 @@ const News = () => {
         setLoading(false);
         setIsLoadingMore(false);
         setInitialLoad(false);
+        loadMoreTriggered.current = false;
       }
     },
     [searchTerm, selectedCategory]
@@ -108,15 +111,41 @@ const News = () => {
   useEffect(() => {
     setPage(1);
     setPosts([]);
+    setHasMore(false);
+    loadMoreTriggered.current = false;
     fetchPosts(1, false);
   }, [searchTerm, selectedCategory, fetchPosts]);
 
-  const loadMore = () => {
-    if (isLoadingMore || !hasMore) return;
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchPosts(nextPage, true);
-  };
+  // ─── Infinite Scroll with Intersection Observer ────
+  useEffect(() => {
+    const currentTarget = observerTarget.current;
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !loadMoreTriggered.current) {
+          loadMoreTriggered.current = true;
+          const nextPage = page + 1;
+          setPage(nextPage);
+          fetchPosts(nextPage, true);
+        }
+      },
+      {
+        root: null,
+        rootMargin: '200px',
+        threshold: 0.1,
+      }
+    );
+
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [hasMore, isLoadingMore, page, fetchPosts]);
 
   const handleSearchChange = (e) => {
     const value = e.target.value;
@@ -127,6 +156,24 @@ const News = () => {
       setSearchTerm(value);
     }, 300);
   };
+
+  // ─── Skeleton Loader ────────────────────────────────
+  const SkeletonCard = () => (
+    <div className="animate-pulse">
+      <div className="relative overflow-hidden bg-gray-200">
+        <div className="w-full h-32 sm:h-44 lg:h-56 bg-gray-300" />
+      </div>
+      <div className="mt-2 sm:mt-4 space-y-2">
+        <div className="h-4 sm:h-6 bg-gray-300 rounded w-3/4" />
+        <div className="h-3 sm:h-4 bg-gray-200 rounded w-full" />
+        <div className="h-3 sm:h-4 bg-gray-200 rounded w-2/3" />
+        <div className="flex items-center justify-between mt-2 sm:mt-3 pt-1 sm:pt-3 border-t border-gray-100">
+          <div className="h-3 sm:h-4 bg-gray-200 rounded w-1/3" />
+          <div className="h-3 sm:h-4 bg-gray-200 rounded w-1/4" />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <section className="max-w-7xl mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6">
@@ -174,15 +221,19 @@ const News = () => {
       </div>
 
       {/* Results Count */}
-      <p className="text-sm text-gray-500 mb-6">
-        Showing {posts.length} results
-        {!loading && totalPages > 0 && ` (Page ${page} of ${totalPages})`}
-      </p>
+      {!loading && posts.length > 0 && (
+        <p className="text-sm text-gray-500 mb-6">
+          Showing {posts.length} results
+          {totalPages > 0 && ` (Page ${page} of ${totalPages})`}
+        </p>
+      )}
 
       {/* ─── News Grid ──────────────────────────────────── */}
       {loading && initialLoad ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-black border-t-transparent" />
+        <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+          {[...Array(6)].map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       ) : error ? (
         <div className="text-center py-12 text-red-500">{error}</div>
@@ -203,59 +254,53 @@ const News = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
-          {posts.map((item) => (
-            <article
-              key={item._id}
-              className="group border-b border-gray-200 pb-4 sm:pb-6 last:border-0"
-            >
-              <Link to={`/news/${item.slug || item._id}`} className="block">
-                <div className="relative overflow-hidden bg-gray-100">
-                  <img
-                    src={item.images && item.images.length > 0 ? item.images[0] : "https://via.placeholder.com/600x400?text=No+Image"}
-                    alt={item.title}
-                    className="w-full h-32 sm:h-44 lg:h-56 object-cover"
-                  />
-                  <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-500 text-white text-[8px] sm:text-[10px] font-bold uppercase px-1.5 py-0.5 sm:px-2 sm:py-1">
-                    {item.category}
-                  </span>
-                </div>
-
-                <div className="mt-2 sm:mt-4">
-                  <h2 className="text-sm sm:text-lg lg:text-xl font-bold leading-tight group-hover:text-red-500 line-clamp-2">
-                    {item.title}
-                  </h2>
-                  <p className="text-gray-600 text-[10px] sm:text-sm leading-relaxed mt-1 sm:mt-2 line-clamp-2 sm:line-clamp-3">
-                    {stripHtml(item.description)}
-                  </p>
-                  <div className="flex items-center justify-between text-[9px] sm:text-xs text-gray-500 mt-2 sm:mt-3 pt-1 sm:pt-3 border-t border-gray-100">
-                    <span className="truncate max-w-[50%] sm:max-w-[60%]">
-                      {item.authorName || item.author?.fullname || "Unknown"}
-                    </span>
-                    <span className="flex items-center gap-0.5 sm:gap-1 font-medium text-red-500">
-                      Read
-                      <span className="inline-block">→</span>
+        <>
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+            {posts.map((item) => (
+              <article
+                key={item._id}
+                className="group border-b border-gray-200 pb-4 sm:pb-6 last:border-0"
+              >
+                <Link to={`/news/${item.slug || item._id}`} className="block">
+                  <div className="relative overflow-hidden bg-gray-100">
+                    <img
+                      src={item.images && item.images.length > 0 ? item.images[0] : "https://via.placeholder.com/600x400?text=No+Image"}
+                      alt={item.title}
+                      className="w-full h-32 sm:h-44 lg:h-56 object-cover"
+                    />
+                    <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-500 text-white text-[8px] sm:text-[10px] font-bold uppercase px-1.5 py-0.5 sm:px-2 sm:py-1">
+                      {item.category}
                     </span>
                   </div>
-                </div>
-              </Link>
-            </article>
-          ))}
-        </div>
-      )}
 
-      {/* Load More */}
-      {!loading && !error && hasMore && (
-        <div className="text-center mt-12">
-          <button
-            onClick={loadMore}
-            disabled={isLoadingMore}
-            className="px-8 py-3 border-2 border-black bg-transparent text-black font-medium text-sm uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoadingMore ? (
-              <span className="flex items-center gap-2">
+                  <div className="mt-2 sm:mt-4">
+                    <h2 className="text-sm sm:text-lg lg:text-xl font-bold leading-tight group-hover:text-red-500 line-clamp-2">
+                      {item.title}
+                    </h2>
+                    <p className="text-gray-600 text-[10px] sm:text-sm leading-relaxed mt-1 sm:mt-2 line-clamp-2 sm:line-clamp-3">
+                      {stripHtml(item.description)}
+                    </p>
+                    <div className="flex items-center justify-between text-[9px] sm:text-xs text-gray-500 mt-2 sm:mt-3 pt-1 sm:pt-3 border-t border-gray-100">
+                      <span className="truncate max-w-[50%] sm:max-w-[60%]">
+                        {item.authorName || item.author?.fullname || "Unknown"}
+                      </span>
+                      <span className="flex items-center gap-0.5 sm:gap-1 font-medium text-red-500">
+                        Read
+                        <span className="inline-block">→</span>
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              </article>
+            ))}
+          </div>
+
+          {/* ─── Loading More Indicator ────────────────── */}
+          {isLoadingMore && (
+            <div className="flex justify-center py-8 mt-4">
+              <div className="flex items-center gap-3">
                 <svg
-                  className="animate-spin h-4 w-4 text-black"
+                  className="animate-spin h-5 w-5 text-black"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -274,13 +319,27 @@ const News = () => {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                Loading...
-              </span>
-            ) : (
-              "Load More"
-            )}
-          </button>
-        </div>
+                <span className="text-sm text-gray-600">Loading more news...</span>
+              </div>
+            </div>
+          )}
+
+          {/* ─── Intersection Observer Target ──────────── */}
+          {hasMore && (
+            <div 
+              ref={observerTarget} 
+              className="h-4 w-full pointer-events-none"
+              aria-hidden="true"
+            />
+          )}
+
+          {/* ─── End of Results Message ────────────────── */}
+          {!hasMore && posts.length > 0 && (
+            <div className="text-center mt-12 pt-4 border-t border-gray-200">
+              <p className="text-sm text-gray-500">You've reached the end of the news feed</p>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
