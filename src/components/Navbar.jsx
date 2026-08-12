@@ -7,6 +7,18 @@ import {
   FiX,
   FiUser,
   FiFeather,
+  FiHome,
+  FiFileText,
+  FiHeadphones,
+  FiBriefcase,
+  FiShield,
+  FiMail,
+  FiInfo,
+  FiLogOut,
+  FiLogIn,
+  FiSettings,
+  FiGrid,
+  FiChevronRight,
 } from "react-icons/fi";
 import { FaFacebookF, FaTwitter, FaInstagram, FaYoutube } from "react-icons/fa";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -72,10 +84,13 @@ const Navbar = () => {
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [touchStartX, setTouchStartX] = useState(0);
+  const [touchEndX, setTouchEndX] = useState(0);
 
   const dropdownRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const searchInputRef = useRef(null);
+  const menuButtonRef = useRef(null);
 
   const accessToken = localStorage.getItem("accessToken");
   const userRole = user?.role || "user";
@@ -154,7 +169,8 @@ const Navbar = () => {
       if (
         mobileMenuOpen &&
         mobileMenuRef.current &&
-        !mobileMenuRef.current.contains(e.target)
+        !mobileMenuRef.current.contains(e.target) &&
+        !menuButtonRef.current?.contains(e.target)
       ) {
         setMobileMenuOpen(false);
       }
@@ -185,6 +201,24 @@ const Navbar = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // ─── Lock body scroll when mobile menu is open ──────
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, [mobileMenuOpen]);
+
   // ─── Handlers ──────────────────────────────────────────
   const toggleDropdown = (label) => {
     setOpenDropdown(openDropdown === label ? null : label);
@@ -202,23 +236,38 @@ const Navbar = () => {
     }
   };
 
-  // ─── Navigation items ──────────────────────────────────
-  const navItems = [
-    { label: "Home", link: "/" },
-    { label: "News", link: "/news" },
-            { label: "Listen", link: "/audio" },
+  // ─── Touch handlers for swipe to close ──────────────
+  const handleTouchStart = (e) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
 
+  const handleTouchMove = (e) => {
+    setTouchEndX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX - touchEndX > 75) {
+      setMobileMenuOpen(false);
+    }
+  };
+
+  // ─── Navigation items with icons ──────────────────────
+  const navItems = [
+    { label: "Home", link: "/", icon: FiHome },
+    { label: "News", link: "/news", icon: FiFileText },
+    { label: "Listen", link: "/audio", icon: FiHeadphones },
     {
       label: "Categories",
+      icon: FiGrid,
       sub: categories.map((cat) => ({
         label: cat,
         link: `/news?category=${encodeURIComponent(cat)}`,
       })),
     },
-    { label: "Advertise", link: "/advertise" },
-    { label: "Privacy and Policy", link: "/privacy" },
-    { label: "Contact", link: "/contact" },
-    { label: "About", link: "/about" },
+    { label: "Advertise", link: "/advertise", icon: FiBriefcase },
+    { label: "Privacy", link: "/privacy", icon: FiShield },
+    { label: "Contact", link: "/contact", icon: FiMail },
+    { label: "About", link: "/about", icon: FiInfo },
   ];
 
   const getSubItems = (item) => {
@@ -264,6 +313,7 @@ const Navbar = () => {
         toast.success(res.data.message);
         localStorage.clear();
         navigate("/");
+        closeMobileMenu();
       }
     } catch {
       toast.error("Logout failed");
@@ -327,9 +377,11 @@ const Navbar = () => {
           {/* Left: Mobile Menu + Search */}
           <div className="flex items-center gap-3 sm:gap-4 text-gray-700">
             <button
+              ref={menuButtonRef}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="hover:text-black transition duration-300 lg:hidden rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-              aria-label="Toggle mobile menu"
+              className="hover:text-black transition duration-300 lg:hidden rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black relative"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
             </button>
@@ -560,9 +612,10 @@ const Navbar = () => {
         </ul>
       </nav>
 
-      {/* ===== MOBILE DRAWER ===== */}
+      {/* ===== ADVANCED MOBILE DRAWER ===== */}
+      {/* Backdrop with blur */}
       <div
-        className={`fixed inset-0 bg-black/30 backdrop-blur-sm lg:hidden transition-opacity duration-300 z-40 ${
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm lg:hidden transition-all duration-300 z-40 ${
           mobileMenuOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
@@ -571,9 +624,13 @@ const Navbar = () => {
         aria-hidden="true"
       />
 
+      {/* Sidebar */}
       <div
         ref={mobileMenuRef}
-        className={`fixed top-0 right-0 h-full w-72 max-w-[85vw] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 lg:hidden ${
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={`fixed top-0 right-0 h-full w-[280px] sm:w-[320px] max-w-[85vw] bg-white shadow-2xl transform transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] z-50 lg:hidden ${
           mobileMenuOpen ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
@@ -581,49 +638,77 @@ const Navbar = () => {
         aria-label="Mobile menu"
       >
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between p-3 border-b border-gray-200">
+          {/* Header with close button */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50/50">
+            <div className="flex items-center gap-2">
+              <FiFeather className="text-xl text-black" />
+              <span className="font-bold text-sm">Menu</span>
+            </div>
             <button
               onClick={closeMobileMenu}
-              className="p-2 hover:bg-gray-100 rounded-full transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+              className="p-2 hover:bg-gray-200 rounded-full transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
               aria-label="Close menu"
             >
               <FiX size={24} />
             </button>
           </div>
 
-          <nav className="flex-1 overflow-y-auto py-4">
-            <ul className="space-y-1">
+          {/* User Profile Section */}
+          {user && (
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+              <Link
+                to={profileRoute}
+                onClick={closeMobileMenu}
+                className="flex items-center gap-3 group"
+              >
+                <Avatar className="h-12 w-12 border-2 border-gray-300 group-hover:border-black transition-colors">
+                  <AvatarImage src={getAvatarUrl(user?.avatar)} />
+                  <AvatarFallback className="bg-gray-200 text-gray-700 text-sm font-bold">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {user?.fullname || "User"}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {user?.email || ""}
+                  </p>
+                  {userRole === "admin" && (
+                    <span className="inline-block mt-0.5 text-[9px] font-bold uppercase bg-black text-white px-2 py-0.5 rounded">
+                      Admin
+                    </span>
+                  )}
+                </div>
+                <FiChevronRight className="text-gray-400 group-hover:text-black transition-colors" size={18} />
+              </Link>
+            </div>
+          )}
+
+          {/* Navigation Links */}
+          <nav className="flex-1 overflow-y-auto py-2">
+            <ul className="space-y-0.5">
               {navItems.map((item) => {
+                const Icon = item.icon || FiFileText;
                 const subItems = getSubItems(item);
                 const hasSub = subItems.length > 0;
-                const isButton = !!item.isButton;
-
-                if (isButton) {
-                  return (
-                    <li key={item.label} className="px-4 mt-4">
-                      <a
-                        href={item.link}
-                        className="block w-full px-4 py-3 bg-black text-white rounded-lg text-center font-bold uppercase hover:bg-gray-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                        onClick={closeMobileMenu}
-                      >
-                        {item.label}
-                      </a>
-                    </li>
-                  );
-                }
+                const isActive = location.pathname === item.link;
 
                 if (hasSub) {
                   const isOpen = openDropdown === item.label;
                   return (
-                    <li key={item.label} className="border-b border-gray-100">
+                    <li key={item.label} className="border-b border-gray-100 last:border-0">
                       <button
                         onClick={() => toggleDropdown(item.label)}
-                        className="flex items-center justify-between w-full px-4 py-3 text-left font-medium hover:bg-gray-50 transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                        className={`flex items-center w-full px-4 py-3 text-left transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                          isActive ? "bg-gray-50" : ""
+                        }`}
                         aria-expanded={isOpen}
                       >
-                        <span>{item.label}</span>
+                        <Icon size={18} className="text-gray-500 mr-3 flex-shrink-0" />
+                        <span className="flex-1 font-medium text-gray-700">{item.label}</span>
                         <FiChevronDown
-                          className={`transform transition-transform duration-200 ${
+                          className={`transform transition-transform duration-200 text-gray-400 ${
                             isOpen ? "rotate-180" : ""
                           }`}
                           size={16}
@@ -631,15 +716,15 @@ const Navbar = () => {
                       </button>
                       <div
                         className={`overflow-hidden transition-all duration-200 ${
-                          isOpen ? "max-h-60" : "max-h-0"
+                          isOpen ? "max-h-[500px]" : "max-h-0"
                         }`}
                       >
-                        <ul className="bg-gray-50/50 py-1">
+                        <ul className="bg-gray-50/80 py-1">
                           {subItems.map((sub) => (
                             <li key={sub.label}>
                               <Link
                                 to={sub.link}
-                                className="block px-8 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                                className="block px-12 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
                                 onClick={closeMobileMenu}
                               >
                                 {sub.label}
@@ -654,91 +739,102 @@ const Navbar = () => {
 
                 return (
                   <li key={item.label}>
-                    <a
-                      href={item.link}
-                      className="block px-4 py-3 font-medium hover:bg-gray-50 transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    <Link
+                      to={item.link}
+                      className={`flex items-center px-4 py-3 transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                        isActive ? "bg-gray-50 text-black" : "text-gray-700"
+                      }`}
                       onClick={closeMobileMenu}
                     >
-                      {item.label}
-                    </a>
+                      <Icon size={18} className="text-gray-500 mr-3 flex-shrink-0" />
+                      <span className="font-medium">{item.label}</span>
+                      {isActive && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />
+                      )}
+                    </Link>
                   </li>
                 );
               })}
             </ul>
           </nav>
 
-          <div className="p-5 border-t border-gray-200 space-y-4">
-            <div className="flex justify-center gap-6 text-gray-600">
+          {/* Footer with actions */}
+          <div className="border-t border-gray-200 bg-gray-50/50">
+            {/* Social Icons */}
+            <div className="flex justify-center gap-5 py-4 px-4 border-b border-gray-200">
               <a
                 href="#"
                 aria-label="Facebook"
-                className="hover:text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1"
+                className="text-gray-500 hover:text-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1"
               >
                 <FaFacebookF size={18} />
               </a>
               <a
                 href="https://x.com/feathered_pen"
                 aria-label="Twitter"
-                className="hover:text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1"
+                className="text-gray-500 hover:text-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1"
               >
                 <FaXTwitter size={18} />
               </a>
               <a
                 href="#"
                 aria-label="Instagram"
-                className="hover:text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1"
+                className="text-gray-500 hover:text-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1"
               >
                 <FaInstagram size={18} />
               </a>
               <a
                 href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
                 aria-label="YouTube"
-                className="hover:text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1"
+                className="text-gray-500 hover:text-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1"
               >
                 <FaYoutube size={18} />
               </a>
             </div>
 
-            {user ? (
-              <div className="flex flex-col gap-2">
-                <Link
-                  to={profileRoute}
-                  className="block text-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                  onClick={closeMobileMenu}
-                >
-                  Profile
-                </Link>
-                {userRole === "admin" && (
+            {/* Auth Actions */}
+            <div className="p-4">
+              {user ? (
+                <div className="flex flex-col gap-2">
+                  {userRole === "admin" && (
+                    <Link
+                      to="/admin/dashboard"
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                      onClick={closeMobileMenu}
+                    >
+                      <FiSettings size={16} />
+                      Admin Panel
+                    </Link>
+                  )}
+                  <button
+                    onClick={logoutHandler}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                  >
+                    <FiLogOut size={16} />
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
                   <Link
-                    to="/admin/dashboard"
-                    className="block text-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    to="/login"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
                     onClick={closeMobileMenu}
                   >
-                    Admin Panel
+                    <FiLogIn size={16} />
+                    Log In
                   </Link>
-                )}
-                <button
-                  onClick={() => {
-                    logoutHandler();
-                    closeMobileMenu();
-                  }}
-                  className="block w-full text-center px-4 py-2 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                >
-                  Sign out
-                </button>
-              </div>
-            ) : (
-              <div className="flex justify-center">
-                <Link
-                  to="/login"
-                  className="inline-flex items-center gap-2 px-6 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  onClick={closeMobileMenu}
-                >
-                  <FiUser size={18} />
-                  Log in
-                </Link>
-              </div>
-            )}
+                  <Link
+                    to="/register"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    onClick={closeMobileMenu}
+                  >
+                    <FiUser size={16} />
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
