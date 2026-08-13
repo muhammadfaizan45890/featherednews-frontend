@@ -65,25 +65,20 @@ const Navbar = () => {
   const location = useLocation();
 
   // ─── State ──────────────────────────────────────────────
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [openDropdown, setOpenDropdown] = useState(null); // desktop
   const [mobileOpenDropdown, setMobileOpenDropdown] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [indicator, setIndicator] = useState({ left: 0, width: 0, opacity: 0 });
 
   // ─── Refs ──────────────────────────────────────────────
-  const dropdownRef = useRef(null);
-  const mobileMenuRef = useRef(null);
-  const searchInputRef = useRef(null);
+  const sidebarRef = useRef(null);
   const menuButtonRef = useRef(null);
   const closeButtonRef = useRef(null);
-  const navListRef = useRef(null);
-  const navItemRefs = useRef({});
+  const searchInputRef = useRef(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const categoryFetched = useRef(false);
@@ -134,51 +129,33 @@ const Navbar = () => {
     return base.filter((item) => item.sub?.length > 0 || item.link);
   }, [categories]);
 
-  // ─── Close mobile on route change ────────────────────
+  // ─── Close sidebar on route change ────────────────────
   useEffect(() => {
-    setMobileMenuOpen(false);
+    setSidebarOpen(false);
     setMobileOpenDropdown(null);
   }, [location.pathname]);
 
-  // ─── Close mobile on resize to desktop ──────────────
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setMobileMenuOpen(false);
-        setMobileOpenDropdown(null);
-      }
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // ─── Outside click for dropdowns ────────────────────
+  // ─── Outside click for sidebar ──────────────────────
   useEffect(() => {
     const handleClickOutside = (e) => {
-      // Desktop dropdown
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setOpenDropdown(null);
-      }
-      // Mobile drawer
       if (
-        mobileMenuOpen &&
-        mobileMenuRef.current &&
-        !mobileMenuRef.current.contains(e.target) &&
+        sidebarOpen &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(e.target) &&
         !menuButtonRef.current?.contains(e.target)
       ) {
-        setMobileMenuOpen(false);
+        setSidebarOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [mobileMenuOpen]);
+  }, [sidebarOpen]);
 
   // ─── ESC to close everything ────────────────────────
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape") {
-        setMobileMenuOpen(false);
-        setOpenDropdown(null);
+        setSidebarOpen(false);
         setMobileOpenDropdown(null);
         setSearchOpen(false);
       }
@@ -187,14 +164,14 @@ const Navbar = () => {
     return () => document.removeEventListener("keydown", handleEscape);
   }, []);
 
-  // ─── Focus trap for mobile drawer ──────────────────
+  // ─── Focus trap for sidebar ──────────────────────────
   useEffect(() => {
-    if (!mobileMenuOpen) return;
+    if (!sidebarOpen) return;
     closeButtonRef.current?.focus();
 
     const handleTab = (e) => {
-      if (e.key !== "Tab" || !mobileMenuRef.current) return;
-      const focusable = mobileMenuRef.current.querySelectorAll(
+      if (e.key !== "Tab" || !sidebarRef.current) return;
+      const focusable = sidebarRef.current.querySelectorAll(
         'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])'
       );
       if (focusable.length === 0) return;
@@ -211,7 +188,7 @@ const Navbar = () => {
     };
     document.addEventListener("keydown", handleTab);
     return () => document.removeEventListener("keydown", handleTab);
-  }, [mobileMenuOpen]);
+  }, [sidebarOpen]);
 
   // ─── Auto‑focus search input ────────────────────────
   useEffect(() => {
@@ -233,9 +210,9 @@ const Navbar = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // ─── Lock body scroll when mobile menu open ────────
+  // ─── Lock body scroll when sidebar open ────────────────
   useEffect(() => {
-    if (mobileMenuOpen) {
+    if (sidebarOpen) {
       document.body.style.overflow = "hidden";
       document.body.style.position = "fixed";
       document.body.style.width = "100%";
@@ -249,61 +226,20 @@ const Navbar = () => {
       document.body.style.position = "";
       document.body.style.width = "";
     };
-  }, [mobileMenuOpen]);
-
-  // ─── Sliding indicator (only on route change & resize) ──
-  const moveIndicatorTo = useCallback((label) => {
-    const el = navItemRefs.current[label];
-    const container = navListRef.current;
-    if (!el || !container) return;
-    const elRect = el.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    if (elRect.width === 0 || containerRect.width === 0) {
-      setIndicator((prev) => ({ ...prev, opacity: 0 }));
-      return;
-    }
-    setIndicator({
-      left: elRect.left - containerRect.left,
-      width: elRect.width,
-      opacity: 1,
-    });
-  }, []);
-
-  const resetIndicatorToActive = useCallback(() => {
-    const activeItem = navItems.find((item) => item.link === location.pathname);
-    if (activeItem) {
-      moveIndicatorTo(activeItem.label);
-    } else {
-      setIndicator((prev) => ({ ...prev, opacity: 0 }));
-    }
-  }, [navItems, location.pathname, moveIndicatorTo]);
-
-  // Debounced resize to avoid jank
-  useEffect(() => {
-    const debouncedResize = debounce(resetIndicatorToActive, 150);
-    window.addEventListener("resize", debouncedResize);
-    resetIndicatorToActive();
-    return () => {
-      window.removeEventListener("resize", debouncedResize);
-    };
-  }, [resetIndicatorToActive]);
-
-  // Also reset when categories or path changes
-  useEffect(() => {
-    resetIndicatorToActive();
-  }, [resetIndicatorToActive, categories]);
+  }, [sidebarOpen]);
 
   // ─── Handlers ──────────────────────────────────────────
-  const toggleDropdown = useCallback((label) => {
-    setOpenDropdown((prev) => (prev === label ? null : label));
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((prev) => !prev);
+    setMobileOpenDropdown(null);
   }, []);
 
   const toggleMobileDropdown = useCallback((label) => {
     setMobileOpenDropdown((prev) => (prev === label ? null : label));
   }, []);
 
-  const closeMobileMenu = useCallback(() => {
-    setMobileMenuOpen(false);
+  const closeSidebar = useCallback(() => {
+    setSidebarOpen(false);
     setMobileOpenDropdown(null);
   }, []);
 
@@ -320,7 +256,7 @@ const Navbar = () => {
     [searchQuery, navigate]
   );
 
-  // ─── Touch swipe to close mobile ────────────────────
+  // ─── Touch swipe to close sidebar ────────────────────
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
     touchEndX.current = e.touches[0].clientX;
@@ -330,7 +266,7 @@ const Navbar = () => {
   };
   const handleTouchEnd = () => {
     if (touchStartX.current - touchEndX.current > 75) {
-      closeMobileMenu();
+      closeSidebar();
     }
     touchStartX.current = 0;
     touchEndX.current = 0;
@@ -357,12 +293,12 @@ const Navbar = () => {
         toast.success(res.data.message);
         localStorage.clear();
         navigate("/");
-        closeMobileMenu();
+        closeSidebar();
       }
     } catch {
       toast.error("Logout failed");
     }
-  }, [accessToken, setUser, navigate, closeMobileMenu]);
+  }, [accessToken, setUser, navigate, closeSidebar]);
 
   // ─── Date formatting ──────────────────────────────
   const fullDate = currentTime.toLocaleDateString("en-US", {
@@ -419,17 +355,17 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
         {/* ─── Top Header ──────────────────────────────────── */}
         <div className="relative flex items-center justify-between py-3 sm:py-4 md:py-5 lg:py-4 xl:py-5">
-          {/* Left: Mobile Menu + Search */}
+          {/* Left: Hamburger + Search (always visible) */}
           <div className="flex items-center gap-3 sm:gap-4 text-gray-700">
             <button
               ref={menuButtonRef}
-              onClick={() => setMobileMenuOpen((v) => !v)}
-              className="hover:text-black transition duration-300 lg:hidden rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black relative"
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={mobileMenuOpen}
-              aria-controls="mobile-drawer"
+              onClick={toggleSidebar}
+              className="hover:text-black transition duration-300 rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black relative"
+              aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+              aria-expanded={sidebarOpen}
+              aria-controls="sidebar-drawer"
             >
-              {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+              {sidebarOpen ? <FiX size={22} /> : <FiMenu size={22} />}
             </button>
             <button
               onClick={() => setSearchOpen((v) => !v)}
@@ -508,7 +444,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* ─── Mobile Strip (scrollable categories) ──────── */}
+        {/* ─── Mobile Strip (scrollable categories) – kept for quick access ── */}
         <div className="lg:hidden relative border-t border-gray-200">
           <div className="flex items-center gap-2 py-2.5 overflow-x-auto scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {[
@@ -531,7 +467,7 @@ const Navbar = () => {
                       ? "bg-black text-white border-black"
                       : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
                   }`}
-                  onClick={closeMobileMenu}
+                  onClick={closeSidebar}
                 >
                   {item.label}
                 </Link>
@@ -564,163 +500,30 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* ─── Desktop Navigation ───────────────────────────── */}
-      <nav className="relative hidden lg:block border-t border-gray-100">
-        <ul
-          ref={(node) => {
-            dropdownRef.current = node;
-            navListRef.current = node;
-          }}
-          className="relative flex flex-wrap justify-center items-center gap-3 xl:gap-6 2xl:gap-10 py-2.5 text-[12px] xl:text-[13px] font-semibold uppercase"
-        >
-          {/* Sliding indicator */}
-          <span
-            aria-hidden="true"
-            className="absolute bottom-0 h-[2px] bg-black transition-all duration-300 ease-out will-change-[left,width,opacity]"
-            style={{
-              left: indicator.left,
-              width: indicator.width,
-              opacity: indicator.opacity,
-            }}
-          />
-
-          {navItems.map((item) => {
-            const subItems = item.sub || [];
-            const hasSub = subItems.length > 0;
-            const isActive = location.pathname === item.link;
-
-            return (
-              <li
-                key={item.label}
-                ref={(node) => (navItemRefs.current[item.label] = node)}
-                className="relative"
-              >
-                {hasSub ? (
-                  <button
-                    onClick={() => toggleDropdown(item.label)}
-                    className={`flex items-center gap-1 hover:text-black transition duration-300 border-none rounded px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                      openDropdown === item.label ? "text-black" : "text-gray-700"
-                    }`}
-                    aria-expanded={openDropdown === item.label}
-                    aria-haspopup="true"
-                  >
-                    {item.label}
-                    <FiChevronDown
-                      size={14}
-                      className={`transform transition-transform duration-200 ${
-                        openDropdown === item.label ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-                ) : (
-                  <Link
-                    to={item.link}
-                    className={`hover:text-black transition duration-300 inline-block px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                      isActive ? "text-black" : "text-gray-700"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-
-        {/* ─── Mega Menu (Categories) ──────────────────────── */}
-        {navItems
-          .filter((item) => item.sub?.length > 0)
-          .map((item) => {
-            const isOpen = openDropdown === item.label;
-            return (
-              <div
-                key={item.label}
-                className={`absolute top-full left-0 right-0 bg-white border-t border-gray-100 shadow-xl overflow-hidden transition-all duration-300 ease-out z-30 origin-top ${
-                  isOpen
-                    ? "scale-y-100 opacity-100 pointer-events-auto"
-                    : "scale-y-0 opacity-0 pointer-events-none"
-                }`}
-                style={{ transformOrigin: "top center" }}
-              >
-                <div className="max-w-7xl mx-auto px-6 lg:px-10 py-5 lg:py-6 grid grid-cols-1 lg:grid-cols-4 gap-x-6 lg:gap-x-8 gap-y-4 max-h-[75vh] overflow-y-auto">
-                  <div className="lg:col-span-1 lg:pr-6 lg:border-r border-gray-100">
-                    <p className="text-[11px] tracking-[2px] uppercase text-gray-400 font-semibold mb-2">
-                      Browse
-                    </p>
-                    <h3 className="text-base lg:text-lg font-black leading-snug">
-                      Every story,
-                      <br className="hidden lg:block" />
-                      sorted your way.
-                    </h3>
-                    <Link
-                      to="/news"
-                      onClick={() => setOpenDropdown(null)}
-                      className="inline-flex items-center gap-1 mt-3 text-xs font-bold uppercase tracking-wide hover:underline"
-                    >
-                      View all stories <FiChevronRight size={14} />
-                    </Link>
-                  </div>
-                  <div className="lg:col-span-3 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-2.5">
-                    {categoriesLoading ? (
-                      <span className="text-sm text-gray-400 col-span-full">
-                        Loading categories…
-                      </span>
-                    ) : item.sub.length === 0 ? (
-                      <span className="text-sm text-gray-400 col-span-full">
-                        No categories yet.
-                      </span>
-                    ) : (
-                      item.sub.map((sub) => (
-                        <Link
-                          key={sub.label}
-                          to={sub.link}
-                          onClick={() => setOpenDropdown(null)}
-                          className="text-sm font-medium text-gray-700 hover:text-black hover:translate-x-0.5 transition-all duration-150 py-1 border-b border-transparent hover:border-black w-fit truncate max-w-full"
-                        >
-                          {sub.label}
-                        </Link>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-      </nav>
-
-      {/* Backdrop for dropdown */}
+      {/* ─── Sidebar (Drawer) – now visible on all screens ── */}
       <div
-        className={`hidden lg:block fixed inset-0 bg-black/20 transition-opacity duration-300 z-20 ${
-          openDropdown ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={() => setOpenDropdown(null)}
-        aria-hidden="true"
-      />
-
-      {/* ─── Mobile Drawer ────────────────────────────────── */}
-      <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm lg:hidden transition-all duration-300 z-40 ${
-          mobileMenuOpen
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm transition-all duration-300 z-40 ${
+          sidebarOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
         }`}
-        onClick={closeMobileMenu}
+        onClick={closeSidebar}
         aria-hidden="true"
       />
 
       <div
-        id="mobile-drawer"
-        ref={mobileMenuRef}
+        id="sidebar-drawer"
+        ref={sidebarRef}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`fixed top-0 right-0 h-full w-[280px] sm:w-[320px] max-w-[85vw] bg-white shadow-2xl transform transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] z-50 lg:hidden ${
-          mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed top-0 right-0 h-full w-[280px] sm:w-[320px] max-w-[85vw] bg-white shadow-2xl transform transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] z-50 ${
+          sidebarOpen ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
         aria-modal="true"
-        aria-label="Mobile menu"
-        aria-hidden={!mobileMenuOpen}
+        aria-label="Navigation menu"
+        aria-hidden={!sidebarOpen}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -731,7 +534,7 @@ const Navbar = () => {
             </div>
             <button
               ref={closeButtonRef}
-              onClick={closeMobileMenu}
+              onClick={closeSidebar}
               className="p-2 hover:bg-gray-200 rounded-full transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
               aria-label="Close menu"
             >
@@ -744,7 +547,7 @@ const Navbar = () => {
             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
               <Link
                 to={profileRoute}
-                onClick={closeMobileMenu}
+                onClick={closeSidebar}
                 className="flex items-center gap-3 group"
               >
                 <Avatar className="h-12 w-12 border-2 border-gray-300 group-hover:border-black transition-colors">
@@ -807,7 +610,7 @@ const Navbar = () => {
                               <Link
                                 to={sub.link}
                                 className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                                onClick={closeMobileMenu}
+                                onClick={closeSidebar}
                               >
                                 {sub.label}
                               </Link>
@@ -826,7 +629,7 @@ const Navbar = () => {
                       className={`flex items-center px-4 py-3 transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
                         isActive ? "bg-gray-50 text-black" : "text-gray-700"
                       }`}
-                      onClick={closeMobileMenu}
+                      onClick={closeSidebar}
                     >
                       <span className="font-medium">{item.label}</span>
                       {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />}
@@ -860,7 +663,7 @@ const Navbar = () => {
                     <Link
                       to="/admin/dashboard"
                       className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                      onClick={closeMobileMenu}
+                      onClick={closeSidebar}
                     >
                       Admin Panel
                     </Link>
@@ -877,7 +680,7 @@ const Navbar = () => {
                   <Link
                     to="/login"
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                    onClick={closeMobileMenu}
+                    onClick={closeSidebar}
                   >
                     <FiLogIn size={16} />
                     Log In
@@ -885,7 +688,7 @@ const Navbar = () => {
                   <Link
                     to="/signup"
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                    onClick={closeMobileMenu}
+                    onClick={closeSidebar}
                   >
                     <FiUser size={16} />
                     Sign Up
@@ -901,7 +704,6 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
 
 
 
