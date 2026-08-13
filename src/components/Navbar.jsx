@@ -7,12 +7,10 @@ import {
   FiX,
   FiUser,
   FiFeather,
-  FiLogOut,
   FiLogIn,
-  FiSettings,
   FiChevronRight,
 } from "react-icons/fi";
-import { FaFacebookF, FaTwitter, FaInstagram, FaYoutube } from "react-icons/fa";
+import { FaFacebookF, FaInstagram, FaYoutube } from "react-icons/fa";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getData } from "@/context/userContext";
 import axios from "axios";
