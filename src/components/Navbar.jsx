@@ -7,17 +7,9 @@ import {
   FiX,
   FiUser,
   FiFeather,
-  FiHome,
-  FiFileText,
-  FiHeadphones,
-  FiBriefcase,
-  FiShield,
-  FiMail,
-  FiInfo,
   FiLogOut,
   FiLogIn,
   FiSettings,
-  FiGrid,
   FiChevronRight,
 } from "react-icons/fi";
 import { FaFacebookF, FaTwitter, FaInstagram, FaYoutube } from "react-icons/fa";
@@ -79,18 +71,20 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [openDropdown, setOpenDropdown] = useState(null);
+  const [openDropdown, setOpenDropdown] = useState(null); // desktop nav dropdown
+  const [mobileOpenDropdown, setMobileOpenDropdown] = useState(null); // drawer dropdown (kept separate on purpose)
   const [isScrolled, setIsScrolled] = useState(false);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [touchStartX, setTouchStartX] = useState(0);
-  const [touchEndX, setTouchEndX] = useState(0);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
 
   const dropdownRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const searchInputRef = useRef(null);
   const menuButtonRef = useRef(null);
+  const closeButtonRef = useRef(null);
 
   const accessToken = localStorage.getItem("accessToken");
   const userRole = user?.role || "user";
@@ -128,51 +122,29 @@ const Navbar = () => {
   // ─── Close mobile menu on route change ──────────────
   useEffect(() => {
     setMobileMenuOpen(false);
+    setMobileOpenDropdown(null);
   }, [location.pathname]);
 
   // ─── Close mobile menu on resize to desktop ──────────
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 1024) setMobileMenuOpen(false);
+      if (window.innerWidth >= 1024) {
+        setMobileMenuOpen(false);
+        setMobileOpenDropdown(null);
+      }
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // ─── Close dropdowns on outside click (desktop nav only) ──────────────
+  // ─── Single outside-click handler for desktop dropdown + mobile drawer ──
   useEffect(() => {
     const handleClickOutside = (e) => {
-      const clickedInsideDesktopNav =
-        dropdownRef.current && dropdownRef.current.contains(e.target);
-      const clickedInsideMobileMenu =
-        mobileMenuRef.current && mobileMenuRef.current.contains(e.target);
-
-      // Only close if the click is outside BOTH the desktop nav and the mobile drawer
-      if (!clickedInsideDesktopNav && !clickedInsideMobileMenu) {
+      // Desktop nav dropdown
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setOpenDropdown(null);
       }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // ─── Close mobile menu on escape key ──────────────────
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === "Escape") {
-        setMobileMenuOpen(false);
-        setOpenDropdown(null);
-        setSearchOpen(false);
-      }
-    };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, []);
-
-  // ─── Close mobile menu on outside click ──────────────
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      // Check if click is outside the mobile menu and outside the menu button
+      // Mobile drawer (ignore clicks on the menu toggle button itself)
       if (
         mobileMenuOpen &&
         mobileMenuRef.current &&
@@ -184,6 +156,48 @@ const Navbar = () => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mobileMenuOpen]);
+
+  // ─── Close everything on escape key ──────────────────
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape") {
+        setMobileMenuOpen(false);
+        setOpenDropdown(null);
+        setMobileOpenDropdown(null);
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, []);
+
+  // ─── Simple focus trap inside the open drawer ────────
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    // Move focus into the drawer when it opens
+    closeButtonRef.current?.focus();
+
+    const handleTab = (e) => {
+      if (e.key !== "Tab" || !mobileMenuRef.current) return;
+      const focusable = mobileMenuRef.current.querySelectorAll(
+        'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleTab);
+    return () => document.removeEventListener("keydown", handleTab);
   }, [mobileMenuOpen]);
 
   // ─── Auto‑focus search input when opened ──────────────
@@ -211,18 +225,18 @@ const Navbar = () => {
   // ─── Lock body scroll when mobile menu is open ──────
   useEffect(() => {
     if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
     } else {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
     }
     return () => {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
     };
   }, [mobileMenuOpen]);
 
@@ -231,7 +245,14 @@ const Navbar = () => {
     setOpenDropdown(openDropdown === label ? null : label);
   };
 
-  const closeMobileMenu = () => setMobileMenuOpen(false);
+  const toggleMobileDropdown = (label) => {
+    setMobileOpenDropdown(mobileOpenDropdown === label ? null : label);
+  };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+    setMobileOpenDropdown(null);
+  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -245,36 +266,38 @@ const Navbar = () => {
 
   // ─── Touch handlers for swipe to close ──────────────
   const handleTouchStart = (e) => {
-    setTouchStartX(e.touches[0].clientX);
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
   };
 
   const handleTouchMove = (e) => {
-    setTouchEndX(e.touches[0].clientX);
+    touchEndX.current = e.touches[0].clientX;
   };
 
   const handleTouchEnd = () => {
-    if (touchStartX - touchEndX > 75) {
-      setMobileMenuOpen(false);
+    if (touchStartX.current - touchEndX.current > 75) {
+      closeMobileMenu();
     }
+    touchStartX.current = 0;
+    touchEndX.current = 0;
   };
 
-  // ─── Navigation items with icons ──────────────────────
+  // ─── Navigation items (icons kept only for reference in desktop menu — none rendered in drawer) ──
   const navItems = [
-    { label: "Home", link: "/", icon: FiHome },
-    { label: "News", link: "/news", icon: FiFileText },
-    { label: "Listen", link: "/audio", icon: FiHeadphones },
+    { label: "Home", link: "/" },
+    { label: "News", link: "/news" },
+    { label: "Listen", link: "/audio" },
     {
       label: "Categories",
-      icon: FiGrid,
       sub: categories.map((cat) => ({
         label: cat,
         link: `/news?category=${encodeURIComponent(cat)}`,
       })),
     },
-    { label: "Advertise", link: "/advertise", icon: FiBriefcase },
-    { label: "Privacy", link: "/privacy", icon: FiShield },
-    { label: "Contact", link: "/contact", icon: FiMail },
-    { label: "About", link: "/about", icon: FiInfo },
+    { label: "Advertise", link: "/advertise" },
+    { label: "Privacy", link: "/privacy" },
+    { label: "Contact", link: "/contact" },
+    { label: "About", link: "/about" },
   ];
 
   const getSubItems = (item) => {
@@ -389,6 +412,7 @@ const Navbar = () => {
               className="hover:text-black transition duration-300 lg:hidden rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black relative"
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-drawer"
             >
               {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
             </button>
@@ -558,7 +582,6 @@ const Navbar = () => {
           {navItems.map((item) => {
             const subItems = getSubItems(item);
             const hasSub = subItems.length > 0;
-            const isButton = !!item.isButton;
 
             return (
               <li
@@ -567,14 +590,7 @@ const Navbar = () => {
                 onMouseEnter={() => handleMouseEnter(item.label, hasSub)}
                 onMouseLeave={handleMouseLeave}
               >
-                {isButton ? (
-                  <a
-                    href={item.link}
-                    className="px-5 py-1.5 bg-black text-white rounded-full hover:bg-gray-800 transition duration-300 text-xs font-bold inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  >
-                    {item.label}
-                  </a>
-                ) : hasSub ? (
+                {hasSub ? (
                   <>
                     <button
                       onClick={() => toggleDropdown(item.label)}
@@ -596,7 +612,7 @@ const Navbar = () => {
                             <Link
                               to={sub.link}
                               className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-black transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                              onClick={closeMobileMenu}
+                              onClick={() => setOpenDropdown(null)}
                             >
                               {sub.label}
                             </Link>
@@ -633,6 +649,7 @@ const Navbar = () => {
 
       {/* Sidebar */}
       <div
+        id="mobile-drawer"
         ref={mobileMenuRef}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -643,6 +660,7 @@ const Navbar = () => {
         role="dialog"
         aria-modal="true"
         aria-label="Mobile menu"
+        aria-hidden={!mobileMenuOpen}
       >
         <div className="flex flex-col h-full">
           {/* Header with close button */}
@@ -652,6 +670,7 @@ const Navbar = () => {
               <span className="font-bold text-sm">Menu</span>
             </div>
             <button
+              ref={closeButtonRef}
               onClick={closeMobileMenu}
               className="p-2 hover:bg-gray-200 rounded-full transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
               aria-label="Close menu"
@@ -692,30 +711,25 @@ const Navbar = () => {
             </div>
           )}
 
-          {/* Navigation Links */}
+          {/* Navigation Links — icons removed */}
           <nav className="flex-1 overflow-y-auto py-2">
             <ul className="space-y-0.5">
               {navItems.map((item) => {
-                const Icon = item.icon || FiFileText;
                 const subItems = getSubItems(item);
                 const hasSub = subItems.length > 0;
                 const isActive = location.pathname === item.link;
 
                 if (hasSub) {
-                  const isOpen = openDropdown === item.label;
+                  const isOpen = mobileOpenDropdown === item.label;
                   return (
                     <li key={item.label} className="border-b border-gray-100 last:border-0">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleDropdown(item.label);
-                        }}
+                        onClick={() => toggleMobileDropdown(item.label)}
                         className={`flex items-center w-full px-4 py-3 text-left transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
                           isActive ? "bg-gray-50" : ""
                         }`}
                         aria-expanded={isOpen}
                       >
-                        <Icon size={18} className="text-gray-500 mr-3 flex-shrink-0" />
                         <span className="flex-1 font-medium text-gray-700">{item.label}</span>
                         <FiChevronDown
                           className={`transform transition-transform duration-200 text-gray-400 ${
@@ -734,11 +748,8 @@ const Navbar = () => {
                             <li key={sub.label}>
                               <Link
                                 to={sub.link}
-                                className="block px-12 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  closeMobileMenu();
-                                }}
+                                className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                                onClick={closeMobileMenu}
                               >
                                 {sub.label}
                               </Link>
@@ -757,12 +768,8 @@ const Navbar = () => {
                       className={`flex items-center px-4 py-3 transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
                         isActive ? "bg-gray-50 text-black" : "text-gray-700"
                       }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        closeMobileMenu();
-                      }}
+                      onClick={closeMobileMenu}
                     >
-                      <Icon size={18} className="text-gray-500 mr-3 flex-shrink-0" />
                       <span className="font-medium">{item.label}</span>
                       {isActive && (
                         <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />
@@ -815,24 +822,16 @@ const Navbar = () => {
                   {userRole === "admin" && (
                     <Link
                       to="/admin/dashboard"
-                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        closeMobileMenu();
-                      }}
+                      className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                      onClick={closeMobileMenu}
                     >
-                      <FiSettings size={16} />
                       Admin Panel
                     </Link>
                   )}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      logoutHandler();
-                    }}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                    onClick={logoutHandler}
+                    className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                   >
-                    <FiLogOut size={16} />
                     Sign Out
                   </button>
                 </div>
@@ -841,10 +840,7 @@ const Navbar = () => {
                   <Link
                     to="/login"
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      closeMobileMenu();
-                    }}
+                    onClick={closeMobileMenu}
                   >
                     <FiLogIn size={16} />
                     Log In
@@ -852,10 +848,7 @@ const Navbar = () => {
                   <Link
                     to="/signup"
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      closeMobileMenu();
-                    }}
+                    onClick={closeMobileMenu}
                   >
                     <FiUser size={16} />
                     Sign Up
