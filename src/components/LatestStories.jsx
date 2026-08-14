@@ -403,13 +403,13 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) 
                 New
               </span>
             )}
-            <h3 className="font-serif text-[11px] sm:text-sm md:text-base font-bold leading-tight line-clamp-2">
+            <h3 className="text-[11px] sm:text-sm md:text-base font-bold leading-tight line-clamp-2">
               {post.title}
             </h3>
-            <p className="font-sans text-[8px] sm:text-[9px] text-gray-300 mt-0.5 line-clamp-1 hidden xs:block">
+            <p className="text-[8px] sm:text-[9px] text-gray-300 mt-0.5 line-clamp-1 hidden xs:block">
               {new Date(post.createdAt).toLocaleDateString()}
             </p>
-            <span className="mt-1 font-sans text-[8px] sm:text-[9px] font-semibold uppercase text-red-400 flex items-center gap-0.5 opacity-90 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300">
+            <span className="mt-1 text-[8px] sm:text-[9px] font-semibold uppercase text-red-400 flex items-center gap-0.5 opacity-90 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300">
               Read More
               <span aria-hidden="true">→</span>
             </span>
@@ -431,14 +431,14 @@ const TrendingItem = React.memo(function TrendingItem({ post, rank }) {
         aria-label={`Trending #${rank}: ${post.title}`}
         className="flex items-start gap-1.5 p-1.5 hover:bg-gray-50 dark:hover:bg-zinc-800 cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
       >
-        <span className="font-sans text-[8px] sm:text-[10px] font-bold text-red-500 w-4 sm:w-5 flex-shrink-0 text-right pt-0.5">
+        <span className="text-[8px] sm:text-[10px] font-bold text-red-500 w-4 sm:w-5 flex-shrink-0 text-right pt-0.5">
           #{rank}
         </span>
         <div className="flex-1 min-w-0">
-          <h4 className="font-serif text-[8px] sm:text-[10px] font-semibold line-clamp-2 text-gray-900 dark:text-gray-100 group-hover:text-red-500 transition-colors">
+          <h4 className="text-[8px] sm:text-[10px] font-semibold line-clamp-2 text-gray-900 dark:text-gray-100 group-hover:text-red-500 transition-colors">
             {post.title}
           </h4>
-          <div className="flex items-center gap-1 mt-0.5 font-sans text-[6px] sm:text-[8px] text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-1 mt-0.5 text-[6px] sm:text-[8px] text-gray-500 dark:text-gray-400">
             <span className="whitespace-nowrap">{timeAgo(post.createdAt)}</span>
           </div>
         </div>
@@ -614,11 +614,11 @@ const LatestStories = () => {
           </p>
           <h2
             id="latest-stories-heading"
-            className="font-serif text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mt-1 sm:mt-2 text-black dark:text-white"
+            className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mt-1 sm:mt-2 text-black dark:text-white"
           >
             Latest Stories
           </h2>
-          <p className="font-sans text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
             Stay up to date with the most recent posts from our writers. Fresh
             perspectives, curated for you.
           </p>
