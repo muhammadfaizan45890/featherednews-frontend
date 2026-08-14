@@ -6,6 +6,7 @@ import {
   FiFeather,
   FiLogIn,
   FiChevronRight,
+  FiX
 } from "react-icons/fi";
 import { FaFacebookF, FaInstagram, FaYoutube } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
