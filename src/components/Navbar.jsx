@@ -412,10 +412,10 @@ const Navbar = () => {
               <div className="flex items-center gap-3">
                 <Link
                   to={profileRoute}
-                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 transition-all duration-200 group"
+                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full transition-all duration-200 group"
                 >
                   <div className="relative">
-                    <Avatar className="h-8 w-8 border-2 border-gray-200 transition-all">
+                    <Avatar className="h-8 w-8 transition-all">
                       <AvatarImage src={getAvatarUrl(user?.avatar)} />
                       <AvatarFallback className="bg-gray-200 text-gray-700 text-xs font-bold">
                         {getUserInitials()}
