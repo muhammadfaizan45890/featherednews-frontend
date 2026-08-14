@@ -277,14 +277,15 @@
 
 
 
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import axios from "axios";
 import API from "../utils/api";
 
-// ─── Helper: reliable API instance ──────────────────
+// ─────────────────────────────────────────────────────────────
+// API instance
+// ─────────────────────────────────────────────────────────────
 const getApiInstance = () => {
   let instance;
   if (API && typeof API.get === "function") {
@@ -314,7 +315,9 @@ const api = getApiInstance();
 
 const FALLBACK_IMG = "https://via.placeholder.com/500x500/111111/FFFFFF?text=No+Image";
 
-// ─── Helper: relative time ──────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Helpers (kept as-is)
+// ─────────────────────────────────────────────────────────────
 const timeAgo = (dateStr) => {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return "";
@@ -333,7 +336,6 @@ const timeAgo = (dateStr) => {
   return "just now";
 };
 
-// ─── Check if post is less than 24h old ─────────────
 const isNew = (dateStr) => {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return false;
@@ -341,32 +343,118 @@ const isNew = (dateStr) => {
   return diff < 24 * 60 * 60 * 1000;
 };
 
-// ─── Skeleton block ──────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Sub-component: Skeleton for a story card
+// ─────────────────────────────────────────────────────────────
 const CardSkeleton = () => (
   <div
-    className="relative bg-gray-200 overflow-hidden animate-pulse"
+    className="relative bg-gray-200 dark:bg-zinc-800 overflow-hidden animate-pulse"
     style={{ aspectRatio: "1 / 1" }}
+    aria-hidden="true"
   >
-    <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
+    <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
   </div>
 );
 
+// ─────────────────────────────────────────────────────────────
+// Sub-component: Skeleton for a trending row
+// ─────────────────────────────────────────────────────────────
 const TrendingSkeleton = () => (
-  <div className="flex items-start gap-2 p-1.5 animate-pulse">
-    <div className="w-4 sm:w-5 h-3 bg-gray-200 rounded flex-shrink-0" />
+  <div className="flex items-start gap-2 p-1.5 animate-pulse" aria-hidden="true">
+    <div className="w-4 sm:w-5 h-3 bg-gray-200 dark:bg-zinc-700 flex-shrink-0" />
     <div className="flex-1 space-y-1.5 pt-0.5">
-      <div className="h-2 bg-gray-200 rounded w-full" />
-      <div className="h-2 bg-gray-200 rounded w-2/3" />
+      <div className="h-2 bg-gray-200 dark:bg-zinc-700 w-full" />
+      <div className="h-2 bg-gray-200 dark:bg-zinc-700 w-2/3" />
     </div>
   </div>
 );
 
+// ─────────────────────────────────────────────────────────────
+// Sub-component: Story card
+// ─────────────────────────────────────────────────────────────
+const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) {
+  const src = isBroken
+    ? FALLBACK_IMG
+    : post.images && post.images.length > 0
+    ? post.images[0]
+    : FALLBACK_IMG;
+
+  return (
+    <li className="list-none">
+      <article>
+        <Link
+          to={`/news/${post.slug || post._id}`}
+          aria-label={`Read story: ${post.title}`}
+          className="relative group block overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900"
+          style={{ aspectRatio: "1 / 1" }}
+        >
+          <img
+            src={src}
+            alt={post.title}
+            loading="lazy"
+            onError={() => onImgError(post._id)}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+
+          <div className="absolute inset-0 p-2 sm:p-3 md:p-4 flex flex-col justify-end text-white">
+            {isNew(post.createdAt) && (
+              <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider bg-green-500 px-1.5 py-0.5 inline-block w-fit mb-1">
+                New
+              </span>
+            )}
+            <h3 className="font-serif text-[11px] sm:text-sm md:text-base font-bold leading-tight line-clamp-2">
+              {post.title}
+            </h3>
+            <p className="font-sans text-[8px] sm:text-[9px] text-gray-300 mt-0.5 line-clamp-1 hidden xs:block">
+              {new Date(post.createdAt).toLocaleDateString()}
+            </p>
+            <span className="mt-1 font-sans text-[8px] sm:text-[9px] font-semibold uppercase text-red-400 flex items-center gap-0.5 opacity-90 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300">
+              Read More
+              <span aria-hidden="true">→</span>
+            </span>
+          </div>
+        </Link>
+      </article>
+    </li>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────
+// Sub-component: Trending row
+// ─────────────────────────────────────────────────────────────
+const TrendingItem = React.memo(function TrendingItem({ post, rank }) {
+  return (
+    <li className="list-none">
+      <Link
+        to={`/news/${post.slug || post._id}`}
+        aria-label={`Trending #${rank}: ${post.title}`}
+        className="flex items-start gap-1.5 p-1.5 hover:bg-gray-50 dark:hover:bg-zinc-800 cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+      >
+        <span className="font-sans text-[8px] sm:text-[10px] font-bold text-red-500 w-4 sm:w-5 flex-shrink-0 text-right pt-0.5">
+          #{rank}
+        </span>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-serif text-[8px] sm:text-[10px] font-semibold line-clamp-2 text-gray-900 dark:text-gray-100 group-hover:text-red-500 transition-colors">
+            {post.title}
+          </h4>
+          <div className="flex items-center gap-1 mt-0.5 font-sans text-[6px] sm:text-[8px] text-gray-500 dark:text-gray-400">
+            <span className="whitespace-nowrap">{timeAgo(post.createdAt)}</span>
+          </div>
+        </div>
+      </Link>
+    </li>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────────────────────
 const LatestStories = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -388,53 +476,41 @@ const LatestStories = () => {
   }, [hasMore]);
 
   // ─── Fetch posts ──────────────────────────────────────
-  const fetchPosts = useCallback(
-    async (pageNum = 1, append = false) => {
-      if (abortRef.current) abortRef.current.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
+  const fetchPosts = useCallback(async (pageNum = 1, append = false) => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-      try {
-        if (append) {
-          setIsLoadingMore(true);
-        } else {
-          setLoading(true);
-        }
-        setError(null);
-
-        const params = {
-          page: pageNum,
-          limit: 8,
-          sort: "desc",
-        };
-
-        const res = await api.get("/api/posts", {
-          params,
-          signal: controller.signal,
-        });
-        const { data, pagination } = res.data;
-
-        setPosts((prev) => (append ? [...prev, ...data] : data));
-
-        setTotalPages(pagination.totalPages);
-        setHasMore(pagination.hasMore);
-      } catch (err) {
-        if (axios.isCancel(err) || err.name === "CanceledError" || err.code === "ERR_CANCELED") {
-          return;
-        }
-        console.error("Fetch posts error:", err);
-        setError(err.response?.data?.message || "Failed to load stories");
-        toast.error("Failed to load stories");
-      } finally {
-        setLoading(false);
-        setIsLoadingMore(false);
-        setInitialLoad(false);
+    try {
+      if (append) {
+        setIsLoadingMore(true);
+      } else {
+        setLoading(true);
       }
-    },
-    []
-  );
+      setError(null);
 
-  // ─── Fetch featured ──────────────────────────────────
+      const params = { page: pageNum, limit: 8, sort: "desc" };
+
+      const res = await api.get("/api/posts", { params, signal: controller.signal });
+      const { data, pagination } = res.data;
+
+      setPosts((prev) => (append ? [...prev, ...data] : data));
+      setHasMore(pagination.hasMore);
+    } catch (err) {
+      if (axios.isCancel(err) || err.name === "CanceledError" || err.code === "ERR_CANCELED") {
+        return;
+      }
+      console.error("Fetch posts error:", err);
+      setError(err.response?.data?.message || "Failed to load stories");
+      toast.error("Failed to load stories");
+    } finally {
+      setLoading(false);
+      setIsLoadingMore(false);
+      setInitialLoad(false);
+    }
+  }, []);
+
+  // ─── Fetch featured / trending ──────────────────────────
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
@@ -447,11 +523,7 @@ const LatestStories = () => {
         }
       } catch (err) {
         console.error("Error fetching featured:", err);
-        if (posts.length > 0) {
-          setTrendingPosts(posts.slice(0, 9));
-        } else {
-          setTrendingPosts([]);
-        }
+        setTrendingPosts([]);
       } finally {
         setFeaturedLoading(false);
       }
@@ -459,7 +531,7 @@ const LatestStories = () => {
     fetchFeatured();
   }, []);
 
-  // ─── Fallback for trending ──────────────────────────
+  // Fallback: if featured API returned nothing, borrow from the latest posts
   useEffect(() => {
     if (!featuredLoading && trendingPosts.length === 0 && posts.length > 0) {
       setTrendingPosts(posts.slice(0, 9));
@@ -477,7 +549,7 @@ const LatestStories = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Load More ──────────────────────────────────────
+  // ─── Load more ──────────────────────────────────────
   const loadMore = useCallback(() => {
     if (isLoadingMoreRef.current || !hasMoreRef.current) return;
     setPage((prev) => {
@@ -487,16 +559,14 @@ const LatestStories = () => {
     });
   }, [fetchPosts]);
 
-  // ─── Infinite scroll ──────────────────────────────
+  // ─── Infinite scroll observer ──────────────────────────
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return undefined;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          loadMore();
-        }
+        if (entries[0].isIntersecting) loadMore();
       },
       { rootMargin: "400px" }
     );
@@ -505,21 +575,30 @@ const LatestStories = () => {
     return () => observer.disconnect();
   }, [loadMore]);
 
-  const handleImgError = (id) => {
+  const handleImgError = useCallback((id) => {
     setBrokenImages((prev) => {
+      if (prev.has(id)) return prev;
       const next = new Set(prev);
       next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  const getImageSrc = (post) => {
-    if (brokenImages.has(post._id)) return FALLBACK_IMG;
-    return post.images && post.images.length > 0 ? post.images[0] : FALLBACK_IMG;
-  };
+  // Memoized derived data — avoids recomputation on every unrelated re-render
+  const showEmptyState = useMemo(
+    () => !loading && !error && posts.length === 0,
+    [loading, error, posts.length]
+  );
+  const showEndMessage = useMemo(
+    () => !hasMore && !isLoadingMore && posts.length > 0,
+    [hasMore, isLoadingMore, posts.length]
+  );
 
   return (
-    <section className="max-w-7xl mx-auto py-10 sm:py-16 md:py-20 px-3 sm:px-6">
+    <section
+      aria-labelledby="latest-stories-heading"
+      className="max-w-7xl mx-auto py-8 sm:py-14 md:py-16 px-3 sm:px-6 bg-white dark:bg-zinc-900 transition-colors"
+    >
       <style>{`
         @keyframes shimmer {
           0% { background-position: 200% 0; }
@@ -527,103 +606,88 @@ const LatestStories = () => {
         }
       `}</style>
 
-      {/* ─── Enhanced Header ────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 sm:mb-10">
+      {/* ─── Header ────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6 sm:mb-8">
         <div>
           <p className="uppercase text-red-500 tracking-[3px] sm:tracking-[4px] text-xs sm:text-sm font-bold">
             Browse &amp; Read
           </p>
-          <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mt-1 sm:mt-2">
+          <h2
+            id="latest-stories-heading"
+            className="font-serif text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold mt-1 sm:mt-2 text-black dark:text-white"
+          >
             Latest Stories
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
-            Stay up to date with the most recent posts from our writers. 
-            Fresh perspectives, curated for you.
+          <p className="font-sans text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
+            Stay up to date with the most recent posts from our writers. Fresh
+            perspectives, curated for you.
           </p>
         </div>
         <Link
           to="/news"
-          className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors hidden sm:inline-block mt-2 sm:mt-0"
+          aria-label="View all stories"
+          className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors hidden sm:inline-block mt-2 sm:mt-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
         >
           View All →
         </Link>
       </div>
 
-      {/* ─── Two‑column layout ── */}
-      <div className="flex flex-row gap-3 sm:gap-6 lg:gap-8 items-start">
-        {/* ===== LEFT: NEWS GRID ===== */}
-        <div className="flex-1 min-w-0">
+      {/* ─── Layout: grid + sidebar (stacks on mobile, row on desktop) ── */}
+      <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 lg:gap-10 items-start">
+        {/* ===== MAIN: STORY GRID ===== */}
+        <div className="flex-1 min-w-0 w-full">
           {loading && initialLoad ? (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4 md:gap-5 lg:gap-6">
               {Array.from({ length: 8 }).map((_, i) => (
                 <CardSkeleton key={i} />
               ))}
             </div>
           ) : error ? (
-            <div className="text-center py-12 border border-dashed border-red-200 bg-red-50">
+            <div
+              role="alert"
+              className="text-center py-12 border border-dashed border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20"
+            >
               <p className="text-red-500 font-medium mb-3">{error}</p>
               <button
+                type="button"
                 onClick={() => fetchPosts(1, false)}
-                className="border-2 border-black bg-black text-white px-4 py-1.5 text-xs sm:text-sm font-semibold uppercase tracking-wider hover:bg-white hover:text-black transition-colors"
+                aria-label="Retry loading stories"
+                className="border-2 border-black dark:border-white bg-black dark:bg-white text-white dark:text-black px-4 py-1.5 text-xs sm:text-sm font-semibold uppercase tracking-wider hover:bg-white hover:text-black dark:hover:bg-transparent dark:hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
               >
                 Try Again
               </button>
             </div>
-          ) : posts.length === 0 ? (
-            <div className="text-center py-12 border border-dashed border-gray-200">
-              <p className="text-gray-500">No stories found.</p>
+          ) : showEmptyState ? (
+            <div className="text-center py-12 border border-dashed border-gray-200 dark:border-zinc-700">
+              <p className="text-gray-500 dark:text-gray-400">No stories found.</p>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+              <ul className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4 md:gap-5 lg:gap-6">
                 {posts.map((post) => (
-                  <Link
+                  <StoryCard
                     key={post._id}
-                    to={`/news/${post.slug || post._id}`}
-                    className="relative group block overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                    style={{ aspectRatio: "1 / 1" }}
-                  >
-                    <img
-                      src={getImageSrc(post)}
-                      alt={post.title}
-                      loading="lazy"
-                      onError={() => handleImgError(post._id)}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                    <div className="absolute inset-0 p-2 sm:p-3 md:p-4 flex flex-col justify-end text-white">
-                      {/* "New" badge for posts < 24h */}
-                      {isNew(post.createdAt) && (
-                        <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider bg-green-500 px-1.5 py-0.5 inline-block w-fit mb-1">
-                          New
-                        </span>
-                      )}
-                      <h3 className="text-[11px] sm:text-sm md:text-base font-bold leading-tight line-clamp-2">
-                        {post.title}
-                      </h3>
-                      <p className="text-[8px] sm:text-[9px] text-gray-300 mt-0.5 line-clamp-1 hidden xs:block">
-                        {new Date(post.createdAt).toLocaleDateString()}
-                      </p>
-                      <span className="mt-1 text-[8px] sm:text-[9px] font-semibold uppercase text-red-400 flex items-center gap-0.5 opacity-90 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
-                        Read More
-                        <span>→</span>
-                      </span>
-                    </div>
-                  </Link>
+                    post={post}
+                    isBroken={brokenImages.has(post._id)}
+                    onImgError={handleImgError}
+                  />
                 ))}
-              </div>
+              </ul>
 
-              {/* Infinite‑scroll sentinel + load indicator */}
-              <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />
+              {/* Infinite-scroll sentinel — only rendered while more pages exist */}
+              {hasMore && (
+                <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />
+              )}
 
               {isLoadingMore && (
-                <div className="text-center mt-4">
-                  <span className="inline-flex items-center gap-2 text-sm text-gray-600">
+                <div className="text-center mt-6" role="status" aria-live="polite">
+                  <span className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                     <svg
-                      className="animate-spin h-4 w-4 text-black"
+                      className="animate-spin h-4 w-4 text-black dark:text-white"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
+                      aria-hidden="true"
                     >
                       <circle
                         className="opacity-25"
@@ -643,56 +707,44 @@ const LatestStories = () => {
                   </span>
                 </div>
               )}
-              {!hasMore && !isLoadingMore && posts.length > 0 && (
-                <p className="text-center text-gray-400 text-xs sm:text-sm mt-4">
-                  You're all caught up
+
+              {showEndMessage && (
+                <p className="text-center text-gray-400 dark:text-gray-500 text-xs sm:text-sm mt-6">
+                  You&apos;re all caught up
                 </p>
               )}
             </>
           )}
         </div>
 
-        {/* ===== RIGHT SIDEBAR: TRENDING ===== */}
-        <aside className="w-[34%] xs:w-[30%] min-w-[110px] sm:min-w-[160px] lg:w-[28%] xl:w-[25%] flex-shrink-0">
-          <div className="bg-white overflow-hidden border border-gray-100 sticky top-4">
-            <div className="px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-2 border-b border-gray-200">
-              <span className="text-[9px] sm:text-xs font-bold uppercase tracking-wider text-gray-900">
+        {/* ===== SIDEBAR: TRENDING ===== */}
+        <aside
+          aria-label="Trending stories"
+          className="w-full lg:w-[30%] xl:w-[26%] flex-shrink-0 lg:sticky lg:top-4"
+        >
+          <div className="bg-white dark:bg-zinc-900 overflow-hidden border border-gray-100 dark:border-zinc-800">
+            <div className="px-3 py-2 flex items-center gap-2 border-b border-gray-200 dark:border-zinc-800">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-gray-100">
                 Trending
               </span>
-              <span className="ml-auto text-[8px] sm:text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
+              <span className="ml-auto text-[10px] text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5">
                 {trendingPosts.length}
               </span>
             </div>
 
-            <div className="p-1.5 sm:p-2 space-y-1 max-h-[500px] overflow-y-auto">
+            <ul className="p-1.5 sm:p-2 space-y-1 max-h-[500px] overflow-y-auto">
               {featuredLoading
                 ? Array.from({ length: 4 }).map((_, i) => <TrendingSkeleton key={i} />)
                 : trendingPosts.map((post, idx) => (
-                    <Link
-                      key={post._id}
-                      to={`/news/${post.slug || post._id}`}
-                      className="flex items-start gap-1.5 p-1.5 hover:bg-gray-50 cursor-pointer group rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                    >
-                      <span className="text-[8px] sm:text-[10px] font-bold text-red-500 w-4 sm:w-5 flex-shrink-0 text-right pt-0.5">
-                        #{idx + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-[8px] sm:text-[10px] font-semibold line-clamp-2 text-gray-900 group-hover:text-red-500 transition-colors">
-                          {post.title}
-                        </h4>
-                        <div className="flex items-center gap-1 mt-0.5 text-[6px] sm:text-[8px] text-gray-500">
-                          <span className="whitespace-nowrap">{timeAgo(post.createdAt)}</span>
-                        </div>
-                      </div>
-                    </Link>
+                    <TrendingItem key={post._id} post={post} rank={idx + 1} />
                   ))}
 
               {!featuredLoading && trendingPosts.length === 0 && (
-                <p className="text-[9px] sm:text-[10px] text-gray-400 text-center py-4">
+                <li className="list-none text-[10px] text-gray-400 dark:text-gray-500 text-center py-4">
                   Nothing featured yet.
-                </p>
+                </li>
               )}
-            </div>
+            </ul>
           </div>
         </aside>
       </div>
