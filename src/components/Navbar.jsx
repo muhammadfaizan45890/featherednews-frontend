@@ -544,13 +544,13 @@ const Navbar = () => {
 
           {/* User Profile */}
           {user && (
-            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <div className="p-4 bg-gradient-to-r from-gray-50 to-white">
               <Link
                 to={profileRoute}
                 onClick={closeSidebar}
                 className="flex items-center gap-3 group"
               >
-                <Avatar className="h-12 w-12 border-2 border-gray-300 group-hover:border-black transition-colors">
+                <Avatar className="h-12 w-12 transition-colors">
                   <AvatarImage src={getAvatarUrl(user?.avatar)} />
                   <AvatarFallback className="bg-gray-200 text-gray-700 text-sm font-bold">
                     {getUserInitials()}
