@@ -1,16 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -76,6 +63,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // ─── Refs ──────────────────────────────────────────────
   const sidebarRef = useRef(null);
@@ -207,6 +195,12 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // ─── Live clock ──────────────────────────────────────
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // ─── Lock body scroll when sidebar open ──────────────
   useEffect(() => {
     if (sidebarOpen) {
@@ -303,11 +297,56 @@ const Navbar = () => {
     return params.get("category") === category;
   };
 
+  // ─── Date formatting ──────────────────────────────
+  const fullDate = currentTime.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const mediumDate = currentTime.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const shortDate = currentTime.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  const timeWithSeconds = currentTime.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+  const timeNoSeconds = currentTime.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
   // ─── Render ──────────────────────────────────────────
   return (
     <header
       className={`w-full bg-white sticky top-0 z-50 ${isScrolled ? "shadow-sm" : ""}`}
     >
+      {/* ─── Live Date/Time Bar ──────────────────────────── */}
+      <div className="border-b border-gray-800 bg-black">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 h-7 sm:h-8 flex items-center justify-between text-[11px] sm:text-xs text-white font-medium">
+          <span aria-live="off">
+            <span className="hidden md:inline">{fullDate}</span>
+            <span className="hidden sm:inline md:hidden">{mediumDate}</span>
+            <span className="sm:hidden">{shortDate}</span>
+          </span>
+          <span className="tabular-nums text-gray-300" aria-live="off">
+            <span className="hidden sm:inline">{timeWithSeconds}</span>
+            <span className="sm:hidden">{timeNoSeconds}</span>
+          </span>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
         {/* ─── Top Header ──────────────────────────────────── */}
         <div className="relative flex items-center justify-between py-3 sm:py-4 md:py-5 lg:py-4 xl:py-5">
