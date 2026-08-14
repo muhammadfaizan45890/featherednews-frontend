@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import API from "../utils/api";
@@ -146,7 +146,7 @@ const Hero = () => {
     fetchSlides();
   }, []);
 
-  // ─── Navigation (mobile carousel) ──────────────────
+  // ─── Navigation ────────────────────────────────────
   const goToSlide = useCallback(
     (index) => {
       if (isLocked || totalSlides === 0) return;
@@ -171,7 +171,7 @@ const Hero = () => {
     goToSlide(currentIndex - 1);
   }, [currentIndex, goToSlide]);
 
-  // ─── Auto-play (mobile carousel only) ──────────────
+  // ─── Auto-play ─────────────────────────────────────
   useEffect(() => {
     if (totalSlides === 0 || isPaused) return;
     autoPlayRef.current = setInterval(nextSlide, SLIDE_DURATION);
@@ -194,7 +194,7 @@ const Hero = () => {
     });
   }, [currentIndex, slides, totalSlides]);
 
-  // ─── Screen reader (mobile carousel) ─────────────
+  // ─── Screen reader ──────────────────────────────
   useEffect(() => {
     if (totalSlides === 0 || !liveRegionRef.current) return;
     liveRegionRef.current.textContent = `Slide ${currentIndex + 1} of ${totalSlides}: ${
@@ -202,7 +202,7 @@ const Hero = () => {
     }`;
   }, [currentIndex, slides, totalSlides]);
 
-  // ─── Keyboard (mobile carousel) ──────────────────
+  // ─── Keyboard ─────────────────────────────────────
   useEffect(() => {
     if (totalSlides === 0) return;
     const node = containerRef.current;
@@ -220,7 +220,7 @@ const Hero = () => {
     return () => node.removeEventListener("keydown", handleKeyDown);
   }, [nextSlide, prevSlide, totalSlides]);
 
-  // ─── Touch (mobile carousel) ──────────────────────
+  // ─── Touch ──────────────────────────────────────
   const handleTouchStart = (e) => {
     setTouchStartX(e.touches[0].clientX);
     setIsPaused(true);
@@ -239,7 +239,7 @@ const Hero = () => {
     setIsPaused(false);
   };
 
-  // ─── Pause on hover / focus (mobile carousel) ────
+  // ─── Pause on hover / focus ─────────────────────
   const handleMouseEnter = () => setIsPaused(true);
   const handleMouseLeave = () => setIsPaused(false);
   const handleFocus = () => setIsPaused(true);
@@ -255,24 +255,15 @@ const Hero = () => {
     };
   }, []);
 
-  // ─── Desktop card-grid data (lead + secondary rail) ──
-  const leadSlide = slides[0];
-  const secondarySlides = useMemo(() => slides.slice(1, 5), [slides]);
-
-  // ─── Loading skeleton ──────────────────────────────────
+  // ─── Loading skeleton ────────────────────────────
   if (loading) {
     return (
       <section className="w-full bg-white py-4 md:py-6 lg:py-8">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="hidden lg:grid grid-cols-3 gap-4 xl:gap-5 h-[480px] xl:h-[560px]">
-            <div className="col-span-2 bg-gray-200 animate-pulse rounded-lg" />
-            <div className="grid grid-rows-3 gap-4 xl:gap-5">
-              <div className="bg-gray-200 animate-pulse rounded-lg" />
-              <div className="bg-gray-200 animate-pulse rounded-lg" />
-              <div className="bg-gray-200 animate-pulse rounded-lg" />
-            </div>
-          </div>
-          <div className="lg:hidden w-full bg-gray-200 animate-pulse rounded-lg" style={{ height: "clamp(200px, 50vw, 480px)" }} />
+          <div
+            className="w-full bg-gray-200 animate-pulse rounded-lg"
+            style={{ height: "clamp(220px, 50vw, 640px)" }}
+          />
         </div>
       </section>
     );
@@ -280,228 +271,167 @@ const Hero = () => {
 
   if (totalSlides === 0) return null;
 
-  const currentSlide = slides[currentIndex];
-
   return (
     <section
       className="w-full bg-white py-4 md:py-6 lg:py-8 overflow-hidden"
+      ref={containerRef}
+      tabIndex={-1}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       role="region"
+      aria-roledescription="carousel"
       aria-label="Featured stories"
     >
-      {/* ══════════ DESKTOP: Card Grid (lg+) ══════════ */}
-      <div className="hidden lg:block w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-3 gap-4 xl:gap-5 h-[480px] xl:h-[560px]">
-          {leadSlide && (
-            <Link
-              to={leadSlide.link || "/news"}
-              className="group relative col-span-2 h-full overflow-hidden rounded-lg bg-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
-            >
-              <img
-                src={leadSlide.image}
-                alt={leadSlide.alt || leadSlide.title}
-                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                loading="eager"
-                style={{ filter: "brightness(1.05) contrast(1.05)" }}
-                onError={(e) => {
-                  e.target.src = "https://via.placeholder.com/1400x620?text=Image+Unavailable";
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-              <div className="absolute left-0 right-0 bottom-0 p-6 xl:p-8 text-white" style={{ maxWidth: "680px" }}>
-                <p className="uppercase text-red-400 font-semibold text-xs xl:text-sm tracking-[3px] mb-2">
-                  ■ {leadSlide.category}
-                </p>
-                <h1 className="font-extrabold leading-tight text-2xl xl:text-4xl drop-shadow-xl line-clamp-3">
-                  {leadSlide.title}
-                </h1>
-                <p className="text-white/90 leading-relaxed text-sm xl:text-base mt-3 line-clamp-2">
-                  {leadSlide.description}
-                </p>
-                <span className="inline-flex items-center gap-2 mt-4 border-2 border-white bg-transparent group-hover:bg-white group-hover:text-black uppercase font-semibold text-xs xl:text-sm tracking-wide px-5 py-2.5 transition-colors duration-300">
-                  {leadSlide.buttonText || "Read More"}
-                  <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">
-                    →
-                  </span>
-                </span>
-              </div>
-            </Link>
-          )}
+      <span ref={liveRegionRef} className="sr-only" aria-live="polite" />
 
-          <div className="grid grid-rows-3 gap-4 xl:gap-5 h-full">
-            {secondarySlides.map((slide, i) => (
-              <Link
-                key={slide._id || i}
-                to={slide.link || "/news"}
-                className="group relative overflow-hidden rounded-lg bg-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
-              >
-                <img
-                  src={slide.image}
-                  alt={slide.alt || slide.title}
-                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                  loading="lazy"
-                  style={{ filter: "brightness(1.05) contrast(1.05)" }}
-                  onError={(e) => {
-                    e.target.src = "https://via.placeholder.com/700x300?text=Image+Unavailable";
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-                <div className="absolute left-0 right-0 bottom-0 p-3 xl:p-4 text-white">
-                  <p className="uppercase text-red-400 font-semibold text-[10px] xl:text-xs tracking-[2px] mb-1">
-                    {slide.category}
-                  </p>
-                  <h2 className="font-bold leading-snug text-sm xl:text-base line-clamp-2 group-hover:underline decoration-2 underline-offset-2">
-                    {slide.title}
-                  </h2>
-                </div>
-              </Link>
-            ))}
-            {Array.from({ length: Math.max(0, 3 - secondarySlides.length) }).map((_, i) => (
-              <div key={`empty-${i}`} className="bg-gray-100 rounded-lg" aria-hidden="true" />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ══════════ MOBILE / TABLET: Carousel (below lg) ══════════ */}
-      <div
-        className="lg:hidden"
-        ref={containerRef}
-        tabIndex={-1}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        role="region"
-        aria-roledescription="carousel"
-        aria-label="Featured stories"
-      >
-        <span ref={liveRegionRef} className="sr-only" aria-live="polite" />
-
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative w-full overflow-hidden bg-black rounded-lg shadow-xl">
-            {/* ─── Slide wrapper ─────────────────────── */}
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative w-full overflow-hidden bg-black rounded-lg shadow-xl">
+          {/* ─── Slide wrapper ────────────────────────── */}
+          <div
+            className="relative w-full"
+            style={{ height: "clamp(220px, 50vw, 640px)" }}
+          >
             <div
-              className="relative w-full"
-              style={{ height: "clamp(220px, 50vw, 480px)" }}
+              className="absolute inset-0 flex"
+              style={{
+                transform: `translateX(-${currentIndex * 100}%)`,
+                transition: "transform 700ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+              }}
             >
-              <div
-                className="absolute inset-0 flex"
-                style={{
-                  transform: `translateX(-${currentIndex * 100}%)`,
-                  transition: "transform 700ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-                }}
-              >
-                {slides.map((slide, idx) => (
-                  <div key={slide._id || idx} className="w-full h-full flex-shrink-0 relative">
-                    <img
-                      src={slide.image}
-                      alt={slide.alt || slide.title}
-                      className="w-full h-full object-cover"
-                      loading={idx === currentIndex ? "eager" : "lazy"}
-                      style={{ filter: "brightness(1.05) contrast(1.05)" }}
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/1400x620?text=Image+Unavailable";
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
-                    <div className="absolute inset-0 bg-black/10" />
+              {slides.map((slide, idx) => (
+                <div key={slide._id || idx} className="w-full h-full flex-shrink-0 relative">
+                  <img
+                    src={slide.image}
+                    alt={slide.alt || slide.title}
+                    className="w-full h-full object-cover"
+                    loading={idx === currentIndex ? "eager" : "lazy"}
+                    style={{ filter: "brightness(1.05) contrast(1.05)" }}
+                    onError={(e) => {
+                      e.target.src = "https://via.placeholder.com/1400x620?text=Image+Unavailable";
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
+                  <div className="absolute inset-0 bg-black/10" />
 
-                    {/* Text overlay – active only */}
-                    {idx === currentIndex && (
-                      <div
-                        className="absolute left-3 xs:left-4 sm:left-6 md:left-8 top-1/2 -translate-y-1/2 z-10 text-white"
-                        style={{ maxWidth: "min(92%, 480px)" }}
+                  {/* ─── Text overlay ────────────────────── */}
+                  {idx === currentIndex && (
+                    <div
+                      className="absolute left-3 xs:left-4 sm:left-6 md:left-8 lg:left-12 xl:left-16 top-1/2 -translate-y-1/2 z-10 text-white"
+                      style={{ maxWidth: "min(92%, 640px)" }}
+                    >
+                      <p
+                        className="uppercase text-red-400 font-semibold drop-shadow-lg"
+                        style={{
+                          fontSize: "clamp(0.55rem, 1.4vw, 1rem)",
+                          letterSpacing: "clamp(1px, 0.4vw, 4px)",
+                          marginBottom: "clamp(2px, 0.8vw, 16px)",
+                        }}
                       >
-                        <p
-                          className="uppercase text-red-400 font-semibold drop-shadow-lg text-[10px] xs:text-xs sm:text-sm tracking-[2px] sm:tracking-[3px] mb-1 sm:mb-2"
-                        >
-                          ■ {slide.category}
-                        </p>
-                        <h1 className="font-extrabold leading-tight drop-shadow-xl line-clamp-3 text-xl xs:text-2xl sm:text-3xl md:text-4xl">
-                          {slide.title}
-                        </h1>
-                        <p className="text-white/95 leading-relaxed line-clamp-2 sm:line-clamp-3 drop-shadow-lg text-xs xs:text-sm sm:text-base mt-2 sm:mt-3">
-                          {slide.description}
-                        </p>
-                        <Link
-                          to={slide.link || "/news"}
-                          className="inline-flex items-center gap-2 border-2 border-white bg-transparent hover:bg-white hover:text-black uppercase font-semibold whitespace-nowrap shadow-lg text-[10px] xs:text-xs sm:text-sm px-3 xs:px-4 sm:px-5 py-1.5 xs:py-2 sm:py-2.5 mt-2 sm:mt-3 transition-colors duration-300"
-                        >
-                          {slide.buttonText || "Read More"}
-                          <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">
-                            →
-                          </span>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* ─── Slide counter ────────────────────── */}
-            <div className="absolute top-2 xs:top-3 sm:top-4 right-2 xs:right-3 sm:right-4 z-20">
-              <span className="text-white/90 text-[9px] xs:text-[10px] sm:text-xs font-mono tracking-wider bg-black/40 backdrop-blur-sm px-1.5 xs:px-2 py-0.5 xs:py-1 rounded">
-                {String(currentIndex + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
-              </span>
-            </div>
-
-            {/* ─── Mobile dots ──────────────────────── */}
-            <div className="absolute bottom-2.5 xs:bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex sm:hidden gap-1.5 z-20">
-              {slides.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToSlide(index)}
-                  aria-label={`Go to slide ${index + 1}`}
-                  aria-current={index === currentIndex}
-                  className={`h-1 xs:h-1.5 rounded-full transition-all duration-300 ${
-                    index === currentIndex ? "w-5 xs:w-6 bg-white" : "w-2 xs:w-3 bg-white/40 hover:bg-white/60"
-                  }`}
-                />
+                        ■ {slide.category}
+                      </p>
+                      <h1
+                        className="font-extrabold leading-tight drop-shadow-xl line-clamp-3"
+                        style={{
+                          fontSize: "clamp(1.2rem, 3.6vw, 4rem)",
+                        }}
+                      >
+                        {slide.title}
+                      </h1>
+                      <p
+                        className="text-white/95 leading-relaxed line-clamp-2 sm:line-clamp-3 drop-shadow-lg"
+                        style={{
+                          fontSize: "clamp(0.7rem, 1.4vw, 1.2rem)",
+                          marginTop: "clamp(4px, 1vw, 18px)",
+                        }}
+                      >
+                        {slide.description}
+                      </p>
+                      <Link
+                        to={slide.link || "/news"}
+                        className="inline-flex items-center gap-2 border-2 border-white bg-transparent hover:bg-white hover:text-black uppercase font-semibold whitespace-nowrap shadow-lg transition-colors duration-300"
+                        style={{
+                          marginTop: "clamp(6px, 1.4vw, 24px)",
+                          padding: "clamp(6px, 1vw, 14px) clamp(12px, 2vw, 32px)",
+                          fontSize: "clamp(0.6rem, 1.1vw, 1rem)",
+                          letterSpacing: "1px",
+                        }}
+                      >
+                        {slide.buttonText || "Read More"}
+                        <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">
+                          →
+                        </span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
 
-          {/* ─── Thumbnail rail (tablet only) ────── */}
-          <div className="hidden sm:flex gap-0.5 xs:gap-1 sm:gap-1.5 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-            {slides.map((slide, index) => (
+          {/* ─── Slide counter ────────────────────────── */}
+          <div className="absolute top-2 xs:top-3 sm:top-4 md:top-5 right-2 xs:right-3 sm:right-4 md:right-6 z-20">
+            <span className="text-white/90 text-[9px] xs:text-[10px] sm:text-xs font-mono tracking-wider bg-black/40 backdrop-blur-sm px-1.5 xs:px-2 py-0.5 xs:py-1 rounded">
+              {String(currentIndex + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
+            </span>
+          </div>
+
+          {/* ─── Dots (mobile only) ───────────────────── */}
+          <div className="absolute bottom-2.5 xs:bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex sm:hidden gap-1.5 z-20">
+            {slides.map((_, index) => (
               <button
-                key={slide._id || index}
+                key={index}
                 onClick={() => goToSlide(index)}
-                aria-label={`Go to: ${slide.title}`}
+                aria-label={`Go to slide ${index + 1}`}
                 aria-current={index === currentIndex}
-                className="relative flex-shrink-0 flex items-center gap-1 xs:gap-1.5 sm:gap-2 pr-1 xs:pr-1.5 sm:pr-2 py-1 xs:py-1.5 sm:py-2 text-left border-2 border-transparent hover:border-white/30 transition-colors duration-200"
-                style={{ maxWidth: "160px", minWidth: "70px" }}
-              >
-                <span
-                  className="flex-shrink-0 w-6 h-4 xs:w-8 xs:h-6 sm:w-10 sm:h-7 md:w-14 md:h-10 bg-cover bg-center rounded-sm"
-                  style={{ backgroundImage: `url(${slide.image})` }}
-                />
-                <span className="min-w-0">
-                  <span
-                    className={`block text-[8px] xs:text-[10px] uppercase tracking-wider font-semibold ${
-                      index === currentIndex ? "text-red-500" : "text-gray-400 dark:text-gray-500"
-                    }`}
-                  >
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <span
-                    className={`hidden xs:block text-[10px] sm:text-xs md:text-sm font-medium truncate ${
-                      index === currentIndex ? "text-black dark:text-white" : "text-gray-500 dark:text-gray-400"
-                    }`}
-                  >
-                    {slide.title}
-                  </span>
-                </span>
-                {index === currentIndex && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500" />}
-              </button>
+                className={`h-1 xs:h-1.5 rounded-full transition-all duration-300 ${
+                  index === currentIndex ? "w-5 xs:w-6 bg-white" : "w-2 xs:w-3 bg-white/40 hover:bg-white/60"
+                }`}
+              />
             ))}
           </div>
+        </div>
+
+        {/* ─── Thumbnail rail (tablet and desktop) ──── */}
+        <div className="hidden sm:flex gap-0.5 xs:gap-1 sm:gap-1.5 md:gap-2 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+          {slides.map((slide, index) => (
+            <button
+              key={slide._id || index}
+              onClick={() => goToSlide(index)}
+              aria-label={`Go to: ${slide.title}`}
+              aria-current={index === currentIndex}
+              className="relative flex-shrink-0 flex items-center gap-1 xs:gap-1.5 sm:gap-2 pr-1 xs:pr-1.5 sm:pr-2 py-1 xs:py-1.5 sm:py-2 text-left border-2 border-transparent hover:border-white/30 transition-colors duration-200"
+              style={{ maxWidth: "160px", minWidth: "70px" }}
+            >
+              <span
+                className="flex-shrink-0 w-6 h-4 xs:w-8 xs:h-6 sm:w-10 sm:h-7 md:w-14 md:h-10 lg:w-16 lg:h-12 bg-cover bg-center rounded-sm"
+                style={{ backgroundImage: `url(${slide.image})` }}
+              />
+              <span className="min-w-0">
+                <span
+                  className={`block text-[8px] xs:text-[10px] uppercase tracking-wider font-semibold ${
+                    index === currentIndex ? "text-red-500" : "text-gray-400 dark:text-gray-500"
+                  }`}
+                >
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span
+                  className={`hidden xs:block text-[10px] sm:text-xs md:text-sm font-medium truncate ${
+                    index === currentIndex ? "text-black dark:text-white" : "text-gray-500 dark:text-gray-400"
+                  }`}
+                >
+                  {slide.title}
+                </span>
+              </span>
+              {index === currentIndex && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500" />}
+            </button>
+          ))}
         </div>
       </div>
     </section>
