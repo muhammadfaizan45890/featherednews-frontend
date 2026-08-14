@@ -343,6 +343,15 @@ const isNew = (dateStr) => {
   return diff < 24 * 60 * 60 * 1000;
 };
 
+// ─── Safe author name extractor ────────────────────────────
+const getAuthorName = (author) => {
+  if (!author) return "Unknown";
+  if (typeof author === "string") return author;
+  if (typeof author === "object" && author.name) return author.name;
+  if (Array.isArray(author) && author.length > 0 && author[0]?.name) return author[0].name;
+  return "Unknown";
+};
+
 // ─────────────────────────────────────────────────────────────
 // Skeleton Card
 // ─────────────────────────────────────────────────────────────
@@ -374,7 +383,8 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) 
     ? post.images[0]
     : FALLBACK_IMG;
 
-  const authorName = post.author?.name || post.author || "Unknown";
+  const authorName = getAuthorName(post.author);
+  const initial = authorName.charAt(0).toUpperCase();
 
   return (
     <li className="list-none">
@@ -416,7 +426,7 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) 
 
           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800">
             <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-200 dark:bg-zinc-700 flex items-center justify-center text-[8px] sm:text-[9px] font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">
-              {authorName.charAt(0).toUpperCase()}
+              {initial}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
