@@ -103,8 +103,8 @@ const staticSlides = [
   },
 ];
 
-const SLIDE_DURATION = 3000;
-const INPUT_LOCK_MS = 150;
+const SLIDE_DURATION = 4000; // increased for better reading
+const INPUT_LOCK_MS = 200;
 
 const Hero = () => {
   const [slides, setSlides] = useState([]);
@@ -259,29 +259,22 @@ const Hero = () => {
   const leadSlide = slides[0];
   const secondarySlides = useMemo(() => slides.slice(1, 5), [slides]);
 
-  // ─── Loading ─────────────────────────────────────
+  // ─── Loading skeleton ──────────────────────────────────
   if (loading) {
     return (
-      <section className="w-full bg-white py-3 xs:py-4 sm:py-6 md:py-8 lg:py-10">
+      <section className="w-full bg-white py-4 md:py-6 lg:py-8">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Desktop skeleton: lead + rail */}
-          <div className="hidden lg:grid grid-cols-3 gap-4 xl:gap-5" style={{ height: "560px" }}>
-            <div className="col-span-2 bg-[#2b2b30] animate-pulse motion-reduce:animate-none" />
+          {/* Desktop skeleton */}
+          <div className="hidden lg:grid grid-cols-3 gap-4 xl:gap-5 h-[480px] xl:h-[560px]">
+            <div className="col-span-2 bg-gray-200 animate-pulse rounded-lg" />
             <div className="grid grid-rows-3 gap-4 xl:gap-5">
-              <div className="bg-[#2b2b30] animate-pulse motion-reduce:animate-none" />
-              <div className="bg-[#2b2b30] animate-pulse motion-reduce:animate-none" />
-              <div className="bg-[#2b2b30] animate-pulse motion-reduce:animate-none" />
+              <div className="bg-gray-200 animate-pulse rounded-lg" />
+              <div className="bg-gray-200 animate-pulse rounded-lg" />
+              <div className="bg-gray-200 animate-pulse rounded-lg" />
             </div>
           </div>
           {/* Mobile skeleton */}
-          <div
-            className="lg:hidden w-full bg-[#2b2b30] flex items-center justify-center"
-            style={{ height: "clamp(200px, 42vw, 640px)" }}
-          >
-            <span className="text-white/70 text-xs xs:text-sm sm:text-base tracking-wide uppercase">
-              Loading stories…
-            </span>
-          </div>
+          <div className="lg:hidden w-full bg-gray-200 animate-pulse rounded-lg" style={{ height: "clamp(200px, 50vw, 480px)" }} />
         </div>
       </section>
     );
@@ -293,18 +286,18 @@ const Hero = () => {
 
   return (
     <section
-      className="w-full bg-white py-3 xs:py-4 sm:py-6 md:py-8 lg:py-10 overflow-hidden"
+      className="w-full bg-white py-4 md:py-6 lg:py-8 overflow-hidden"
       role="region"
       aria-label="Featured stories"
     >
-      {/* ══════════ DESKTOP: National Review–style card grid ══════════ */}
+      {/* ══════════ DESKTOP: Card Grid (lg+) ══════════ */}
       <div className="hidden lg:block w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-3 gap-4 xl:gap-5" style={{ height: "560px" }}>
+        <div className="grid grid-cols-3 gap-4 xl:gap-5 h-[480px] xl:h-[560px]">
           {/* ─── Lead story card ─────────────────────── */}
           {leadSlide && (
             <Link
               to={leadSlide.link || "/news"}
-              className="group relative col-span-2 h-full overflow-hidden bg-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
+              className="group relative col-span-2 h-full overflow-hidden rounded-lg bg-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
             >
               <img
                 src={leadSlide.image}
@@ -317,7 +310,6 @@ const Hero = () => {
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-
               <div className="absolute left-0 right-0 bottom-0 p-6 xl:p-8 text-white" style={{ maxWidth: "680px" }}>
                 <p className="uppercase text-red-400 font-semibold text-xs xl:text-sm tracking-[3px] mb-2">
                   ■ {leadSlide.category}
@@ -344,7 +336,7 @@ const Hero = () => {
               <Link
                 key={slide._id || i}
                 to={slide.link || "/news"}
-                className="group relative overflow-hidden bg-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
+                className="group relative overflow-hidden rounded-lg bg-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
               >
                 <img
                   src={slide.image}
@@ -367,15 +359,14 @@ const Hero = () => {
                 </div>
               </Link>
             ))}
-            {/* Fill any empty rail slots so the 3-row grid never collapses awkwardly */}
             {Array.from({ length: Math.max(0, 3 - secondarySlides.length) }).map((_, i) => (
-              <div key={`empty-${i}`} className="bg-gray-100" aria-hidden="true" />
+              <div key={`empty-${i}`} className="bg-gray-100 rounded-lg" aria-hidden="true" />
             ))}
           </div>
         </div>
       </div>
 
-      {/* ══════════ MOBILE / TABLET: swipeable carousel ══════════ */}
+      {/* ══════════ MOBILE / TABLET: Carousel (below lg) ══════════ */}
       <div
         className="lg:hidden"
         ref={containerRef}
@@ -394,11 +385,11 @@ const Hero = () => {
         <span ref={liveRegionRef} className="sr-only" aria-live="polite" />
 
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative w-full overflow-hidden bg-black group">
-            {/* ─── Slide wrapper with smooth transition ─── */}
+          <div className="relative w-full overflow-hidden bg-black rounded-lg shadow-xl">
+            {/* ─── Slide wrapper ─────────────────────── */}
             <div
-              className="relative w-full transition-transform duration-700 ease-out"
-              style={{ height: "clamp(200px, 42vw, 640px)" }}
+              className="relative w-full"
+              style={{ height: "clamp(220px, 50vw, 480px)" }}
             >
               <div
                 className="absolute inset-0 flex"
@@ -424,52 +415,31 @@ const Hero = () => {
                     <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
                     <div className="absolute inset-0 bg-black/10" />
 
-                    {/* Text overlay – only visible on active slide */}
+                    {/* Text overlay – active only */}
                     {idx === currentIndex && (
                       <div
-                        className="absolute left-2.5 xs:left-3 sm:left-5 md:left-8 top-1/2 -translate-y-1/2 z-10 text-white"
-                        style={{ maxWidth: "min(92%, 560px)" }}
+                        className="absolute left-3 xs:left-4 sm:left-6 md:left-8 top-1/2 -translate-y-1/2 z-10 text-white"
+                        style={{ maxWidth: "min(92%, 480px)" }}
                       >
                         <p
-                          className="uppercase text-red-400 font-semibold drop-shadow-lg"
-                          style={{
-                            fontSize: "clamp(0.55rem, 1.4vw, 0.8rem)",
-                            letterSpacing: "clamp(1px, 0.4vw, 4px)",
-                            marginBottom: "clamp(2px, 0.8vw, 12px)",
-                          }}
+                          className="uppercase text-red-400 font-semibold drop-shadow-lg text-[10px] xs:text-xs sm:text-sm tracking-[2px] sm:tracking-[3px] mb-1 sm:mb-2"
                         >
                           ■ {slide.category}
                         </p>
-
-                        <h1
-                          className="font-extrabold leading-tight drop-shadow-xl line-clamp-3"
-                          style={{ fontSize: "clamp(1rem, 3.6vw, 3rem)" }}
-                        >
+                        <h1 className="font-extrabold leading-tight drop-shadow-xl line-clamp-3 text-xl xs:text-2xl sm:text-3xl md:text-4xl">
                           {slide.title}
                         </h1>
-
-                        <p
-                          className="text-white/95 leading-relaxed line-clamp-2 sm:line-clamp-3 drop-shadow-lg"
-                          style={{
-                            fontSize: "clamp(0.65rem, 1.4vw, 1rem)",
-                            marginTop: "clamp(4px, 1vw, 14px)",
-                          }}
-                        >
+                        <p className="text-white/95 leading-relaxed line-clamp-2 sm:line-clamp-3 drop-shadow-lg text-xs xs:text-sm sm:text-base mt-2 sm:mt-3">
                           {slide.description}
                         </p>
-
                         <Link
                           to={slide.link || "/news"}
-                          className="inline-flex items-center gap-2 border-2 border-white bg-transparent hover:bg-white hover:text-black uppercase font-semibold whitespace-nowrap shadow-lg"
-                          style={{
-                            marginTop: "clamp(6px, 1.4vw, 18px)",
-                            padding: "clamp(6px, 1vw, 12px) clamp(12px, 2vw, 26px)",
-                            fontSize: "clamp(0.55rem, 1.1vw, 0.9rem)",
-                            letterSpacing: "1px",
-                          }}
+                          className="inline-flex items-center gap-2 border-2 border-white bg-transparent hover:bg-white hover:text-black uppercase font-semibold whitespace-nowrap shadow-lg text-[10px] xs:text-xs sm:text-sm px-3 xs:px-4 sm:px-5 py-1.5 xs:py-2 sm:py-2.5 mt-2 sm:mt-3 transition-colors duration-300"
                         >
                           {slide.buttonText || "Read More"}
-                          <span aria-hidden="true">→</span>
+                          <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">
+                            →
+                          </span>
                         </Link>
                       </div>
                     )}
@@ -478,14 +448,14 @@ const Hero = () => {
               </div>
             </div>
 
-            {/* ─── Slide counter ────────────────────────── */}
+            {/* ─── Slide counter ────────────────────── */}
             <div className="absolute top-2 xs:top-3 sm:top-4 right-2 xs:right-3 sm:right-4 z-20">
               <span className="text-white/90 text-[9px] xs:text-[10px] sm:text-xs font-mono tracking-wider bg-black/40 backdrop-blur-sm px-1.5 xs:px-2 py-0.5 xs:py-1 rounded">
                 {String(currentIndex + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
               </span>
             </div>
 
-            {/* ─── Arrow Buttons ───────────────────────────── */}
+            {/* ─── Arrow Buttons ────────────────────── */}
             <button
               onClick={prevSlide}
               aria-label="Previous slide"
@@ -508,7 +478,7 @@ const Hero = () => {
               </svg>
             </button>
 
-            {/* ─── Mobile dots ──────────────────────────── */}
+            {/* ─── Mobile dots ──────────────────────── */}
             <div className="absolute bottom-2.5 xs:bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex sm:hidden gap-1.5 z-20">
               {slides.map((_, index) => (
                 <button
@@ -524,7 +494,7 @@ const Hero = () => {
             </div>
           </div>
 
-          {/* ─── Thumbnail rail (tablet only — desktop has its own cards) ── */}
+          {/* ─── Thumbnail rail (tablet only) ────── */}
           <div className="hidden sm:flex gap-0.5 xs:gap-1 sm:gap-1.5 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
             {slides.map((slide, index) => (
               <button
