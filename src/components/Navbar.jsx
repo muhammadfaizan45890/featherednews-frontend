@@ -53,62 +53,22 @@ const api = getApiInstance();
 // ─── Debounce helper ──────────────────────────────────────
 const debounce = (fn, ms) => {
   let timer;
-  const debounced = (...args) => {
+  return (...args) => {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), ms);
   };
-  debounced.cancel = () => clearTimeout(timer);
-  return debounced;
-};
-
-// ─── Breakpoint hook (drives real behavioral changes, not just CSS) ──
-const useBreakpoint = () => {
-  const [bp, setBp] = useState(() => {
-    if (typeof window === "undefined") return "lg";
-    const w = window.innerWidth;
-    if (w < 640) return "xs";
-    if (w < 768) return "sm";
-    if (w < 1024) return "md";
-    if (w < 1280) return "lg";
-    if (w < 1536) return "xl";
-    return "2xl";
-  });
-
-  useEffect(() => {
-    const onResize = debounce(() => {
-      const w = window.innerWidth;
-      if (w < 640) setBp("xs");
-      else if (w < 768) setBp("sm");
-      else if (w < 1024) setBp("md");
-      else if (w < 1280) setBp("lg");
-      else if (w < 1536) setBp("xl");
-      else setBp("2xl");
-    }, 120);
-    window.addEventListener("resize", onResize);
-    return () => {
-      onResize.cancel();
-      window.removeEventListener("resize", onResize);
-    };
-  }, []);
-
-  return bp;
 };
 
 const Navbar = () => {
   const { user, setUser } = getData();
   const navigate = useNavigate();
   const location = useLocation();
-  const breakpoint = useBreakpoint();
-  const isDesktop = breakpoint === "lg" || breakpoint === "xl" || breakpoint === "2xl";
 
   // ─── State ──────────────────────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchSuggestions, setSearchSuggestions] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
   const [mobileOpenDropdown, setMobileOpenDropdown] = useState(null);
-  const [desktopDropdown, setDesktopDropdown] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -119,12 +79,9 @@ const Navbar = () => {
   const menuButtonRef = useRef(null);
   const closeButtonRef = useRef(null);
   const searchInputRef = useRef(null);
-  const searchWrapRef = useRef(null);
-  const desktopNavRef = useRef(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const categoryFetched = useRef(false);
-  const dropdownCloseTimer = useRef(null);
 
   const accessToken = localStorage.getItem("accessToken");
   const userRole = user?.role || "user";
@@ -172,31 +129,11 @@ const Navbar = () => {
     return base.filter((item) => item.sub?.length > 0 || item.link);
   }, [categories]);
 
-  // Primary items shown inline on desktop; the rest collapse into "More"
-  const desktopPrimary = useMemo(
-    () => navItems.filter((i) => ["Home", "News", "Listen", "Categories"].includes(i.label)),
-    [navItems]
-  );
-  const desktopSecondary = useMemo(
-    () => navItems.filter((i) => !["Home", "News", "Listen", "Categories"].includes(i.label)),
-    [navItems]
-  );
-
-  // ─── Close sidebar / dropdowns on route change ────────
+  // ─── Close sidebar on route change ────────────────────
   useEffect(() => {
     setSidebarOpen(false);
     setMobileOpenDropdown(null);
-    setDesktopDropdown(null);
-    setSearchOpen(false);
   }, [location.pathname]);
-
-  // ─── Force-close sidebar if viewport grows past mobile breakpoints ──
-  useEffect(() => {
-    if (isDesktop) {
-      setSidebarOpen(false);
-      setMobileOpenDropdown(null);
-    }
-  }, [isDesktop]);
 
   // ─── Outside click for sidebar ──────────────────────
   useEffect(() => {
@@ -214,27 +151,12 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [sidebarOpen]);
 
-  // ─── Outside click for desktop dropdown + search ─────
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (desktopNavRef.current && !desktopNavRef.current.contains(e.target)) {
-        setDesktopDropdown(null);
-      }
-      if (searchOpen && searchWrapRef.current && !searchWrapRef.current.contains(e.target)) {
-        setSearchOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [searchOpen]);
-
   // ─── ESC to close everything ────────────────────────
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape") {
         setSidebarOpen(false);
         setMobileOpenDropdown(null);
-        setDesktopDropdown(null);
         setSearchOpen(false);
       }
     };
@@ -275,48 +197,10 @@ const Navbar = () => {
     }
   }, [searchOpen]);
 
-  // ─── Live search suggestions (debounced) ─────────────
-  const runSearch = useMemo(
-    () =>
-      debounce(async (query) => {
-        if (!query || query.trim().length < 2) {
-          setSearchSuggestions([]);
-          setSearchLoading(false);
-          return;
-        }
-        try {
-          setSearchLoading(true);
-          const res = await api.get("/api/posts", {
-            params: { search: query.trim(), limit: 5, page: 1 },
-          });
-          setSearchSuggestions(res.data?.data || []);
-        } catch (error) {
-          setSearchSuggestions([]);
-        } finally {
-          setSearchLoading(false);
-        }
-      }, 300),
-    []
-  );
-
-  useEffect(() => {
-    if (!searchOpen) return;
-    runSearch(searchQuery);
-    return () => runSearch.cancel();
-  }, [searchQuery, searchOpen, runSearch]);
-
   // ─── Scroll shadow ─────────────────────────────────
   useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(() => {
-        setIsScrolled(window.scrollY > 10);
-        ticking = false;
-      });
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -367,33 +251,10 @@ const Navbar = () => {
         navigate(`/news?search=${encodeURIComponent(query)}`);
         setSearchOpen(false);
         setSearchQuery("");
-        setSearchSuggestions([]);
       }
     },
     [searchQuery, navigate]
   );
-
-  const goToSuggestion = useCallback(
-    (post) => {
-      const slugOrId = post?.slug || post?._id || post?.id;
-      if (slugOrId) navigate(`/news/${slugOrId}`);
-      setSearchOpen(false);
-      setSearchQuery("");
-      setSearchSuggestions([]);
-    },
-    [navigate]
-  );
-
-  // ─── Desktop dropdown open/close with a small grace delay ──
-  const openDesktopDropdown = useCallback((label) => {
-    clearTimeout(dropdownCloseTimer.current);
-    setDesktopDropdown(label);
-  }, []);
-  const scheduleCloseDesktopDropdown = useCallback(() => {
-    clearTimeout(dropdownCloseTimer.current);
-    dropdownCloseTimer.current = setTimeout(() => setDesktopDropdown(null), 150);
-  }, []);
-  useEffect(() => () => clearTimeout(dropdownCloseTimer.current), []);
 
   // ─── Touch swipe to close sidebar ────────────────────
   const handleTouchStart = (e) => {
@@ -472,13 +333,13 @@ const Navbar = () => {
   // ─── Render ──────────────────────────────────────────
   return (
     <header
-      className={`w-full bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/80 sticky top-0 z-50 transition-shadow duration-300 motion-reduce:transition-none ${
+      className={`w-full bg-white sticky top-0 z-50 transition-shadow duration-300 ${
         isScrolled ? "shadow-md" : ""
       }`}
     >
       {/* ─── Live Date/Time Bar ──────────────────────────── */}
       <div className="border-b border-gray-100 bg-gray-50">
-        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 h-7 sm:h-8 flex items-center justify-between text-[11px] sm:text-xs text-gray-500 font-medium">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 h-7 sm:h-8 flex items-center justify-between text-[11px] sm:text-xs text-gray-500 font-medium">
           <span aria-live="off">
             <span className="hidden md:inline">{fullDate}</span>
             <span className="hidden sm:inline md:hidden">{mediumDate}</span>
@@ -491,15 +352,15 @@ const Navbar = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
         {/* ─── Top Header ──────────────────────────────────── */}
         <div className="relative flex items-center justify-between py-3 sm:py-4 md:py-5 lg:py-4 xl:py-5">
-          {/* Left: Hamburger (mobile/tablet) + Search (always visible) */}
+          {/* Left: Hamburger + Search (always visible) */}
           <div className="flex items-center gap-3 sm:gap-4 text-gray-700">
             <button
               ref={menuButtonRef}
               onClick={toggleSidebar}
-              className="lg:hidden hover:text-black transition duration-300 rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black relative"
+              className="hover:text-black transition duration-300 rounded-full p-1 relative"
               aria-label={sidebarOpen ? "Close menu" : "Open menu"}
               aria-expanded={sidebarOpen}
               aria-controls="sidebar-drawer"
@@ -508,9 +369,8 @@ const Navbar = () => {
             </button>
             <button
               onClick={() => setSearchOpen((v) => !v)}
-              className="hover:text-black transition duration-300 rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+              className="hover:text-black transition duration-300 rounded-full p-1"
               aria-label="Toggle search"
-              aria-expanded={searchOpen}
             >
               <FiSearch size={18} className="sm:size-5" />
             </button>
@@ -518,33 +378,31 @@ const Navbar = () => {
 
           {/* ─── Logo ────────────────────────────────────── */}
           <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none">
-            <Link to="/" className="pointer-events-auto inline-block">
-              <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3">
-                <FiFeather className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl text-black" />
-                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl font-black tracking-tight leading-none">
-                  <span className="font-light text-gray-800">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span>
-                  <span className="font-extrabold text-black">NEWS</span>
-                </h1>
-              </div>
-              <p className="tracking-[4px] sm:tracking-[6px] md:tracking-[8px] uppercase text-[10px] sm:text-[11px] md:text-[12px] mt-1 sm:mt-2 text-gray-400 font-light">
-                Stories That Soar
-              </p>
-            </Link>
+            <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3">
+              <FiFeather className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl text-black" />
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl font-black tracking-tight leading-none">
+                <span className="font-light text-gray-800">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span>
+                <span className="font-extrabold text-black">NEWS</span>
+              </h1>
+            </div>
+            <p className="tracking-[4px] sm:tracking-[6px] md:tracking-[8px] uppercase text-[10px] sm:text-[11px] md:text-[12px] mt-1 sm:mt-2 text-gray-400 font-light">
+              Stories That Soar
+            </p>
           </div>
 
           {/* Right: Social + Auth */}
           <div className="flex items-center gap-4 lg:gap-5">
-            <div className="hidden xl:flex items-center gap-5 text-gray-600">
-              <a href="#" aria-label="Facebook" className="hover:text-black transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
+            <div className="hidden lg:flex items-center gap-5 text-gray-600">
+              <a href="#" aria-label="Facebook" className="hover:text-black transition duration-300 rounded-full p-1">
                 <FaFacebookF size={18} />
               </a>
-              <a href="https://x.com/feathered_pen" aria-label="Twitter" className="hover:text-black transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
+              <a href="https://x.com/feathered_pen" aria-label="Twitter" className="hover:text-black transition duration-300 rounded-full p-1">
                 <FaXTwitter size={18} />
               </a>
-              <a href="#" aria-label="Instagram" className="hover:text-black transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
+              <a href="#" aria-label="Instagram" className="hover:text-black transition duration-300 rounded-full p-1">
                 <FaInstagram size={18} />
               </a>
-              <a href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo" aria-label="YouTube" className="hover:text-black transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
+              <a href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo" aria-label="YouTube" className="hover:text-black transition duration-300 rounded-full p-1">
                 <FaYoutube size={18} />
               </a>
             </div>
@@ -554,10 +412,10 @@ const Navbar = () => {
               <div className="flex items-center gap-3">
                 <Link
                   to={profileRoute}
-                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full transition-all duration-200 group"
                 >
                   <div className="relative">
-                    <Avatar className="h-8 w-8 border-2 border-gray-200 transition-all">
+                    <Avatar className="h-8 w-8 transition-all">
                       <AvatarImage src={getAvatarUrl(user?.avatar)} />
                       <AvatarFallback className="bg-gray-200 text-gray-700 text-xs font-bold">
                         {getUserInitials()}
@@ -567,16 +425,16 @@ const Navbar = () => {
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  <span className="hidden md:block text-sm font-medium text-gray-700 max-w-[90px] truncate">
+                  {/* <span className="hidden md:block text-sm font-medium text-gray-700 max-w-[90px] truncate">
                     {user?.fullname?.split(" ")[0] || "Profile"}
-                  </span>
+                  </span> */}
                 </Link>
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <Link
                   to="/login"
-                  className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full transition duration-200 text-gray-600 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                  className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full transition duration-200 text-gray-600 hover:text-black"
                   aria-label="Log in"
                 >
                   <User size={20} className="sm:size-[22px]" />
@@ -585,152 +443,6 @@ const Navbar = () => {
             )}
           </div>
         </div>
-
-        {/* ─── Desktop Nav Bar (lg and up) ─────────────────── */}
-        <nav
-          ref={desktopNavRef}
-          className="hidden lg:flex items-center justify-center gap-1 border-t border-gray-100 py-2.5 relative"
-          aria-label="Primary"
-        >
-          {desktopPrimary.map((item) => {
-            const hasSub = (item.sub || []).length > 0;
-            const isActive =
-              location.pathname === item.link ||
-              (hasSub && item.sub.some((s) => location.pathname + location.search === s.link));
-            const isOpen = desktopDropdown === item.label;
-
-            if (hasSub) {
-              return (
-                <div
-                  key={item.label}
-                  className="relative"
-                  onMouseEnter={() => openDesktopDropdown(item.label)}
-                  onMouseLeave={scheduleCloseDesktopDropdown}
-                >
-                  <button
-                    onClick={() => setDesktopDropdown(isOpen ? null : item.label)}
-                    className={`flex items-center gap-1 px-4 py-2 text-sm font-semibold uppercase tracking-wide rounded-full transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                      isActive || isOpen ? "text-black" : "text-gray-600 hover:text-black"
-                    }`}
-                    aria-expanded={isOpen}
-                    aria-haspopup="true"
-                  >
-                    {item.label}
-                    <FiChevronDown
-                      className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                      size={14}
-                    />
-                  </button>
-                  <span
-                    className={`absolute left-4 right-4 -bottom-0.5 h-0.5 bg-black origin-left transition-transform duration-200 motion-reduce:transition-none ${
-                      isActive || isOpen ? "scale-x-100" : "scale-x-0"
-                    }`}
-                    aria-hidden="true"
-                  />
-
-                  {/* Mega dropdown */}
-                  <div
-                    className={`absolute left-1/2 -translate-x-1/2 top-full pt-3 transition-all duration-200 motion-reduce:transition-none ${
-                      isOpen
-                        ? "opacity-100 translate-y-0 pointer-events-auto"
-                        : "opacity-0 -translate-y-1 pointer-events-none"
-                    }`}
-                  >
-                    <div className="bg-white border border-gray-200 rounded-xl shadow-xl min-w-[420px] max-w-[640px] p-4">
-                      {categoriesLoading ? (
-                        <div className="grid grid-cols-3 gap-2">
-                          {Array.from({ length: 6 }).map((_, i) => (
-                            <div key={i} className="h-8 rounded-lg bg-gray-100 animate-pulse motion-reduce:animate-none" />
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-3 gap-1">
-                          {item.sub.map((sub) => (
-                            <Link
-                              key={sub.label}
-                              to={sub.link}
-                              className="px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-black transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black truncate"
-                              onClick={() => setDesktopDropdown(null)}
-                            >
-                              {sub.label}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <div key={item.label} className="relative">
-                <Link
-                  to={item.link}
-                  className={`block px-4 py-2 text-sm font-semibold uppercase tracking-wide rounded-full transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                    isActive ? "text-black" : "text-gray-600 hover:text-black"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-                <span
-                  className={`absolute left-4 right-4 -bottom-0.5 h-0.5 bg-black origin-left transition-transform duration-200 motion-reduce:transition-none ${
-                    isActive ? "scale-x-100" : "scale-x-0"
-                  }`}
-                  aria-hidden="true"
-                />
-              </div>
-            );
-          })}
-
-          {/* Overflow "More" menu keeps the bar tidy on narrower desktop widths */}
-          {desktopSecondary.length > 0 && (
-            <div
-              className="relative"
-              onMouseEnter={() => openDesktopDropdown("__more")}
-              onMouseLeave={scheduleCloseDesktopDropdown}
-            >
-              <button
-                onClick={() => setDesktopDropdown(desktopDropdown === "__more" ? null : "__more")}
-                className={`flex items-center gap-1 px-4 py-2 text-sm font-semibold uppercase tracking-wide rounded-full transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                  desktopDropdown === "__more" ? "text-black" : "text-gray-600 hover:text-black"
-                }`}
-                aria-expanded={desktopDropdown === "__more"}
-                aria-haspopup="true"
-              >
-                More
-                <FiChevronDown
-                  className={`transition-transform duration-200 ${
-                    desktopDropdown === "__more" ? "rotate-180" : ""
-                  }`}
-                  size={14}
-                />
-              </button>
-              <div
-                className={`absolute right-0 top-full pt-3 transition-all duration-200 motion-reduce:transition-none ${
-                  desktopDropdown === "__more"
-                    ? "opacity-100 translate-y-0 pointer-events-auto"
-                    : "opacity-0 -translate-y-1 pointer-events-none"
-                }`}
-              >
-                <div className="bg-white border border-gray-200 rounded-xl shadow-xl min-w-[180px] py-2">
-                  {desktopSecondary.map((item) => (
-                    <Link
-                      key={item.label}
-                      to={item.link}
-                      className={`block px-4 py-2 text-sm transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                        location.pathname === item.link ? "text-black font-semibold" : "text-gray-600 hover:text-black"
-                      }`}
-                      onClick={() => setDesktopDropdown(null)}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </nav>
 
         {/* ─── Mobile Strip (scrollable categories) – kept for quick access ── */}
         <div className="lg:hidden relative border-t border-gray-200">
@@ -750,7 +462,7 @@ const Navbar = () => {
                 <Link
                   key={item.label}
                   to={item.link}
-                  className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                  className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition duration-200 ${
                     isActive
                       ? "bg-black text-white border-black"
                       : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
@@ -766,15 +478,14 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* ─── Search Bar (with live suggestions) ─────────────── */}
+      {/* ─── Search Bar ────────────────────────────────────── */}
       <div
-        ref={searchWrapRef}
-        className={`overflow-hidden transition-all duration-300 ease-in-out motion-reduce:transition-none ${
-          searchOpen ? "max-h-[420px] border-t border-gray-200" : "max-h-0"
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          searchOpen ? "max-h-20 border-t border-gray-200" : "max-h-0"
         }`}
       >
-        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-3">
-          <form onSubmit={handleSearchSubmit} className="relative max-w-xl mx-auto lg:mx-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-3">
+          <form onSubmit={handleSearchSubmit} className="relative">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               ref={searchInputRef}
@@ -782,68 +493,16 @@ const Navbar = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search articles, topics, or keywords..."
-              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md"
               aria-label="Search"
-              autoComplete="off"
             />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSearchSuggestions([]);
-                  searchInputRef.current?.focus();
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-black rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                aria-label="Clear search"
-              >
-                <FiX size={16} />
-              </button>
-            )}
-
-            {/* Suggestions */}
-            {searchQuery.trim().length >= 2 && (
-              <div className="absolute z-10 mt-2 w-full bg-white border border-gray-200 rounded-md shadow-xl overflow-hidden">
-                {searchLoading ? (
-                  <div className="p-3 space-y-2">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="h-4 rounded bg-gray-100 animate-pulse motion-reduce:animate-none" />
-                    ))}
-                  </div>
-                ) : searchSuggestions.length > 0 ? (
-                  <ul>
-                    {searchSuggestions.map((post) => (
-                      <li key={post._id || post.id}>
-                        <button
-                          type="button"
-                          onClick={() => goToSuggestion(post)}
-                          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition duration-150 truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                        >
-                          {post.title || "Untitled"}
-                        </button>
-                      </li>
-                    ))}
-                    <li className="border-t border-gray-100">
-                      <button
-                        type="submit"
-                        className="w-full text-left px-4 py-2.5 text-sm font-semibold text-black hover:bg-gray-50 transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                      >
-                        See all results for “{searchQuery.trim()}”
-                      </button>
-                    </li>
-                  </ul>
-                ) : (
-                  <p className="px-4 py-3 text-sm text-gray-400">No matches yet — press enter to search anyway.</p>
-                )}
-              </div>
-            )}
           </form>
         </div>
       </div>
 
-      {/* ─── Sidebar (Drawer) – mobile & tablet only ─── */}
+      {/* ─── Sidebar (Drawer) – now visible on all screens ── */}
       <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm transition-all duration-300 motion-reduce:transition-none z-40 lg:hidden ${
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm transition-all duration-300 z-40 ${
           sidebarOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
@@ -858,7 +517,7 @@ const Navbar = () => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`fixed top-0 right-0 h-full w-[280px] sm:w-[320px] max-w-[85vw] bg-white shadow-2xl transform transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none z-50 lg:hidden ${
+        className={`fixed top-0 right-0 h-full w-[280px] sm:w-[320px] max-w-[85vw] bg-white shadow-2xl transform transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] z-50 ${
           sidebarOpen ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
@@ -876,7 +535,7 @@ const Navbar = () => {
             <button
               ref={closeButtonRef}
               onClick={closeSidebar}
-              className="p-2 hover:bg-gray-200 rounded-full transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+              className="p-2 hover:bg-gray-200 rounded-full transition duration-200"
               aria-label="Close menu"
             >
               <FiX size={24} />
@@ -927,15 +586,12 @@ const Navbar = () => {
                     <li key={item.label} className="border-b border-gray-100 last:border-0">
                       <button
                         onClick={() => toggleMobileDropdown(item.label)}
-                        className={`flex items-center w-full px-4 py-3 text-left transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                        className={`flex items-center w-full px-4 py-3 text-left transition duration-150 hover:bg-gray-50 ${
                           isActive ? "bg-gray-50" : ""
                         }`}
                         aria-expanded={isOpen}
                       >
                         <span className="flex-1 font-medium text-gray-700">{item.label}</span>
-                        {categoriesLoading && (
-                          <span className="mr-2 h-3 w-8 rounded bg-gray-100 animate-pulse motion-reduce:animate-none" />
-                        )}
                         <FiChevronDown
                           className={`transform transition-transform duration-200 text-gray-400 ${
                             isOpen ? "rotate-180" : ""
@@ -944,7 +600,7 @@ const Navbar = () => {
                         />
                       </button>
                       <div
-                        className={`overflow-hidden transition-all duration-200 motion-reduce:transition-none ${
+                        className={`overflow-hidden transition-all duration-200 ${
                           isOpen ? "max-h-[500px]" : "max-h-0"
                         }`}
                       >
@@ -953,7 +609,7 @@ const Navbar = () => {
                             <li key={sub.label}>
                               <Link
                                 to={sub.link}
-                                className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                                className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition duration-150"
                                 onClick={closeSidebar}
                               >
                                 {sub.label}
@@ -970,7 +626,7 @@ const Navbar = () => {
                   <li key={item.label}>
                     <Link
                       to={item.link}
-                      className={`flex items-center px-4 py-3 transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                      className={`flex items-center px-4 py-3 transition duration-150 hover:bg-gray-50 ${
                         isActive ? "bg-gray-50 text-black" : "text-gray-700"
                       }`}
                       onClick={closeSidebar}
@@ -987,16 +643,16 @@ const Navbar = () => {
           {/* Footer */}
           <div className="border-t border-gray-200 bg-gray-50/50">
             <div className="flex justify-center gap-5 py-4 px-4 border-b border-gray-200">
-              <a href="#" aria-label="Facebook" className="text-gray-500 hover:text-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
+              <a href="#" aria-label="Facebook" className="text-gray-500 hover:text-black transition duration-200 rounded-full p-1">
                 <FaFacebookF size={18} />
               </a>
-              <a href="https://x.com/feathered_pen" aria-label="Twitter" className="text-gray-500 hover:text-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
+              <a href="https://x.com/feathered_pen" aria-label="Twitter" className="text-gray-500 hover:text-black transition duration-200 rounded-full p-1">
                 <FaXTwitter size={18} />
               </a>
-              <a href="#" aria-label="Instagram" className="text-gray-500 hover:text-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
+              <a href="#" aria-label="Instagram" className="text-gray-500 hover:text-black transition duration-200 rounded-full p-1">
                 <FaInstagram size={18} />
               </a>
-              <a href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo" aria-label="YouTube" className="text-gray-500 hover:text-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
+              <a href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo" aria-label="YouTube" className="text-gray-500 hover:text-black transition duration-200 rounded-full p-1">
                 <FaYoutube size={18} />
               </a>
             </div>
@@ -1006,7 +662,7 @@ const Navbar = () => {
                   {userRole === "admin" && (
                     <Link
                       to="/admin/dashboard"
-                      className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                      className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition"
                       onClick={closeSidebar}
                     >
                       Admin Panel
@@ -1014,7 +670,7 @@ const Navbar = () => {
                   )}
                   <button
                     onClick={logoutHandler}
-                    className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                    className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition"
                   >
                     Sign Out
                   </button>
@@ -1023,7 +679,7 @@ const Navbar = () => {
                 <div className="flex gap-2">
                   <Link
                     to="/login"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition"
                     onClick={closeSidebar}
                   >
                     <FiLogIn size={16} />
@@ -1031,7 +687,7 @@ const Navbar = () => {
                   </Link>
                   <Link
                     to="/signup"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition"
                     onClick={closeSidebar}
                   >
                     <FiUser size={16} />
@@ -1048,7 +704,6 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
 
 
 
