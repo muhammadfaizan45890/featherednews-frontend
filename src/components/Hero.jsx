@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import API from "../utils/api";
 
@@ -103,7 +103,8 @@ const staticSlides = [
   },
 ];
 
-const SLIDE_DURATION = 4000;
+// ⏱️ Decreased auto‑forward time to 2500ms
+const SLIDE_DURATION = 2500;
 const INPUT_LOCK_MS = 200;
 
 const Hero = () => {
@@ -402,8 +403,8 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* ─── Thumbnail rail (hidden on desktop) ──── */}
-        <div className="flex sm:flex lg:hidden gap-0.5 xs:gap-1 sm:gap-1.5 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+        {/* ─── Thumbnail rail: hidden on mobile (xs), visible on tablet (sm+md), hidden on desktop (lg+) ── */}
+        <div className="hidden sm:flex lg:hidden gap-0.5 xs:gap-1 sm:gap-1.5 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
           {slides.map((slide, index) => (
             <button
               key={slide._id || index}
