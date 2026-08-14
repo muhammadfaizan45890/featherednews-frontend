@@ -140,7 +140,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-[#0a0a0a] text-gray-300 relative border-t border-white/5">
+    <footer className="bg-[#0a0a0a] text-gray-300 border-t border-white/5">
       {/* ─── Top Bar ──────────────────────────────────────── */}
       <div className="border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -170,13 +170,9 @@ const Footer = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
           {/* ── About / Brand ── */}
           <div className="lg:col-span-3 space-y-4">
-            <div className="flex items-center gap-2">
-              {/* <FiFeather className="text-2xl text-white" /> */}
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-                {/* <span className="font-light text-white">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span> */}
-                <span className="font-extrabold text-white">Summary</span>
-              </h2>
-            </div>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              Summary
+            </h2>
             <p className="text-sm text-gray-400 leading-relaxed max-w-sm">
               A magazine and blog for storytellers, writers, and dreamers.
               We believe in the power of words to inspire, inform, and transform.
@@ -184,26 +180,28 @@ const Footer = () => {
             </p>
             <div className="flex gap-3 pt-2">
               {[
-                { icon: FaFacebookF, href: "#", color: "hover:bg-blue-600" },
-                { icon: FaXTwitter, href: "https://x.com/feathered_pen", color: "hover:bg-sky-500" },
-                { icon: FaInstagram, href: "#", color: "hover:bg-pink-600" },
-                { icon: FaYoutube, href: "https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo", color: "hover:bg-red-600" },
-                { icon: FaPinterest, href: "#", color: "hover:bg-red-500" },
+                { icon: FaFacebookF, href: "#", color: "hover:bg-[#1877F2]" },
+                { icon: FaXTwitter, href: "https://x.com/feathered_pen", color: "hover:bg-[#000000]" },
+                { icon: FaInstagram, href: "#", color: "hover:bg-[#E4405F]" },
+                { icon: FaYoutube, href: "https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo", color: "hover:bg-[#FF0000]" },
+                { icon: FaPinterest, href: "#", color: "hover:bg-[#E60023]" },
               ].map(({ icon: Icon, href, color }, idx) => (
                 <a
                   key={idx}
                   href={href}
-                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center ${color} hover:text-white transition-all duration-300 hover:scale-110 hover:shadow-lg`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center ${color} hover:text-white transition-all duration-300 hover:scale-110`}
                   aria-label="Social link"
                 >
-                  <Icon className="text-[12px] sm:text-sm text-gray-400 hover:text-white transition" />
+                  <Icon className="text-sm text-gray-400 hover:text-white transition" />
                 </a>
               ))}
             </div>
           </div>
 
-          {/* ── Quick Links ── */}
-          <div className="lg:col-span-2">
+          {/* ── Quick Links & Categories (Desktop) ── */}
+          <div className="hidden lg:block lg:col-span-2">
             <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">
               Quick Links
             </h3>
@@ -213,7 +211,7 @@ const Footer = () => {
                   <Link
                     to={link.link}
                     onClick={handleLinkClick}
-                    className="text-sm text-gray-400 hover:text-white transition-colors duration-200 flex items-center gap-2 group"
+                    className="text-sm text-gray-400 hover:text-white transition flex items-center gap-2 group"
                   >
                     <span className="text-white/20 group-hover:text-white/50 transition">›</span>
                     {link.label}
@@ -223,8 +221,7 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* ── Categories ── */}
-          <div className="lg:col-span-2">
+          <div className="hidden lg:block lg:col-span-2">
             <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">
               Categories
             </h3>
@@ -234,7 +231,7 @@ const Footer = () => {
                   <Link
                     to={`/news?category=${encodeURIComponent(cat.label)}`}
                     onClick={handleLinkClick}
-                    className="text-sm text-gray-400 hover:text-white transition-colors duration-200 flex items-center justify-between group"
+                    className="text-sm text-gray-400 hover:text-white transition flex items-center justify-between group"
                   >
                     <span className="flex items-center gap-2">
                       <span className="text-white/20 group-hover:text-white/50 transition">›</span>
@@ -249,7 +246,61 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* ─── Recent Posts (no rounded corners) ────────── */}
+          {/* ── Mobile Accordion (Quick Links + Categories) ── */}
+          <div className="lg:hidden col-span-1 space-y-3">
+            {accordionData.map((section) => {
+              const isOpen = activeAccordion === section.id;
+              return (
+                <div key={section.id} className="border-b border-white/10 pb-3">
+                  <button
+                    onClick={() => toggleAccordion(section.id)}
+                    className="flex items-center justify-between w-full text-left text-white font-semibold text-sm uppercase tracking-wider py-2"
+                  >
+                    {section.title}
+                    {isOpen ? <FaChevronUp className="text-white/40" /> : <FaChevronDown className="text-white/40" />}
+                  </button>
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ${
+                      isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    <ul className="space-y-2.5 pt-2">
+                      {section.items.map((item, idx) => (
+                        <li key={idx}>
+                          {section.id === "quickLinks" ? (
+                            <Link
+                              to={item.link}
+                              onClick={() => { handleLinkClick(); toggleAccordion(section.id); }}
+                              className="text-sm text-gray-400 hover:text-white transition flex items-center gap-2 group"
+                            >
+                              <span className="text-white/20 group-hover:text-white/50 transition">›</span>
+                              {item.label}
+                            </Link>
+                          ) : (
+                            <Link
+                              to={`/news?category=${encodeURIComponent(item.label)}`}
+                              onClick={() => { handleLinkClick(); toggleAccordion(section.id); }}
+                              className="text-sm text-gray-400 hover:text-white transition flex items-center justify-between group"
+                            >
+                              <span className="flex items-center gap-2">
+                                <span className="text-white/20 group-hover:text-white/50 transition">›</span>
+                                {item.label}
+                              </span>
+                              <span className="text-xs text-white/20 bg-white/5 px-2 py-0.5 rounded-full">
+                                {item.count}
+                              </span>
+                            </Link>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ── Recent Posts ── */}
           <div className="lg:col-span-5">
             <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">
               Recent Stories
@@ -279,9 +330,9 @@ const Footer = () => {
                     key={post._id}
                     to={`/news/${post.slug || post._id}`}
                     onClick={handleLinkClick}
-                    className="group flex gap-3 items-start hover:bg-white/5 p-2 transition-all duration-200 -mx-2"
+                    className="group flex gap-3 items-start hover:bg-white/5 p-2 transition-all duration-200 -mx-2 rounded"
                   >
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 overflow-hidden bg-white/5">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 overflow-hidden bg-white/5 rounded">
                       {post.images && post.images.length > 0 ? (
                         <img
                           src={post.images[0]}
@@ -349,7 +400,7 @@ const Footer = () => {
       {/* ─── Floating Back to Top ──────────────────────────── */}
       <button
         onClick={scrollToTop}
-        className={`fixed bottom-6 rounded-full border border-2 right-6 bg-white text-black w-11 h-11 shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-2xl ${
+        className={`fixed bottom-6 right-6 bg-white text-black rounded-full px-4 py-2.5 shadow-2xl flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
           showBackToTop
             ? "opacity-100 translate-y-0 pointer-events-auto"
             : "opacity-0 translate-y-10 pointer-events-none"
@@ -357,6 +408,7 @@ const Footer = () => {
         aria-label="Back to top"
       >
         <FaArrowUp className="text-sm" />
+        <span className="text-sm font-medium">Top</span>
       </button>
     </footer>
   );
