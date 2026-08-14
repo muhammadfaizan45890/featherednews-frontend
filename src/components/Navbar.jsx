@@ -425,9 +425,9 @@ const Navbar = () => {
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  <span className="hidden md:block text-sm font-medium text-gray-700 max-w-[90px] truncate">
+                  {/* <span className="hidden md:block text-sm font-medium text-gray-700 max-w-[90px] truncate">
                     {user?.fullname?.split(" ")[0] || "Profile"}
-                  </span>
+                  </span> */}
                 </Link>
               </div>
             ) : (
