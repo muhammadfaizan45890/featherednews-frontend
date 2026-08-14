@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import API from "../utils/api";
 
@@ -115,6 +115,7 @@ const Hero = () => {
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchEndX, setTouchEndX] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const navigate = useNavigate();
 
   const autoPlayRef = useRef(null);
   const lockTimeoutRef = useRef(null);
@@ -261,7 +262,7 @@ const Hero = () => {
       <section className="w-full bg-white py-4 md:py-6 lg:py-8">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div
-            className="w-full bg-gray-200 animate-pulse rounded-lg"
+            className="w-full bg-gray-200 animate-pulse"
             style={{ height: "clamp(220px, 50vw, 640px)" }}
           />
         </div>
@@ -290,7 +291,7 @@ const Hero = () => {
       <span ref={liveRegionRef} className="sr-only" aria-live="polite" />
 
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative w-full overflow-hidden bg-black rounded-lg shadow-xl">
+        <div className="relative w-full overflow-hidden bg-black">
           {/* ─── Slide wrapper ────────────────────────── */}
           <div
             className="relative w-full"
@@ -304,7 +305,11 @@ const Hero = () => {
               }}
             >
               {slides.map((slide, idx) => (
-                <div key={slide._id || idx} className="w-full h-full flex-shrink-0 relative">
+                <div
+                  key={slide._id || idx}
+                  className="w-full h-full flex-shrink-0 relative cursor-pointer"
+                  onClick={() => navigate(slide.link || "/news")}
+                >
                   <img
                     src={slide.image}
                     alt={slide.alt || slide.title}
@@ -323,7 +328,7 @@ const Hero = () => {
                   {/* ─── Text overlay ────────────────────── */}
                   {idx === currentIndex && (
                     <div
-                      className="absolute left-3 xs:left-4 sm:left-6 md:left-8 lg:left-12 xl:left-16 top-1/2 -translate-y-1/2 z-10 text-white"
+                      className="absolute left-3 xs:left-4 sm:left-6 md:left-8 lg:left-12 xl:left-16 top-1/2 -translate-y-1/2 z-10 text-white pointer-events-none"
                       style={{ maxWidth: "min(92%, 640px)" }}
                     >
                       <p
@@ -353,9 +358,8 @@ const Hero = () => {
                       >
                         {slide.description}
                       </p>
-                      <Link
-                        to={slide.link || "/news"}
-                        className="inline-flex items-center gap-2 border-2 border-white bg-transparent hover:bg-white hover:text-black uppercase font-semibold whitespace-nowrap shadow-lg transition-colors duration-300"
+                      <span
+                        className="inline-flex items-center gap-2 border-2 border-white bg-transparent hover:bg-white hover:text-black uppercase font-semibold whitespace-nowrap pointer-events-auto transition-colors duration-300"
                         style={{
                           marginTop: "clamp(6px, 1.4vw, 24px)",
                           padding: "clamp(6px, 1vw, 14px) clamp(12px, 2vw, 32px)",
@@ -367,7 +371,7 @@ const Hero = () => {
                         <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">
                           →
                         </span>
-                      </Link>
+                      </span>
                     </div>
                   )}
                 </div>
@@ -377,7 +381,7 @@ const Hero = () => {
 
           {/* ─── Slide counter ────────────────────────── */}
           <div className="absolute top-2 xs:top-3 sm:top-4 md:top-5 right-2 xs:right-3 sm:right-4 md:right-6 z-20">
-            <span className="text-white/90 text-[9px] xs:text-[10px] sm:text-xs font-mono tracking-wider bg-black/40 backdrop-blur-sm px-1.5 xs:px-2 py-0.5 xs:py-1 rounded">
+            <span className="text-white/90 text-[9px] xs:text-[10px] sm:text-xs font-mono tracking-wider bg-black/40 backdrop-blur-sm px-1.5 xs:px-2 py-0.5 xs:py-1">
               {String(currentIndex + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
             </span>
           </div>
@@ -398,8 +402,8 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* ─── Thumbnail rail (tablet and desktop) ──── */}
-        <div className="hidden sm:flex gap-0.5 xs:gap-1 sm:gap-1.5 md:gap-2 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+        {/* ─── Thumbnail rail (hidden on desktop) ──── */}
+        <div className="flex sm:flex lg:hidden gap-0.5 xs:gap-1 sm:gap-1.5 mt-2 md:mt-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
           {slides.map((slide, index) => (
             <button
               key={slide._id || index}
@@ -410,7 +414,7 @@ const Hero = () => {
               style={{ maxWidth: "160px", minWidth: "70px" }}
             >
               <span
-                className="flex-shrink-0 w-6 h-4 xs:w-8 xs:h-6 sm:w-10 sm:h-7 md:w-14 md:h-10 lg:w-16 lg:h-12 bg-cover bg-center rounded-sm"
+                className="flex-shrink-0 w-6 h-4 xs:w-8 xs:h-6 sm:w-10 sm:h-7 md:w-14 md:h-10 bg-cover bg-center"
                 style={{ backgroundImage: `url(${slide.image})` }}
               />
               <span className="min-w-0">
