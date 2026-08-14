@@ -330,6 +330,12 @@ const Navbar = () => {
     hour12: true,
   });
 
+  // Helper to check if a category is active
+  const isCategoryActive = (category) => {
+    const params = new URLSearchParams(location.search);
+    return params.get("category") === category;
+  };
+
   // ─── Render ──────────────────────────────────────────
   return (
     <header
@@ -441,6 +447,43 @@ const Navbar = () => {
                 </Link>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* ─── DESKTOP CATEGORIES STRIP (hidden on mobile) ── */}
+        <div className="hidden lg:block relative border-t border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-2">
+            <div className="flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {/* "All" link */}
+              <Link
+                to="/news"
+                className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition duration-200 ${
+                  location.pathname === "/news" && !new URLSearchParams(location.search).get("category")
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
+                }`}
+              >
+                All
+              </Link>
+              {categories.map((cat) => {
+                const active = isCategoryActive(cat);
+                return (
+                  <Link
+                    key={cat}
+                    to={`/news?category=${encodeURIComponent(cat)}`}
+                    className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition duration-200 ${
+                      active
+                        ? "bg-black text-white border-black"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
+                    }`}
+                  >
+                    {cat}
+                  </Link>
+                );
+              })}
+            </div>
+            {/* Fade gradient on right for overflow */}
+            <div className="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white to-transparent" />
           </div>
         </div>
 
@@ -704,7 +747,6 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
 
 
 
