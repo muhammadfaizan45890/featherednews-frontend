@@ -328,8 +328,14 @@ const isNew = (dateStr) => {
   return diff < 24 * 60 * 60 * 1000;
 };
 
+// ─── Strip HTML tags from strings ────────────────────────────
+const stripHtml = (html) => {
+  if (!html) return "";
+  return html.replace(/<[^>]*>/g, "").trim();
+};
+
 // ─────────────────────────────────────────────────────────────
-// Skeleton Card — matches the grid (2 up → 5 up)
+// Skeleton Card
 // ─────────────────────────────────────────────────────────────
 const CardSkeleton = () => (
   <div
@@ -357,6 +363,8 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
     : post.images && post.images.length > 0
     ? post.images[0]
     : FALLBACK_IMG;
+
+  const cleanExcerpt = stripHtml(post.excerpt || post.description || "");
 
   return (
     <li
@@ -403,7 +411,7 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
           </Link>
 
           <p className="text-[10px] sm:text-sm text-gray-600 dark:text-gray-400 mt-1 sm:mt-1.5 line-clamp-3 flex-1">
-            {post.excerpt || post.description || ""}
+            {cleanExcerpt}
           </p>
 
           <Link
