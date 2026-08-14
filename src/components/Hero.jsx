@@ -103,7 +103,7 @@ const staticSlides = [
   },
 ];
 
-const SLIDE_DURATION = 4000; // increased for better reading
+const SLIDE_DURATION = 4000;
 const INPUT_LOCK_MS = 200;
 
 const Hero = () => {
@@ -264,7 +264,6 @@ const Hero = () => {
     return (
       <section className="w-full bg-white py-4 md:py-6 lg:py-8">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Desktop skeleton */}
           <div className="hidden lg:grid grid-cols-3 gap-4 xl:gap-5 h-[480px] xl:h-[560px]">
             <div className="col-span-2 bg-gray-200 animate-pulse rounded-lg" />
             <div className="grid grid-rows-3 gap-4 xl:gap-5">
@@ -273,7 +272,6 @@ const Hero = () => {
               <div className="bg-gray-200 animate-pulse rounded-lg" />
             </div>
           </div>
-          {/* Mobile skeleton */}
           <div className="lg:hidden w-full bg-gray-200 animate-pulse rounded-lg" style={{ height: "clamp(200px, 50vw, 480px)" }} />
         </div>
       </section>
@@ -293,7 +291,6 @@ const Hero = () => {
       {/* ══════════ DESKTOP: Card Grid (lg+) ══════════ */}
       <div className="hidden lg:block w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-3 gap-4 xl:gap-5 h-[480px] xl:h-[560px]">
-          {/* ─── Lead story card ─────────────────────── */}
           {leadSlide && (
             <Link
               to={leadSlide.link || "/news"}
@@ -330,7 +327,6 @@ const Hero = () => {
             </Link>
           )}
 
-          {/* ─── Secondary story rail ────────────────── */}
           <div className="grid grid-rows-3 gap-4 xl:gap-5 h-full">
             {secondarySlides.map((slide, i) => (
               <Link
@@ -454,29 +450,6 @@ const Hero = () => {
                 {String(currentIndex + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
               </span>
             </div>
-
-            {/* ─── Arrow Buttons ────────────────────── */}
-            <button
-              onClick={prevSlide}
-              aria-label="Previous slide"
-              className="absolute left-2 xs:left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 xs:w-10 xs:h-10 sm:w-12 sm:h-12 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/70 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-30 disabled:cursor-not-allowed"
-              disabled={totalSlides <= 1}
-            >
-              <svg className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-
-            <button
-              onClick={nextSlide}
-              aria-label="Next slide"
-              className="absolute right-2 xs:right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 xs:w-10 xs:h-10 sm:w-12 sm:h-12 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/70 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-30 disabled:cursor-not-allowed"
-              disabled={totalSlides <= 1}
-            >
-              <svg className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
 
             {/* ─── Mobile dots ──────────────────────── */}
             <div className="absolute bottom-2.5 xs:bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex sm:hidden gap-1.5 z-20">
