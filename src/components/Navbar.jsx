@@ -60,6 +60,7 @@ const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileOpenDropdown, setMobileOpenDropdown] = useState(null);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
@@ -186,6 +187,13 @@ const Navbar = () => {
     }
   }, [searchOpen]);
 
+  // ─── Scroll shadow ─────────────────────────────────
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // ─── Lock body scroll when sidebar open ──────────────
   useEffect(() => {
     if (sidebarOpen) {
@@ -284,7 +292,9 @@ const Navbar = () => {
 
   // ─── Render ──────────────────────────────────────────
   return (
-    <header className="w-full bg-white sticky top-0 z-50">
+    <header
+      className={`w-full bg-white sticky top-0 z-50 ${isScrolled ? "shadow-sm" : ""}`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
         {/* ─── Top Header ──────────────────────────────────── */}
         <div className="relative flex items-center justify-between py-3 sm:py-4 md:py-5 lg:py-4 xl:py-5">
@@ -704,7 +714,6 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
 
 
 
