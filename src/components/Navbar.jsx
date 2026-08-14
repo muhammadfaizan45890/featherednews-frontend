@@ -2,9 +2,6 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   FiSearch,
-  FiMenu,
-  FiChevronDown,
-  FiX,
   FiUser,
   FiFeather,
   FiLogIn,
@@ -49,6 +46,27 @@ const getApiInstance = () => {
 };
 
 const api = getApiInstance();
+
+// ─── Custom Advanced Hamburger ─────────────────────────────
+const AdvancedHamburger = ({ isOpen }) => (
+  <div className="relative w-6 h-5 flex flex-col justify-between items-center">
+    <span
+      className={`block w-full h-0.5 bg-current rounded transition-all duration-300 origin-center ${
+        isOpen ? "rotate-45 translate-y-2" : ""
+      }`}
+    />
+    <span
+      className={`block w-1/2 h-0.5 bg-current rounded transition-all duration-300 ${
+        isOpen ? "opacity-0" : ""
+      }`}
+    />
+    <span
+      className={`block w-full h-0.5 bg-current rounded transition-all duration-300 origin-center ${
+        isOpen ? "-rotate-45 -translate-y-2" : ""
+      }`}
+    />
+  </div>
+);
 
 const Navbar = () => {
   const { user, setUser } = getData();
@@ -303,16 +321,16 @@ const Navbar = () => {
             <button
               ref={menuButtonRef}
               onClick={toggleSidebar}
-              className="hover:text-black rounded-full p-1"
+              className="hover:text-black rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
               aria-label={sidebarOpen ? "Close menu" : "Open menu"}
               aria-expanded={sidebarOpen}
               aria-controls="sidebar-drawer"
             >
-              {sidebarOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+              <AdvancedHamburger isOpen={sidebarOpen} />
             </button>
             <button
               onClick={() => setSearchOpen((v) => !v)}
-              className="hover:text-black rounded-full p-1"
+              className="hover:text-black rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
               aria-label="Toggle search"
             >
               <FiSearch size={18} className="sm:size-5" />
@@ -343,28 +361,28 @@ const Navbar = () => {
               <a
                 href="#"
                 aria-label="Facebook"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-colors"
               >
                 <FaFacebookF size={16} />
               </a>
               <a
                 href="https://x.com/feathered_pen"
                 aria-label="Twitter"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-colors"
               >
                 <FaXTwitter size={16} />
               </a>
               <a
                 href="#"
                 aria-label="Instagram"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-colors"
               >
                 <FaInstagram size={16} />
               </a>
               <a
                 href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
                 aria-label="YouTube"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-colors"
               >
                 <FaYoutube size={16} />
               </a>
@@ -394,7 +412,7 @@ const Navbar = () => {
               <div className="flex items-center gap-2">
                 <Link
                   to="/login"
-                  className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-gray-600 hover:text-black"
+                  className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-gray-600 hover:text-black transition-colors"
                   aria-label="Log in"
                 >
                   <User size={20} className="sm:size-[22px]" />
@@ -488,7 +506,7 @@ const Navbar = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search articles, topics, or keywords..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
               aria-label="Search"
             />
           </form>
@@ -528,7 +546,7 @@ const Navbar = () => {
             <button
               ref={closeButtonRef}
               onClick={closeSidebar}
-              className="p-2 hover:bg-gray-200 rounded-full"
+              className="p-2 hover:bg-gray-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
               aria-label="Close menu"
             >
               <FiX size={24} />
@@ -581,7 +599,7 @@ const Navbar = () => {
                         onClick={() => toggleMobileDropdown(item.label)}
                         className={`flex items-center w-full px-4 py-3 text-left hover:bg-gray-50 ${
                           isActive ? "bg-gray-50" : ""
-                        }`}
+                        } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black`}
                         aria-expanded={isOpen}
                       >
                         <span className="flex-1 font-medium text-gray-700">{item.label}</span>
@@ -602,7 +620,7 @@ const Navbar = () => {
                             <li key={sub.label}>
                               <Link
                                 to={sub.link}
-                                className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black"
+                                className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
                                 onClick={closeSidebar}
                               >
                                 {sub.label}
@@ -621,7 +639,7 @@ const Navbar = () => {
                       to={item.link}
                       className={`flex items-center px-4 py-3 hover:bg-gray-50 ${
                         isActive ? "bg-gray-50 text-black" : "text-gray-700"
-                      }`}
+                      } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black`}
                       onClick={closeSidebar}
                     >
                       <span className="font-medium">{item.label}</span>
@@ -640,28 +658,28 @@ const Navbar = () => {
               <a
                 href="#"
                 aria-label="Facebook"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-colors"
               >
                 <FaFacebookF size={16} />
               </a>
               <a
                 href="https://x.com/feathered_pen"
                 aria-label="Twitter"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-colors"
               >
                 <FaXTwitter size={16} />
               </a>
               <a
                 href="#"
                 aria-label="Instagram"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-colors"
               >
                 <FaInstagram size={16} />
               </a>
               <a
                 href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
                 aria-label="YouTube"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-colors"
               >
                 <FaYoutube size={16} />
               </a>
@@ -672,7 +690,7 @@ const Navbar = () => {
                   {userRole === "admin" && (
                     <Link
                       to="/admin/dashboard"
-                      className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700"
+                      className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
                       onClick={closeSidebar}
                     >
                       Admin Panel
@@ -680,7 +698,7 @@ const Navbar = () => {
                   )}
                   <button
                     onClick={logoutHandler}
-                    className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700"
+                    className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                   >
                     Sign Out
                   </button>
@@ -689,7 +707,7 @@ const Navbar = () => {
                 <div className="flex gap-2">
                   <Link
                     to="/login"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
                     onClick={closeSidebar}
                   >
                     <FiLogIn size={16} />
@@ -697,7 +715,7 @@ const Navbar = () => {
                   </Link>
                   <Link
                     to="/signup"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
                     onClick={closeSidebar}
                   >
                     <FiUser size={16} />
