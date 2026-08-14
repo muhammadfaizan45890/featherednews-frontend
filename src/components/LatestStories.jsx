@@ -343,7 +343,6 @@ const isNew = (dateStr) => {
   return diff < 24 * 60 * 60 * 1000;
 };
 
-// ─── Safe author name extractor ────────────────────────────
 const getAuthorName = (author) => {
   if (!author) return "Unknown";
   if (typeof author === "string") return author;
@@ -374,7 +373,7 @@ const CardSkeleton = () => (
 );
 
 // ─────────────────────────────────────────────────────────────
-// Story Card – image on top, text below
+// Story Card
 // ─────────────────────────────────────────────────────────────
 const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) {
   const src = isBroken
@@ -477,7 +476,6 @@ const LatestStories = () => {
     hasMoreRef.current = hasMore;
   }, [hasMore]);
 
-  // ─── Fetch posts ──────────────────────────────────────
   const fetchPosts = useCallback(async (pageNum = 1, append = false) => {
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
@@ -512,7 +510,6 @@ const LatestStories = () => {
     }
   }, []);
 
-  // ─── Initial load ──────────────────────────────
   useEffect(() => {
     setPage(1);
     setPosts([]);
@@ -523,7 +520,6 @@ const LatestStories = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Load more ──────────────────────────────────────
   const loadMore = useCallback(() => {
     if (isLoadingMoreRef.current || !hasMoreRef.current) return;
     setPage((prev) => {
@@ -533,7 +529,6 @@ const LatestStories = () => {
     });
   }, [fetchPosts]);
 
-  // ─── Infinite scroll observer ──────────────────────────
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return undefined;
@@ -558,7 +553,6 @@ const LatestStories = () => {
     });
   }, []);
 
-  // Memoized derived data
   const showEmptyState = useMemo(
     () => !loading && !error && posts.length === 0,
     [loading, error, posts.length]
@@ -580,7 +574,6 @@ const LatestStories = () => {
         }
       `}</style>
 
-      {/* ─── Header ────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6 sm:mb-8">
         <div>
           <p className="uppercase text-red-500 tracking-[3px] sm:tracking-[4px] text-xs sm:text-sm font-bold">
@@ -606,9 +599,9 @@ const LatestStories = () => {
         </Link>
       </div>
 
-      {/* ─── Story Grid ────────────────────────────────── */}
+      {/* ─── Grid: 1 column on mobile, 2 columns on tablet and up ── */}
       {loading && initialLoad ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
           {Array.from({ length: 12 }).map((_, i) => (
             <CardSkeleton key={i} />
           ))}
@@ -634,7 +627,7 @@ const LatestStories = () => {
         </div>
       ) : (
         <>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
             {posts.map((post) => (
               <StoryCard
                 key={post._id}
@@ -645,7 +638,6 @@ const LatestStories = () => {
             ))}
           </ul>
 
-          {/* Infinite-scroll sentinel */}
           {hasMore && (
             <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />
           )}
