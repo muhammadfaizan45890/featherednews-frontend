@@ -40,6 +40,8 @@ const staticSlides = [
     alt: "City architecture",
     buttonText: "Read More",
     link: "/news",
+    order: 0,
+    isActive: true,
   },
   {
     _id: 2,
@@ -52,6 +54,8 @@ const staticSlides = [
     alt: "Mountain landscape",
     buttonText: "Explore Now",
     link: "/news",
+    order: 1,
+    isActive: true,
   },
   {
     _id: 3,
@@ -64,6 +68,8 @@ const staticSlides = [
     alt: "Ancient ruins",
     buttonText: "Discover More",
     link: "/news",
+    order: 2,
+    isActive: true,
   },
   {
     _id: 4,
@@ -76,6 +82,8 @@ const staticSlides = [
     alt: "Mountain lake",
     buttonText: "View Gallery",
     link: "/news",
+    order: 3,
+    isActive: true,
   },
   {
     _id: 5,
@@ -88,6 +96,8 @@ const staticSlides = [
     alt: "City skyline at dusk",
     buttonText: "Read More",
     link: "/news",
+    order: 4,
+    isActive: true,
   },
   {
     _id: 6,
@@ -100,10 +110,11 @@ const staticSlides = [
     alt: "Government building columns",
     buttonText: "Read More",
     link: "/news",
+    order: 5,
+    isActive: true,
   },
 ];
 
-// ⏱️ Decreased auto‑forward time to 2500ms
 const SLIDE_DURATION = 2500;
 const INPUT_LOCK_MS = 200;
 
@@ -131,16 +142,27 @@ const Hero = () => {
       try {
         setLoading(true);
         const res = await api.get("/api/hero");
+        let fetched = [];
         if (res.data.success && res.data.data.length > 0) {
-          setSlides(res.data.data);
+          fetched = res.data.data;
         } else {
-          setSlides(staticSlides);
+          fetched = staticSlides;
         }
+
+        // ── Filter only active slides ──
+        const active = fetched.filter((s) => s.isActive !== false);
+        // ── Sort by order ──
+        const sorted = active.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        setSlides(sorted);
         setError(null);
       } catch (err) {
         console.error("Error fetching hero slides:", err);
         setError("Failed to load hero slides");
-        setSlides(staticSlides);
+        // Use static fallback, filtered and sorted
+        const active = staticSlides.filter((s) => s.isActive !== false);
+        const sorted = active.sort((a, b) => (a.order || 0) - (b.order || 0));
+        setSlides(sorted);
       } finally {
         setLoading(false);
       }
@@ -305,78 +327,89 @@ const Hero = () => {
                 transition: "transform 700ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
               }}
             >
-              {slides.map((slide, idx) => (
-                <div
-                  key={slide._id || idx}
-                  className="w-full h-full flex-shrink-0 relative cursor-pointer"
-                  onClick={() => navigate(slide.link || "/news")}
-                >
-                  <img
-                    src={slide.image}
-                    alt={slide.alt || slide.title}
-                    className="w-full h-full object-cover"
-                    loading={idx === currentIndex ? "eager" : "lazy"}
-                    style={{ filter: "brightness(1.05) contrast(1.05)" }}
-                    onError={(e) => {
-                      e.target.src = "https://via.placeholder.com/1400x620?text=Image+Unavailable";
+              {slides.map((slide, idx) => {
+                const targetLink = slide.link || "/news";
+                return (
+                  <div
+                    key={slide._id || idx}
+                    className="w-full h-full flex-shrink-0 relative cursor-pointer"
+                    onClick={() => navigate(targetLink)}
+                    role="link"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigate(targetLink);
+                      }
                     }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
-                  <div className="absolute inset-0 bg-black/10" />
+                  >
+                    <img
+                      src={slide.image}
+                      alt={slide.alt || slide.title}
+                      className="w-full h-full object-cover"
+                      loading={idx === currentIndex ? "eager" : "lazy"}
+                      style={{ filter: "brightness(1.05) contrast(1.05)" }}
+                      onError={(e) => {
+                        e.target.src = "https://via.placeholder.com/1400x620?text=Image+Unavailable";
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
+                    <div className="absolute inset-0 bg-black/10" />
 
-                  {/* ─── Text overlay ────────────────────── */}
-                  {idx === currentIndex && (
-                    <div
-                      className="absolute left-3 xs:left-4 sm:left-6 md:left-8 lg:left-12 xl:left-16 top-1/2 -translate-y-1/2 z-10 text-white pointer-events-none"
-                      style={{ maxWidth: "min(92%, 640px)" }}
-                    >
-                      <p
-                        className="uppercase text-red-400 font-semibold drop-shadow-lg"
-                        style={{
-                          fontSize: "clamp(0.55rem, 1.4vw, 1rem)",
-                          letterSpacing: "clamp(1px, 0.4vw, 4px)",
-                          marginBottom: "clamp(2px, 0.8vw, 16px)",
-                        }}
+                    {/* ─── Text overlay ────────────────────── */}
+                    {idx === currentIndex && (
+                      <div
+                        className="absolute left-3 xs:left-4 sm:left-6 md:left-8 lg:left-12 xl:left-16 top-1/2 -translate-y-1/2 z-10 text-white pointer-events-none"
+                        style={{ maxWidth: "min(92%, 640px)" }}
                       >
-                        ■ {slide.category}
-                      </p>
-                      <h1
-                        className="font-extrabold leading-tight drop-shadow-xl line-clamp-3"
-                        style={{
-                          fontSize: "clamp(1.2rem, 3.6vw, 4rem)",
-                        }}
-                      >
-                        {slide.title}
-                      </h1>
-                      <p
-                        className="text-white/95 leading-relaxed line-clamp-2 sm:line-clamp-3 drop-shadow-lg"
-                        style={{
-                          fontSize: "clamp(0.7rem, 1.4vw, 1.2rem)",
-                          marginTop: "clamp(4px, 1vw, 18px)",
-                        }}
-                      >
-                        {slide.description}
-                      </p>
-                      <span
-                        className="inline-flex items-center gap-2 border-2 border-white bg-transparent hover:bg-white hover:text-black uppercase font-semibold whitespace-nowrap pointer-events-auto transition-colors duration-300"
-                        style={{
-                          marginTop: "clamp(6px, 1.4vw, 24px)",
-                          padding: "clamp(6px, 1vw, 14px) clamp(12px, 2vw, 32px)",
-                          fontSize: "clamp(0.6rem, 1.1vw, 1rem)",
-                          letterSpacing: "1px",
-                        }}
-                      >
-                        {slide.buttonText || "Read More"}
-                        <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">
-                          →
+                        <p
+                          className="uppercase text-red-400 font-semibold drop-shadow-lg"
+                          style={{
+                            fontSize: "clamp(0.55rem, 1.4vw, 1rem)",
+                            letterSpacing: "clamp(1px, 0.4vw, 4px)",
+                            marginBottom: "clamp(2px, 0.8vw, 16px)",
+                          }}
+                        >
+                          ■ {slide.category}
+                        </p>
+                        <h1
+                          className="font-extrabold leading-tight drop-shadow-xl line-clamp-3"
+                          style={{
+                            fontSize: "clamp(1.2rem, 3.6vw, 4rem)",
+                          }}
+                        >
+                          {slide.title}
+                        </h1>
+                        <p
+                          className="text-white/95 leading-relaxed line-clamp-2 sm:line-clamp-3 drop-shadow-lg"
+                          style={{
+                            fontSize: "clamp(0.7rem, 1.4vw, 1.2rem)",
+                            marginTop: "clamp(4px, 1vw, 18px)",
+                          }}
+                        >
+                          {slide.description}
+                        </p>
+                        <span
+                          className="inline-flex items-center gap-2 border-2 border-white bg-transparent hover:bg-white hover:text-black uppercase font-semibold whitespace-nowrap pointer-events-auto transition-colors duration-300"
+                          style={{
+                            marginTop: "clamp(6px, 1.4vw, 24px)",
+                            padding: "clamp(6px, 1vw, 14px) clamp(12px, 2vw, 32px)",
+                            fontSize: "clamp(0.6rem, 1.1vw, 1rem)",
+                            letterSpacing: "1px",
+                          }}
+                        >
+                          {slide.buttonText || "Read More"}
+                          <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">
+                            →
+                          </span>
                         </span>
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
