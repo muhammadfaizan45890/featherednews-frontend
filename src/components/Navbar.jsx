@@ -328,18 +328,35 @@ const Navbar = () => {
 
           {/* Right: Social + Auth */}
           <div className="flex items-center gap-4 lg:gap-5">
-            <div className="hidden lg:flex items-center gap-5 text-gray-600">
-              <a href="#" aria-label="Facebook" className="hover:text-black rounded-full p-1">
-                <FaFacebookF size={18} />
+            {/* Desktop social icons with border & rounded */}
+            <div className="hidden lg:flex items-center gap-2.5 text-gray-600">
+              <a
+                href="#"
+                aria-label="Facebook"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+              >
+                <FaFacebookF size={16} />
               </a>
-              <a href="https://x.com/feathered_pen" aria-label="Twitter" className="hover:text-black rounded-full p-1">
-                <FaXTwitter size={18} />
+              <a
+                href="https://x.com/feathered_pen"
+                aria-label="Twitter"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+              >
+                <FaXTwitter size={16} />
               </a>
-              <a href="#" aria-label="Instagram" className="hover:text-black rounded-full p-1">
-                <FaInstagram size={18} />
+              <a
+                href="#"
+                aria-label="Instagram"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+              >
+                <FaInstagram size={16} />
               </a>
-              <a href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo" aria-label="YouTube" className="hover:text-black rounded-full p-1">
-                <FaYoutube size={18} />
+              <a
+                href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
+                aria-label="YouTube"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+              >
+                <FaYoutube size={16} />
               </a>
             </div>
 
@@ -361,9 +378,6 @@ const Navbar = () => {
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  {/* <span className="hidden md:block text-sm font-medium text-gray-700 max-w-[90px] truncate">
-                    {user?.fullname?.split(" ")[0] || "Profile"}
-                  </span> */}
                 </Link>
               </div>
             ) : (
@@ -384,7 +398,6 @@ const Navbar = () => {
         <div className="hidden lg:block relative border-t border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-2">
             <div className="flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {/* "All" link */}
               <Link
                 to="/news"
                 className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border ${
@@ -412,12 +425,11 @@ const Navbar = () => {
                 );
               })}
             </div>
-            {/* Fade gradient on right for overflow */}
             <div className="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white to-transparent" />
           </div>
         </div>
 
-        {/* ─── Mobile Strip (scrollable categories) – kept for quick access ── */}
+        {/* ─── Mobile Strip (scrollable categories) ── */}
         <div className="lg:hidden relative border-t border-gray-200">
           <div className="flex items-center gap-2 py-2.5 overflow-x-auto scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {[
@@ -613,18 +625,35 @@ const Navbar = () => {
 
           {/* Footer */}
           <div className="border-t border-gray-200 bg-gray-50/50">
-            <div className="flex justify-center gap-5 py-4 px-4 border-b border-gray-200">
-              <a href="#" aria-label="Facebook" className="text-gray-500 hover:text-black rounded-full p-1">
-                <FaFacebookF size={18} />
+            {/* Sidebar social icons with border & rounded */}
+            <div className="flex justify-center gap-2.5 py-4 px-4 border-b border-gray-200">
+              <a
+                href="#"
+                aria-label="Facebook"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+              >
+                <FaFacebookF size={16} />
               </a>
-              <a href="https://x.com/feathered_pen" aria-label="Twitter" className="text-gray-500 hover:text-black rounded-full p-1">
-                <FaXTwitter size={18} />
+              <a
+                href="https://x.com/feathered_pen"
+                aria-label="Twitter"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+              >
+                <FaXTwitter size={16} />
               </a>
-              <a href="#" aria-label="Instagram" className="text-gray-500 hover:text-black rounded-full p-1">
-                <FaInstagram size={18} />
+              <a
+                href="#"
+                aria-label="Instagram"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+              >
+                <FaInstagram size={16} />
               </a>
-              <a href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo" aria-label="YouTube" className="text-gray-500 hover:text-black rounded-full p-1">
-                <FaYoutube size={18} />
+              <a
+                href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
+                aria-label="YouTube"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+              >
+                <FaYoutube size={16} />
               </a>
             </div>
             <div className="p-4">
@@ -675,7 +704,6 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
 
 
 
