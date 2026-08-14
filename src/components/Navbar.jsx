@@ -1,3 +1,16 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -50,81 +63,28 @@ const getApiInstance = () => {
 
 const api = getApiInstance();
 
-// ─── Debounce helper ──────────────────────────────────────
-const debounce = (fn, ms) => {
-  let timer;
-  const debounced = (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), ms);
-  };
-  debounced.cancel = () => clearTimeout(timer);
-  return debounced;
-};
-
-// ─── Breakpoint hook (drives real behavioral changes, not just CSS) ──
-const useBreakpoint = () => {
-  const [bp, setBp] = useState(() => {
-    if (typeof window === "undefined") return "lg";
-    const w = window.innerWidth;
-    if (w < 640) return "xs";
-    if (w < 768) return "sm";
-    if (w < 1024) return "md";
-    if (w < 1280) return "lg";
-    if (w < 1536) return "xl";
-    return "2xl";
-  });
-
-  useEffect(() => {
-    const onResize = debounce(() => {
-      const w = window.innerWidth;
-      if (w < 640) setBp("xs");
-      else if (w < 768) setBp("sm");
-      else if (w < 1024) setBp("md");
-      else if (w < 1280) setBp("lg");
-      else if (w < 1536) setBp("xl");
-      else setBp("2xl");
-    }, 120);
-    window.addEventListener("resize", onResize);
-    return () => {
-      onResize.cancel();
-      window.removeEventListener("resize", onResize);
-    };
-  }, []);
-
-  return bp;
-};
-
 const Navbar = () => {
   const { user, setUser } = getData();
   const navigate = useNavigate();
   const location = useLocation();
-  const breakpoint = useBreakpoint();
-  const isDesktop = breakpoint === "lg" || breakpoint === "xl" || breakpoint === "2xl";
 
   // ─── State ──────────────────────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchSuggestions, setSearchSuggestions] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
   const [mobileOpenDropdown, setMobileOpenDropdown] = useState(null);
-  const [desktopDropdown, setDesktopDropdown] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [currentTime, setCurrentTime] = useState(new Date());
 
   // ─── Refs ──────────────────────────────────────────────
   const sidebarRef = useRef(null);
   const menuButtonRef = useRef(null);
   const closeButtonRef = useRef(null);
   const searchInputRef = useRef(null);
-  const searchWrapRef = useRef(null);
-  const desktopNavRef = useRef(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const categoryFetched = useRef(false);
-  const dropdownCloseTimer = useRef(null);
 
   const accessToken = localStorage.getItem("accessToken");
   const userRole = user?.role || "user";
@@ -172,31 +132,11 @@ const Navbar = () => {
     return base.filter((item) => item.sub?.length > 0 || item.link);
   }, [categories]);
 
-  // Primary items shown inline on desktop; the rest collapse into "More"
-  const desktopPrimary = useMemo(
-    () => navItems.filter((i) => ["Home", "News", "Listen", "Categories"].includes(i.label)),
-    [navItems]
-  );
-  const desktopSecondary = useMemo(
-    () => navItems.filter((i) => !["Home", "News", "Listen", "Categories"].includes(i.label)),
-    [navItems]
-  );
-
-  // ─── Close sidebar / dropdowns on route change ────────
+  // ─── Close sidebar on route change ────────────────────
   useEffect(() => {
     setSidebarOpen(false);
     setMobileOpenDropdown(null);
-    setDesktopDropdown(null);
-    setSearchOpen(false);
   }, [location.pathname]);
-
-  // ─── Force-close sidebar if viewport grows past mobile breakpoints ──
-  useEffect(() => {
-    if (isDesktop) {
-      setSidebarOpen(false);
-      setMobileOpenDropdown(null);
-    }
-  }, [isDesktop]);
 
   // ─── Outside click for sidebar ──────────────────────
   useEffect(() => {
@@ -214,27 +154,12 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [sidebarOpen]);
 
-  // ─── Outside click for desktop dropdown + search ─────
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (desktopNavRef.current && !desktopNavRef.current.contains(e.target)) {
-        setDesktopDropdown(null);
-      }
-      if (searchOpen && searchWrapRef.current && !searchWrapRef.current.contains(e.target)) {
-        setSearchOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [searchOpen]);
-
   // ─── ESC to close everything ────────────────────────
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape") {
         setSidebarOpen(false);
         setMobileOpenDropdown(null);
-        setDesktopDropdown(null);
         setSearchOpen(false);
       }
     };
@@ -275,58 +200,14 @@ const Navbar = () => {
     }
   }, [searchOpen]);
 
-  // ─── Live search suggestions (debounced) ─────────────
-  const runSearch = useMemo(
-    () =>
-      debounce(async (query) => {
-        if (!query || query.trim().length < 2) {
-          setSearchSuggestions([]);
-          setSearchLoading(false);
-          return;
-        }
-        try {
-          setSearchLoading(true);
-          const res = await api.get("/api/posts", {
-            params: { search: query.trim(), limit: 5, page: 1 },
-          });
-          setSearchSuggestions(res.data?.data || []);
-        } catch (error) {
-          setSearchSuggestions([]);
-        } finally {
-          setSearchLoading(false);
-        }
-      }, 300),
-    []
-  );
-
-  useEffect(() => {
-    if (!searchOpen) return;
-    runSearch(searchQuery);
-    return () => runSearch.cancel();
-  }, [searchQuery, searchOpen, runSearch]);
-
   // ─── Scroll shadow ─────────────────────────────────
   useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(() => {
-        setIsScrolled(window.scrollY > 10);
-        ticking = false;
-      });
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // ─── Live clock ──────────────────────────────────────
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // ─── Lock body scroll when sidebar open ────────────────
+  // ─── Lock body scroll when sidebar open ──────────────
   useEffect(() => {
     if (sidebarOpen) {
       document.body.style.overflow = "hidden";
@@ -367,33 +248,10 @@ const Navbar = () => {
         navigate(`/news?search=${encodeURIComponent(query)}`);
         setSearchOpen(false);
         setSearchQuery("");
-        setSearchSuggestions([]);
       }
     },
     [searchQuery, navigate]
   );
-
-  const goToSuggestion = useCallback(
-    (post) => {
-      const slugOrId = post?.slug || post?._id || post?.id;
-      if (slugOrId) navigate(`/news/${slugOrId}`);
-      setSearchOpen(false);
-      setSearchQuery("");
-      setSearchSuggestions([]);
-    },
-    [navigate]
-  );
-
-  // ─── Desktop dropdown open/close with a small grace delay ──
-  const openDesktopDropdown = useCallback((label) => {
-    clearTimeout(dropdownCloseTimer.current);
-    setDesktopDropdown(label);
-  }, []);
-  const scheduleCloseDesktopDropdown = useCallback(() => {
-    clearTimeout(dropdownCloseTimer.current);
-    dropdownCloseTimer.current = setTimeout(() => setDesktopDropdown(null), 150);
-  }, []);
-  useEffect(() => () => clearTimeout(dropdownCloseTimer.current), []);
 
   // ─── Touch swipe to close sidebar ────────────────────
   const handleTouchStart = (e) => {
@@ -439,67 +297,26 @@ const Navbar = () => {
     }
   }, [accessToken, setUser, navigate, closeSidebar]);
 
-  // ─── Date formatting ──────────────────────────────
-  const fullDate = currentTime.toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const mediumDate = currentTime.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-  const shortDate = currentTime.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-  const timeWithSeconds = currentTime.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-  const timeNoSeconds = currentTime.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
+  // Helper to check if a category is active
+  const isCategoryActive = (category) => {
+    const params = new URLSearchParams(location.search);
+    return params.get("category") === category;
+  };
 
   // ─── Render ──────────────────────────────────────────
   return (
     <header
-      className={`w-full bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/80 sticky top-0 z-50 transition-shadow duration-300 motion-reduce:transition-none ${
-        isScrolled ? "shadow-md" : ""
-      }`}
+      className={`w-full bg-white sticky top-0 z-50 ${isScrolled ? "shadow-sm" : ""}`}
     >
-      {/* ─── Live Date/Time Bar ──────────────────────────── */}
-      <div className="border-b border-gray-100 bg-gray-50">
-        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 h-7 sm:h-8 flex items-center justify-between text-[11px] sm:text-xs text-gray-500 font-medium">
-          <span aria-live="off">
-            <span className="hidden md:inline">{fullDate}</span>
-            <span className="hidden sm:inline md:hidden">{mediumDate}</span>
-            <span className="sm:hidden">{shortDate}</span>
-          </span>
-          <span className="tabular-nums" aria-live="off">
-            <span className="hidden sm:inline">{timeWithSeconds}</span>
-            <span className="sm:hidden">{timeNoSeconds}</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
         {/* ─── Top Header ──────────────────────────────────── */}
         <div className="relative flex items-center justify-between py-3 sm:py-4 md:py-5 lg:py-4 xl:py-5">
-          {/* Left: Hamburger (mobile/tablet) + Search (always visible) */}
+          {/* Left: Hamburger + Search */}
           <div className="flex items-center gap-3 sm:gap-4 text-gray-700">
             <button
               ref={menuButtonRef}
               onClick={toggleSidebar}
-              className="lg:hidden hover:text-black transition duration-300 rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black relative"
+              className="hover:text-black rounded-full p-1"
               aria-label={sidebarOpen ? "Close menu" : "Open menu"}
               aria-expanded={sidebarOpen}
               aria-controls="sidebar-drawer"
@@ -508,44 +325,61 @@ const Navbar = () => {
             </button>
             <button
               onClick={() => setSearchOpen((v) => !v)}
-              className="hover:text-black transition duration-300 rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+              className="hover:text-black rounded-full p-1"
               aria-label="Toggle search"
-              aria-expanded={searchOpen}
             >
               <FiSearch size={18} className="sm:size-5" />
             </button>
           </div>
 
-          {/* ─── Logo ────────────────────────────────────── */}
-          <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none">
-            <Link to="/" className="pointer-events-auto inline-block">
-              <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3">
-                <FiFeather className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl text-black" />
-                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl font-black tracking-tight leading-none">
-                  <span className="font-light text-gray-800">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span>
-                  <span className="font-extrabold text-black">NEWS</span>
-                </h1>
-              </div>
-              <p className="tracking-[4px] sm:tracking-[6px] md:tracking-[8px] uppercase text-[10px] sm:text-[11px] md:text-[12px] mt-1 sm:mt-2 text-gray-400 font-light">
-                Stories That Soar
-              </p>
-            </Link>
-          </div>
+          {/* ─── Logo (clickable) ────────────────────────── */}
+          <Link
+            to="/"
+            className="absolute left-1/2 -translate-x-1/2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded"
+          >
+            <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3">
+              <FiFeather className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl text-black" />
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl font-black tracking-tight leading-none">
+                <span className="font-light text-gray-800">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span>
+                <span className="font-extrabold text-black">NEWS</span>
+              </h1>
+            </div>
+            <p className="tracking-[4px] sm:tracking-[6px] md:tracking-[8px] uppercase text-[10px] sm:text-[11px] md:text-[12px] mt-1 sm:mt-2 text-gray-400 font-light">
+              Stories That Soar
+            </p>
+          </Link>
 
           {/* Right: Social + Auth */}
           <div className="flex items-center gap-4 lg:gap-5">
-            <div className="hidden xl:flex items-center gap-5 text-gray-600">
-              <a href="#" aria-label="Facebook" className="hover:text-black transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
-                <FaFacebookF size={18} />
+            {/* Desktop social icons with border & rounded */}
+            <div className="hidden lg:flex items-center gap-2.5 text-gray-600">
+              <a
+                href="#"
+                aria-label="Facebook"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+              >
+                <FaFacebookF size={16} />
               </a>
-              <a href="https://x.com/feathered_pen" aria-label="Twitter" className="hover:text-black transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
-                <FaXTwitter size={18} />
+              <a
+                href="https://x.com/feathered_pen"
+                aria-label="Twitter"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+              >
+                <FaXTwitter size={16} />
               </a>
-              <a href="#" aria-label="Instagram" className="hover:text-black transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
-                <FaInstagram size={18} />
+              <a
+                href="#"
+                aria-label="Instagram"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+              >
+                <FaInstagram size={16} />
               </a>
-              <a href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo" aria-label="YouTube" className="hover:text-black transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
-                <FaYoutube size={18} />
+              <a
+                href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
+                aria-label="YouTube"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+              >
+                <FaYoutube size={16} />
               </a>
             </div>
 
@@ -554,10 +388,10 @@ const Navbar = () => {
               <div className="flex items-center gap-3">
                 <Link
                   to={profileRoute}
-                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 group"
                 >
                   <div className="relative">
-                    <Avatar className="h-8 w-8 border-2 border-gray-200 transition-all">
+                    <Avatar className="h-8 w-8">
                       <AvatarImage src={getAvatarUrl(user?.avatar)} />
                       <AvatarFallback className="bg-gray-200 text-gray-700 text-xs font-bold">
                         {getUserInitials()}
@@ -567,16 +401,13 @@ const Navbar = () => {
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  <span className="hidden md:block text-sm font-medium text-gray-700 max-w-[90px] truncate">
-                    {user?.fullname?.split(" ")[0] || "Profile"}
-                  </span>
                 </Link>
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <Link
                   to="/login"
-                  className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full transition duration-200 text-gray-600 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                  className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-gray-600 hover:text-black"
                   aria-label="Log in"
                 >
                   <User size={20} className="sm:size-[22px]" />
@@ -586,153 +417,42 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* ─── Desktop Nav Bar (lg and up) ─────────────────── */}
-        <nav
-          ref={desktopNavRef}
-          className="hidden lg:flex items-center justify-center gap-1 border-t border-gray-100 py-2.5 relative"
-          aria-label="Primary"
-        >
-          {desktopPrimary.map((item) => {
-            const hasSub = (item.sub || []).length > 0;
-            const isActive =
-              location.pathname === item.link ||
-              (hasSub && item.sub.some((s) => location.pathname + location.search === s.link));
-            const isOpen = desktopDropdown === item.label;
-
-            if (hasSub) {
-              return (
-                <div
-                  key={item.label}
-                  className="relative"
-                  onMouseEnter={() => openDesktopDropdown(item.label)}
-                  onMouseLeave={scheduleCloseDesktopDropdown}
-                >
-                  <button
-                    onClick={() => setDesktopDropdown(isOpen ? null : item.label)}
-                    className={`flex items-center gap-1 px-4 py-2 text-sm font-semibold uppercase tracking-wide rounded-full transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                      isActive || isOpen ? "text-black" : "text-gray-600 hover:text-black"
-                    }`}
-                    aria-expanded={isOpen}
-                    aria-haspopup="true"
-                  >
-                    {item.label}
-                    <FiChevronDown
-                      className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                      size={14}
-                    />
-                  </button>
-                  <span
-                    className={`absolute left-4 right-4 -bottom-0.5 h-0.5 bg-black origin-left transition-transform duration-200 motion-reduce:transition-none ${
-                      isActive || isOpen ? "scale-x-100" : "scale-x-0"
-                    }`}
-                    aria-hidden="true"
-                  />
-
-                  {/* Mega dropdown */}
-                  <div
-                    className={`absolute left-1/2 -translate-x-1/2 top-full pt-3 transition-all duration-200 motion-reduce:transition-none ${
-                      isOpen
-                        ? "opacity-100 translate-y-0 pointer-events-auto"
-                        : "opacity-0 -translate-y-1 pointer-events-none"
-                    }`}
-                  >
-                    <div className="bg-white border border-gray-200 rounded-xl shadow-xl min-w-[420px] max-w-[640px] p-4">
-                      {categoriesLoading ? (
-                        <div className="grid grid-cols-3 gap-2">
-                          {Array.from({ length: 6 }).map((_, i) => (
-                            <div key={i} className="h-8 rounded-lg bg-gray-100 animate-pulse motion-reduce:animate-none" />
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-3 gap-1">
-                          {item.sub.map((sub) => (
-                            <Link
-                              key={sub.label}
-                              to={sub.link}
-                              className="px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-black transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black truncate"
-                              onClick={() => setDesktopDropdown(null)}
-                            >
-                              {sub.label}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <div key={item.label} className="relative">
-                <Link
-                  to={item.link}
-                  className={`block px-4 py-2 text-sm font-semibold uppercase tracking-wide rounded-full transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                    isActive ? "text-black" : "text-gray-600 hover:text-black"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-                <span
-                  className={`absolute left-4 right-4 -bottom-0.5 h-0.5 bg-black origin-left transition-transform duration-200 motion-reduce:transition-none ${
-                    isActive ? "scale-x-100" : "scale-x-0"
-                  }`}
-                  aria-hidden="true"
-                />
-              </div>
-            );
-          })}
-
-          {/* Overflow "More" menu keeps the bar tidy on narrower desktop widths */}
-          {desktopSecondary.length > 0 && (
-            <div
-              className="relative"
-              onMouseEnter={() => openDesktopDropdown("__more")}
-              onMouseLeave={scheduleCloseDesktopDropdown}
-            >
-              <button
-                onClick={() => setDesktopDropdown(desktopDropdown === "__more" ? null : "__more")}
-                className={`flex items-center gap-1 px-4 py-2 text-sm font-semibold uppercase tracking-wide rounded-full transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                  desktopDropdown === "__more" ? "text-black" : "text-gray-600 hover:text-black"
-                }`}
-                aria-expanded={desktopDropdown === "__more"}
-                aria-haspopup="true"
-              >
-                More
-                <FiChevronDown
-                  className={`transition-transform duration-200 ${
-                    desktopDropdown === "__more" ? "rotate-180" : ""
-                  }`}
-                  size={14}
-                />
-              </button>
-              <div
-                className={`absolute right-0 top-full pt-3 transition-all duration-200 motion-reduce:transition-none ${
-                  desktopDropdown === "__more"
-                    ? "opacity-100 translate-y-0 pointer-events-auto"
-                    : "opacity-0 -translate-y-1 pointer-events-none"
+        {/* ─── DESKTOP CATEGORIES STRIP (hidden on mobile) ── */}
+        <div className="hidden lg:block relative border-t border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-2">
+            <div className="flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <Link
+                to="/news"
+                className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border ${
+                  location.pathname === "/news" && !new URLSearchParams(location.search).get("category")
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
                 }`}
               >
-                <div className="bg-white border border-gray-200 rounded-xl shadow-xl min-w-[180px] py-2">
-                  {desktopSecondary.map((item) => (
-                    <Link
-                      key={item.label}
-                      to={item.link}
-                      className={`block px-4 py-2 text-sm transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
-                        location.pathname === item.link ? "text-black font-semibold" : "text-gray-600 hover:text-black"
-                      }`}
-                      onClick={() => setDesktopDropdown(null)}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
+                All
+              </Link>
+              {categories.map((cat) => {
+                const active = isCategoryActive(cat);
+                return (
+                  <Link
+                    key={cat}
+                    to={`/news?category=${encodeURIComponent(cat)}`}
+                    className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border ${
+                      active
+                        ? "bg-black text-white border-black"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
+                    }`}
+                  >
+                    {cat}
+                  </Link>
+                );
+              })}
             </div>
-          )}
-        </nav>
+            <div className="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white to-transparent" />
+          </div>
+        </div>
 
-        {/* ─── Mobile Strip (scrollable categories) – kept for quick access ── */}
+        {/* ─── Mobile Strip (scrollable categories) ── */}
         <div className="lg:hidden relative border-t border-gray-200">
           <div className="flex items-center gap-2 py-2.5 overflow-x-auto scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {[
@@ -750,7 +470,7 @@ const Navbar = () => {
                 <Link
                   key={item.label}
                   to={item.link}
-                  className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                  className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border ${
                     isActive
                       ? "bg-black text-white border-black"
                       : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
@@ -766,15 +486,14 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* ─── Search Bar (with live suggestions) ─────────────── */}
+      {/* ─── Search Bar ────────────────────────────────────── */}
       <div
-        ref={searchWrapRef}
-        className={`overflow-hidden transition-all duration-300 ease-in-out motion-reduce:transition-none ${
-          searchOpen ? "max-h-[420px] border-t border-gray-200" : "max-h-0"
+        className={`overflow-hidden ${
+          searchOpen ? "max-h-20 border-t border-gray-200" : "max-h-0"
         }`}
       >
-        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-3">
-          <form onSubmit={handleSearchSubmit} className="relative max-w-xl mx-auto lg:mx-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-3">
+          <form onSubmit={handleSearchSubmit} className="relative">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               ref={searchInputRef}
@@ -782,71 +501,17 @@ const Navbar = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search articles, topics, or keywords..."
-              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md"
               aria-label="Search"
-              autoComplete="off"
             />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSearchSuggestions([]);
-                  searchInputRef.current?.focus();
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-black rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                aria-label="Clear search"
-              >
-                <FiX size={16} />
-              </button>
-            )}
-
-            {/* Suggestions */}
-            {searchQuery.trim().length >= 2 && (
-              <div className="absolute z-10 mt-2 w-full bg-white border border-gray-200 rounded-md shadow-xl overflow-hidden">
-                {searchLoading ? (
-                  <div className="p-3 space-y-2">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="h-4 rounded bg-gray-100 animate-pulse motion-reduce:animate-none" />
-                    ))}
-                  </div>
-                ) : searchSuggestions.length > 0 ? (
-                  <ul>
-                    {searchSuggestions.map((post) => (
-                      <li key={post._id || post.id}>
-                        <button
-                          type="button"
-                          onClick={() => goToSuggestion(post)}
-                          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition duration-150 truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                        >
-                          {post.title || "Untitled"}
-                        </button>
-                      </li>
-                    ))}
-                    <li className="border-t border-gray-100">
-                      <button
-                        type="submit"
-                        className="w-full text-left px-4 py-2.5 text-sm font-semibold text-black hover:bg-gray-50 transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                      >
-                        See all results for “{searchQuery.trim()}”
-                      </button>
-                    </li>
-                  </ul>
-                ) : (
-                  <p className="px-4 py-3 text-sm text-gray-400">No matches yet — press enter to search anyway.</p>
-                )}
-              </div>
-            )}
           </form>
         </div>
       </div>
 
-      {/* ─── Sidebar (Drawer) – mobile & tablet only ─── */}
+      {/* ─── Sidebar (Drawer) – visible on all screens ── */}
       <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm transition-all duration-300 motion-reduce:transition-none z-40 lg:hidden ${
-          sidebarOpen
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 ${
+          sidebarOpen ? "block" : "hidden"
         }`}
         onClick={closeSidebar}
         aria-hidden="true"
@@ -858,7 +523,7 @@ const Navbar = () => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`fixed top-0 right-0 h-full w-[280px] sm:w-[320px] max-w-[85vw] bg-white shadow-2xl transform transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none z-50 lg:hidden ${
+        className={`fixed top-0 right-0 h-full w-[280px] sm:w-[320px] max-w-[85vw] bg-white z-50 ${
           sidebarOpen ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
@@ -876,7 +541,7 @@ const Navbar = () => {
             <button
               ref={closeButtonRef}
               onClick={closeSidebar}
-              className="p-2 hover:bg-gray-200 rounded-full transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+              className="p-2 hover:bg-gray-200 rounded-full"
               aria-label="Close menu"
             >
               <FiX size={24} />
@@ -885,13 +550,13 @@ const Navbar = () => {
 
           {/* User Profile */}
           {user && (
-            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <div className="p-4 bg-gradient-to-r from-gray-50 to-white">
               <Link
                 to={profileRoute}
                 onClick={closeSidebar}
                 className="flex items-center gap-3 group"
               >
-                <Avatar className="h-12 w-12 border-2 border-gray-300 group-hover:border-black transition-colors">
+                <Avatar className="h-12 w-12">
                   <AvatarImage src={getAvatarUrl(user?.avatar)} />
                   <AvatarFallback className="bg-gray-200 text-gray-700 text-sm font-bold">
                     {getUserInitials()}
@@ -908,7 +573,7 @@ const Navbar = () => {
                     </span>
                   )}
                 </div>
-                <FiChevronRight className="text-gray-400 group-hover:text-black transition-colors" size={18} />
+                <FiChevronRight className="text-gray-400 group-hover:text-black" size={18} />
               </Link>
             </div>
           )}
@@ -927,24 +592,21 @@ const Navbar = () => {
                     <li key={item.label} className="border-b border-gray-100 last:border-0">
                       <button
                         onClick={() => toggleMobileDropdown(item.label)}
-                        className={`flex items-center w-full px-4 py-3 text-left transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                        className={`flex items-center w-full px-4 py-3 text-left hover:bg-gray-50 ${
                           isActive ? "bg-gray-50" : ""
                         }`}
                         aria-expanded={isOpen}
                       >
                         <span className="flex-1 font-medium text-gray-700">{item.label}</span>
-                        {categoriesLoading && (
-                          <span className="mr-2 h-3 w-8 rounded bg-gray-100 animate-pulse motion-reduce:animate-none" />
-                        )}
                         <FiChevronDown
-                          className={`transform transition-transform duration-200 text-gray-400 ${
+                          className={`transform ${
                             isOpen ? "rotate-180" : ""
-                          }`}
+                          } text-gray-400`}
                           size={16}
                         />
                       </button>
                       <div
-                        className={`overflow-hidden transition-all duration-200 motion-reduce:transition-none ${
+                        className={`overflow-hidden ${
                           isOpen ? "max-h-[500px]" : "max-h-0"
                         }`}
                       >
@@ -953,7 +615,7 @@ const Navbar = () => {
                             <li key={sub.label}>
                               <Link
                                 to={sub.link}
-                                className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                                className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black"
                                 onClick={closeSidebar}
                               >
                                 {sub.label}
@@ -970,7 +632,7 @@ const Navbar = () => {
                   <li key={item.label}>
                     <Link
                       to={item.link}
-                      className={`flex items-center px-4 py-3 transition duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black ${
+                      className={`flex items-center px-4 py-3 hover:bg-gray-50 ${
                         isActive ? "bg-gray-50 text-black" : "text-gray-700"
                       }`}
                       onClick={closeSidebar}
@@ -986,18 +648,35 @@ const Navbar = () => {
 
           {/* Footer */}
           <div className="border-t border-gray-200 bg-gray-50/50">
-            <div className="flex justify-center gap-5 py-4 px-4 border-b border-gray-200">
-              <a href="#" aria-label="Facebook" className="text-gray-500 hover:text-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
-                <FaFacebookF size={18} />
+            {/* Sidebar social icons with border & rounded */}
+            <div className="flex justify-center gap-2.5 py-4 px-4 border-b border-gray-200">
+              <a
+                href="#"
+                aria-label="Facebook"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+              >
+                <FaFacebookF size={16} />
               </a>
-              <a href="https://x.com/feathered_pen" aria-label="Twitter" className="text-gray-500 hover:text-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
-                <FaXTwitter size={18} />
+              <a
+                href="https://x.com/feathered_pen"
+                aria-label="Twitter"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+              >
+                <FaXTwitter size={16} />
               </a>
-              <a href="#" aria-label="Instagram" className="text-gray-500 hover:text-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
-                <FaInstagram size={18} />
+              <a
+                href="#"
+                aria-label="Instagram"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+              >
+                <FaInstagram size={16} />
               </a>
-              <a href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo" aria-label="YouTube" className="text-gray-500 hover:text-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-full p-1">
-                <FaYoutube size={18} />
+              <a
+                href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
+                aria-label="YouTube"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+              >
+                <FaYoutube size={16} />
               </a>
             </div>
             <div className="p-4">
@@ -1006,7 +685,7 @@ const Navbar = () => {
                   {userRole === "admin" && (
                     <Link
                       to="/admin/dashboard"
-                      className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                      className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700"
                       onClick={closeSidebar}
                     >
                       Admin Panel
@@ -1014,7 +693,7 @@ const Navbar = () => {
                   )}
                   <button
                     onClick={logoutHandler}
-                    className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                    className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700"
                   >
                     Sign Out
                   </button>
@@ -1023,7 +702,7 @@ const Navbar = () => {
                 <div className="flex gap-2">
                   <Link
                     to="/login"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800"
                     onClick={closeSidebar}
                   >
                     <FiLogIn size={16} />
@@ -1031,7 +710,7 @@ const Navbar = () => {
                   </Link>
                   <Link
                     to="/signup"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700"
                     onClick={closeSidebar}
                   >
                     <FiUser size={16} />
@@ -1048,733 +727,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-// import { Link, useNavigate, useLocation } from "react-router-dom";
-// import {
-//   FiSearch,
-//   FiMenu,
-//   FiChevronDown,
-//   FiX,
-//   FiUser,
-//   FiFeather,
-//   FiLogIn,
-//   FiChevronRight,
-// } from "react-icons/fi";
-// import { FaFacebookF, FaInstagram, FaYoutube } from "react-icons/fa";
-// import { FaXTwitter } from "react-icons/fa6";
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-// import { getData } from "@/context/userContext";
-// import axios from "axios";
-// import { toast } from "sonner";
-// import API from "@/utils/api";
-// import { User } from "lucide-react";
-
-// // ─── Helpers ──────────────────────────────────────────────
-// const getAvatarUrl = (avatarPath) => {
-//   if (!avatarPath) return null;
-//   if (/^https?:\/\//.test(avatarPath)) return avatarPath;
-//   const base = typeof API === "string" ? API.replace(/\/+$/, "") : "";
-//   return base ? `${base}/${avatarPath.replace(/^\/+/, "")}` : null;
-// };
-
-// const getApiInstance = () => {
-//   let instance;
-//   if (API && typeof API.get === "function") {
-//     instance = API;
-//   } else {
-//     instance = axios.create({
-//       baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
-//       headers: { "Content-Type": "application/json" },
-//     });
-//   }
-//   instance.interceptors.request.use(
-//     (config) => {
-//       const token = localStorage.getItem("accessToken");
-//       if (token) config.headers.Authorization = `Bearer ${token}`;
-//       return config;
-//     },
-//     (error) => Promise.reject(error)
-//   );
-//   return instance;
-// };
-
-// const api = getApiInstance();
-
-// const Navbar = () => {
-//   const { user, setUser } = getData();
-//   const navigate = useNavigate();
-//   const location = useLocation();
-
-//   // ─── State ──────────────────────────────────────────────
-//   const [sidebarOpen, setSidebarOpen] = useState(false);
-//   const [searchOpen, setSearchOpen] = useState(false);
-//   const [searchQuery, setSearchQuery] = useState("");
-//   const [mobileOpenDropdown, setMobileOpenDropdown] = useState(null);
-//   const [isScrolled, setIsScrolled] = useState(false);
-//   const [categories, setCategories] = useState([]);
-//   const [categoriesLoading, setCategoriesLoading] = useState(true);
-
-//   // ─── Refs ──────────────────────────────────────────────
-//   const sidebarRef = useRef(null);
-//   const menuButtonRef = useRef(null);
-//   const closeButtonRef = useRef(null);
-//   const searchInputRef = useRef(null);
-//   const touchStartX = useRef(0);
-//   const touchEndX = useRef(0);
-//   const categoryFetched = useRef(false);
-
-//   const accessToken = localStorage.getItem("accessToken");
-//   const userRole = user?.role || "user";
-
-//   // ─── Fetch categories (once) ──────────────────────────
-//   useEffect(() => {
-//     if (categoryFetched.current) return;
-//     categoryFetched.current = true;
-
-//     const fetchCategories = async () => {
-//       try {
-//         setCategoriesLoading(true);
-//         const res = await api.get("/api/posts", { params: { limit: 100, page: 1 } });
-//         const posts = res.data.data || [];
-//         const unique = [...new Set(posts.map((p) => p.category).filter(Boolean))];
-//         setCategories(unique);
-//       } catch (error) {
-//         console.error("Failed to fetch categories:", error);
-//         setCategories(["Travel", "Food", "Lifestyle", "News", "Business", "Fashion"]);
-//       } finally {
-//         setCategoriesLoading(false);
-//       }
-//     };
-//     fetchCategories();
-//   }, []);
-
-//   // ─── Memoized nav items ──────────────────────────────
-//   const navItems = useMemo(() => {
-//     const base = [
-//       { label: "Home", link: "/" },
-//       { label: "News", link: "/news" },
-//       { label: "Listen", link: "/audio" },
-//       {
-//         label: "Categories",
-//         sub: categories.map((cat) => ({
-//           label: cat,
-//           link: `/news?category=${encodeURIComponent(cat)}`,
-//         })),
-//       },
-//       { label: "Advertise", link: "/advertise" },
-//       { label: "Privacy", link: "/privacy" },
-//       { label: "Contact", link: "/contact" },
-//       { label: "About", link: "/about" },
-//     ];
-//     return base.filter((item) => item.sub?.length > 0 || item.link);
-//   }, [categories]);
-
-//   // ─── Close sidebar on route change ────────────────────
-//   useEffect(() => {
-//     setSidebarOpen(false);
-//     setMobileOpenDropdown(null);
-//   }, [location.pathname]);
-
-//   // ─── Outside click for sidebar ──────────────────────
-//   useEffect(() => {
-//     const handleClickOutside = (e) => {
-//       if (
-//         sidebarOpen &&
-//         sidebarRef.current &&
-//         !sidebarRef.current.contains(e.target) &&
-//         !menuButtonRef.current?.contains(e.target)
-//       ) {
-//         setSidebarOpen(false);
-//       }
-//     };
-//     document.addEventListener("mousedown", handleClickOutside);
-//     return () => document.removeEventListener("mousedown", handleClickOutside);
-//   }, [sidebarOpen]);
-
-//   // ─── ESC to close everything ────────────────────────
-//   useEffect(() => {
-//     const handleEscape = (e) => {
-//       if (e.key === "Escape") {
-//         setSidebarOpen(false);
-//         setMobileOpenDropdown(null);
-//         setSearchOpen(false);
-//       }
-//     };
-//     document.addEventListener("keydown", handleEscape);
-//     return () => document.removeEventListener("keydown", handleEscape);
-//   }, []);
-
-//   // ─── Focus trap for sidebar ──────────────────────────
-//   useEffect(() => {
-//     if (!sidebarOpen) return;
-//     closeButtonRef.current?.focus();
-
-//     const handleTab = (e) => {
-//       if (e.key !== "Tab" || !sidebarRef.current) return;
-//       const focusable = sidebarRef.current.querySelectorAll(
-//         'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])'
-//       );
-//       if (focusable.length === 0) return;
-//       const first = focusable[0];
-//       const last = focusable[focusable.length - 1];
-
-//       if (e.shiftKey && document.activeElement === first) {
-//         e.preventDefault();
-//         last.focus();
-//       } else if (!e.shiftKey && document.activeElement === last) {
-//         e.preventDefault();
-//         first.focus();
-//       }
-//     };
-//     document.addEventListener("keydown", handleTab);
-//     return () => document.removeEventListener("keydown", handleTab);
-//   }, [sidebarOpen]);
-
-//   // ─── Auto‑focus search input ────────────────────────
-//   useEffect(() => {
-//     if (searchOpen && searchInputRef.current) {
-//       searchInputRef.current.focus();
-//     }
-//   }, [searchOpen]);
-
-//   // ─── Scroll shadow ─────────────────────────────────
-//   useEffect(() => {
-//     const handleScroll = () => setIsScrolled(window.scrollY > 10);
-//     window.addEventListener("scroll", handleScroll);
-//     return () => window.removeEventListener("scroll", handleScroll);
-//   }, []);
-
-//   // ─── Lock body scroll when sidebar open ──────────────
-//   useEffect(() => {
-//     if (sidebarOpen) {
-//       document.body.style.overflow = "hidden";
-//       document.body.style.position = "fixed";
-//       document.body.style.width = "100%";
-//     } else {
-//       document.body.style.overflow = "";
-//       document.body.style.position = "";
-//       document.body.style.width = "";
-//     }
-//     return () => {
-//       document.body.style.overflow = "";
-//       document.body.style.position = "";
-//       document.body.style.width = "";
-//     };
-//   }, [sidebarOpen]);
-
-//   // ─── Handlers ──────────────────────────────────────────
-//   const toggleSidebar = useCallback(() => {
-//     setSidebarOpen((prev) => !prev);
-//     setMobileOpenDropdown(null);
-//   }, []);
-
-//   const toggleMobileDropdown = useCallback((label) => {
-//     setMobileOpenDropdown((prev) => (prev === label ? null : label));
-//   }, []);
-
-//   const closeSidebar = useCallback(() => {
-//     setSidebarOpen(false);
-//     setMobileOpenDropdown(null);
-//   }, []);
-
-//   const handleSearchSubmit = useCallback(
-//     (e) => {
-//       e.preventDefault();
-//       const query = searchQuery.trim();
-//       if (query) {
-//         navigate(`/news?search=${encodeURIComponent(query)}`);
-//         setSearchOpen(false);
-//         setSearchQuery("");
-//       }
-//     },
-//     [searchQuery, navigate]
-//   );
-
-//   // ─── Touch swipe to close sidebar ────────────────────
-//   const handleTouchStart = (e) => {
-//     touchStartX.current = e.touches[0].clientX;
-//     touchEndX.current = e.touches[0].clientX;
-//   };
-//   const handleTouchMove = (e) => {
-//     touchEndX.current = e.touches[0].clientX;
-//   };
-//   const handleTouchEnd = () => {
-//     if (touchStartX.current - touchEndX.current > 75) {
-//       closeSidebar();
-//     }
-//     touchStartX.current = 0;
-//     touchEndX.current = 0;
-//   };
-
-//   // ─── Auth helpers ──────────────────────────────────
-//   const getUserInitials = () => {
-//     if (user?.fullname) {
-//       const parts = user.fullname.split(" ");
-//       return parts.map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-//     }
-//     if (user?.email) return user.email[0].toUpperCase();
-//     return "U";
-//   };
-
-//   const getRoleBadge = () => (userRole === "admin" ? "A" : null);
-//   const profileRoute = userRole === "admin" ? "/admin/profile" : "/profile";
-
-//   const logoutHandler = useCallback(async () => {
-//     try {
-//       const res = await api.post("/user/logout", {}, { headers: { Authorization: `Bearer ${accessToken}` } });
-//       if (res.data.success) {
-//         setUser(null);
-//         toast.success(res.data.message);
-//         localStorage.clear();
-//         navigate("/");
-//         closeSidebar();
-//       }
-//     } catch {
-//       toast.error("Logout failed");
-//     }
-//   }, [accessToken, setUser, navigate, closeSidebar]);
-
-//   // Helper to check if a category is active
-//   const isCategoryActive = (category) => {
-//     const params = new URLSearchParams(location.search);
-//     return params.get("category") === category;
-//   };
-
-//   // ─── Render ──────────────────────────────────────────
-//   return (
-//     <header
-//       className={`w-full bg-white sticky top-0 z-50 ${isScrolled ? "shadow-sm" : ""}`}
-//     >
-//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
-//         {/* ─── Top Header ──────────────────────────────────── */}
-//         <div className="relative flex items-center justify-between py-3 sm:py-4 md:py-5 lg:py-4 xl:py-5">
-//           {/* Left: Hamburger + Search */}
-//           <div className="flex items-center gap-3 sm:gap-4 text-gray-700">
-//             <button
-//               ref={menuButtonRef}
-//               onClick={toggleSidebar}
-//               className="hover:text-black rounded-full p-1"
-//               aria-label={sidebarOpen ? "Close menu" : "Open menu"}
-//               aria-expanded={sidebarOpen}
-//               aria-controls="sidebar-drawer"
-//             >
-//               {sidebarOpen ? <FiX size={22} /> : <FiMenu size={22} />}
-//             </button>
-//             <button
-//               onClick={() => setSearchOpen((v) => !v)}
-//               className="hover:text-black rounded-full p-1"
-//               aria-label="Toggle search"
-//             >
-//               <FiSearch size={18} className="sm:size-5" />
-//             </button>
-//           </div>
-
-//           {/* ─── Logo (clickable) ────────────────────────── */}
-//           <Link
-//             to="/"
-//             className="absolute left-1/2 -translate-x-1/2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded"
-//           >
-//             <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3">
-//               <FiFeather className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl text-black" />
-//               <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl font-black tracking-tight leading-none">
-//                 <span className="font-light text-gray-800">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span>
-//                 <span className="font-extrabold text-black">NEWS</span>
-//               </h1>
-//             </div>
-//             <p className="tracking-[4px] sm:tracking-[6px] md:tracking-[8px] uppercase text-[10px] sm:text-[11px] md:text-[12px] mt-1 sm:mt-2 text-gray-400 font-light">
-//               Stories That Soar
-//             </p>
-//           </Link>
-
-//           {/* Right: Social + Auth */}
-//           <div className="flex items-center gap-4 lg:gap-5">
-//             {/* Desktop social icons with border & rounded */}
-//             <div className="hidden lg:flex items-center gap-2.5 text-gray-600">
-//               <a
-//                 href="#"
-//                 aria-label="Facebook"
-//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
-//               >
-//                 <FaFacebookF size={16} />
-//               </a>
-//               <a
-//                 href="https://x.com/feathered_pen"
-//                 aria-label="Twitter"
-//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
-//               >
-//                 <FaXTwitter size={16} />
-//               </a>
-//               <a
-//                 href="#"
-//                 aria-label="Instagram"
-//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
-//               >
-//                 <FaInstagram size={16} />
-//               </a>
-//               <a
-//                 href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
-//                 aria-label="YouTube"
-//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
-//               >
-//                 <FaYoutube size={16} />
-//               </a>
-//             </div>
-
-//             {/* Auth */}
-//             {user ? (
-//               <div className="flex items-center gap-3">
-//                 <Link
-//                   to={profileRoute}
-//                   className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 group"
-//                 >
-//                   <div className="relative">
-//                     <Avatar className="h-8 w-8">
-//                       <AvatarImage src={getAvatarUrl(user?.avatar)} />
-//                       <AvatarFallback className="bg-gray-200 text-gray-700 text-xs font-bold">
-//                         {getUserInitials()}
-//                         {getRoleBadge() && (
-//                           <span className="ml-0.5 text-[8px]">{getRoleBadge()}</span>
-//                         )}
-//                       </AvatarFallback>
-//                     </Avatar>
-//                   </div>
-//                 </Link>
-//               </div>
-//             ) : (
-//               <div className="flex items-center gap-2">
-//                 <Link
-//                   to="/login"
-//                   className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-gray-600 hover:text-black"
-//                   aria-label="Log in"
-//                 >
-//                   <User size={20} className="sm:size-[22px]" />
-//                 </Link>
-//               </div>
-//             )}
-//           </div>
-//         </div>
-
-//         {/* ─── DESKTOP CATEGORIES STRIP (hidden on mobile) ── */}
-//         <div className="hidden lg:block relative border-t border-gray-200">
-//           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-2">
-//             <div className="flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-//               <Link
-//                 to="/news"
-//                 className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border ${
-//                   location.pathname === "/news" && !new URLSearchParams(location.search).get("category")
-//                     ? "bg-black text-white border-black"
-//                     : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
-//                 }`}
-//               >
-//                 All
-//               </Link>
-//               {categories.map((cat) => {
-//                 const active = isCategoryActive(cat);
-//                 return (
-//                   <Link
-//                     key={cat}
-//                     to={`/news?category=${encodeURIComponent(cat)}`}
-//                     className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border ${
-//                       active
-//                         ? "bg-black text-white border-black"
-//                         : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
-//                     }`}
-//                   >
-//                     {cat}
-//                   </Link>
-//                 );
-//               })}
-//             </div>
-//             <div className="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white to-transparent" />
-//           </div>
-//         </div>
-
-//         {/* ─── Mobile Strip (scrollable categories) ── */}
-//         <div className="lg:hidden relative border-t border-gray-200">
-//           <div className="flex items-center gap-2 py-2.5 overflow-x-auto scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-//             {[
-//               { label: "Home", link: "/" },
-//               { label: "News", link: "/news" },
-//               { label: "Listen", link: "/audio" },
-//               ...categories.slice(0, 6).map((cat) => ({
-//                 label: cat,
-//                 link: `/news?category=${encodeURIComponent(cat)}`,
-//               })),
-//               { label: "Advertise", link: "/advertise" },
-//             ].map((item) => {
-//               const isActive = location.pathname === item.link;
-//               return (
-//                 <Link
-//                   key={item.label}
-//                   to={item.link}
-//                   className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border ${
-//                     isActive
-//                       ? "bg-black text-white border-black"
-//                       : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
-//                   }`}
-//                   onClick={closeSidebar}
-//                 >
-//                   {item.label}
-//                 </Link>
-//               );
-//             })}
-//           </div>
-//           <div className="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white to-transparent" />
-//         </div>
-//       </div>
-
-//       {/* ─── Search Bar ────────────────────────────────────── */}
-//       <div
-//         className={`overflow-hidden ${
-//           searchOpen ? "max-h-20 border-t border-gray-200" : "max-h-0"
-//         }`}
-//       >
-//         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-3">
-//           <form onSubmit={handleSearchSubmit} className="relative">
-//             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-//             <input
-//               ref={searchInputRef}
-//               type="text"
-//               value={searchQuery}
-//               onChange={(e) => setSearchQuery(e.target.value)}
-//               placeholder="Search articles, topics, or keywords..."
-//               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md"
-//               aria-label="Search"
-//             />
-//           </form>
-//         </div>
-//       </div>
-
-//       {/* ─── Sidebar (Drawer) – visible on all screens ── */}
-//       <div
-//         className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 ${
-//           sidebarOpen ? "block" : "hidden"
-//         }`}
-//         onClick={closeSidebar}
-//         aria-hidden="true"
-//       />
-
-//       <div
-//         id="sidebar-drawer"
-//         ref={sidebarRef}
-//         onTouchStart={handleTouchStart}
-//         onTouchMove={handleTouchMove}
-//         onTouchEnd={handleTouchEnd}
-//         className={`fixed top-0 right-0 h-full w-[280px] sm:w-[320px] max-w-[85vw] bg-white z-50 ${
-//           sidebarOpen ? "translate-x-0" : "translate-x-full"
-//         }`}
-//         role="dialog"
-//         aria-modal="true"
-//         aria-label="Navigation menu"
-//         aria-hidden={!sidebarOpen}
-//       >
-//         <div className="flex flex-col h-full">
-//           {/* Header */}
-//           <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50/50">
-//             <div className="flex items-center gap-2">
-//               <FiFeather className="text-xl text-black" />
-//               <span className="font-bold text-sm">Menu</span>
-//             </div>
-//             <button
-//               ref={closeButtonRef}
-//               onClick={closeSidebar}
-//               className="p-2 hover:bg-gray-200 rounded-full"
-//               aria-label="Close menu"
-//             >
-//               <FiX size={24} />
-//             </button>
-//           </div>
-
-//           {/* User Profile */}
-//           {user && (
-//             <div className="p-4 bg-gradient-to-r from-gray-50 to-white">
-//               <Link
-//                 to={profileRoute}
-//                 onClick={closeSidebar}
-//                 className="flex items-center gap-3 group"
-//               >
-//                 <Avatar className="h-12 w-12">
-//                   <AvatarImage src={getAvatarUrl(user?.avatar)} />
-//                   <AvatarFallback className="bg-gray-200 text-gray-700 text-sm font-bold">
-//                     {getUserInitials()}
-//                   </AvatarFallback>
-//                 </Avatar>
-//                 <div className="flex-1 min-w-0">
-//                   <p className="text-sm font-semibold text-gray-900 truncate">
-//                     {user?.fullname || "User"}
-//                   </p>
-//                   <p className="text-xs text-gray-500 truncate">{user?.email || ""}</p>
-//                   {userRole === "admin" && (
-//                     <span className="inline-block mt-0.5 text-[9px] font-bold uppercase bg-black text-white px-2 py-0.5 rounded">
-//                       Admin
-//                     </span>
-//                   )}
-//                 </div>
-//                 <FiChevronRight className="text-gray-400 group-hover:text-black" size={18} />
-//               </Link>
-//             </div>
-//           )}
-
-//           {/* Navigation Links */}
-//           <nav className="flex-1 overflow-y-auto py-2">
-//             <ul className="space-y-0.5">
-//               {navItems.map((item) => {
-//                 const subItems = item.sub || [];
-//                 const hasSub = subItems.length > 0;
-//                 const isActive = location.pathname === item.link;
-
-//                 if (hasSub) {
-//                   const isOpen = mobileOpenDropdown === item.label;
-//                   return (
-//                     <li key={item.label} className="border-b border-gray-100 last:border-0">
-//                       <button
-//                         onClick={() => toggleMobileDropdown(item.label)}
-//                         className={`flex items-center w-full px-4 py-3 text-left hover:bg-gray-50 ${
-//                           isActive ? "bg-gray-50" : ""
-//                         }`}
-//                         aria-expanded={isOpen}
-//                       >
-//                         <span className="flex-1 font-medium text-gray-700">{item.label}</span>
-//                         <FiChevronDown
-//                           className={`transform ${
-//                             isOpen ? "rotate-180" : ""
-//                           } text-gray-400`}
-//                           size={16}
-//                         />
-//                       </button>
-//                       <div
-//                         className={`overflow-hidden ${
-//                           isOpen ? "max-h-[500px]" : "max-h-0"
-//                         }`}
-//                       >
-//                         <ul className="bg-gray-50/80 py-1">
-//                           {subItems.map((sub) => (
-//                             <li key={sub.label}>
-//                               <Link
-//                                 to={sub.link}
-//                                 className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black"
-//                                 onClick={closeSidebar}
-//                               >
-//                                 {sub.label}
-//                               </Link>
-//                             </li>
-//                           ))}
-//                         </ul>
-//                       </div>
-//                     </li>
-//                   );
-//                 }
-
-//                 return (
-//                   <li key={item.label}>
-//                     <Link
-//                       to={item.link}
-//                       className={`flex items-center px-4 py-3 hover:bg-gray-50 ${
-//                         isActive ? "bg-gray-50 text-black" : "text-gray-700"
-//                       }`}
-//                       onClick={closeSidebar}
-//                     >
-//                       <span className="font-medium">{item.label}</span>
-//                       {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />}
-//                     </Link>
-//                   </li>
-//                 );
-//               })}
-//             </ul>
-//           </nav>
-
-//           {/* Footer */}
-//           <div className="border-t border-gray-200 bg-gray-50/50">
-//             {/* Sidebar social icons with border & rounded */}
-//             <div className="flex justify-center gap-2.5 py-4 px-4 border-b border-gray-200">
-//               <a
-//                 href="#"
-//                 aria-label="Facebook"
-//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
-//               >
-//                 <FaFacebookF size={16} />
-//               </a>
-//               <a
-//                 href="https://x.com/feathered_pen"
-//                 aria-label="Twitter"
-//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
-//               >
-//                 <FaXTwitter size={16} />
-//               </a>
-//               <a
-//                 href="#"
-//                 aria-label="Instagram"
-//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
-//               >
-//                 <FaInstagram size={16} />
-//               </a>
-//               <a
-//                 href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
-//                 aria-label="YouTube"
-//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
-//               >
-//                 <FaYoutube size={16} />
-//               </a>
-//             </div>
-//             <div className="p-4">
-//               {user ? (
-//                 <div className="flex flex-col gap-2">
-//                   {userRole === "admin" && (
-//                     <Link
-//                       to="/admin/dashboard"
-//                       className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700"
-//                       onClick={closeSidebar}
-//                     >
-//                       Admin Panel
-//                     </Link>
-//                   )}
-//                   <button
-//                     onClick={logoutHandler}
-//                     className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700"
-//                   >
-//                     Sign Out
-//                   </button>
-//                 </div>
-//               ) : (
-//                 <div className="flex gap-2">
-//                   <Link
-//                     to="/login"
-//                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800"
-//                     onClick={closeSidebar}
-//                   >
-//                     <FiLogIn size={16} />
-//                     Log In
-//                   </Link>
-//                   <Link
-//                     to="/signup"
-//                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700"
-//                     onClick={closeSidebar}
-//                   >
-//                     <FiUser size={16} />
-//                     Sign Up
-//                   </Link>
-//                 </div>
-//               )}
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     </header>
-//   );
-// };
-
-// export default Navbar;
