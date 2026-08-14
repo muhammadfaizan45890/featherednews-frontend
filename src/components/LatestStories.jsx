@@ -343,6 +343,7 @@ const isNew = (dateStr) => {
   return diff < 24 * 60 * 60 * 1000;
 };
 
+// ─── Safe author name extractor ────────────────────────────
 const getAuthorName = (author) => {
   if (!author) return "Unknown";
   if (typeof author === "string") return author;
@@ -351,31 +352,45 @@ const getAuthorName = (author) => {
   return "Unknown";
 };
 
+// ─── Estimated read time (falls back to word count of excerpt) ──
+const getReadTime = (post) => {
+  if (post.readTime) return post.readTime;
+  const words = (post.excerpt || post.description || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+  const minutes = Math.max(1, Math.round(words / 200) || 1);
+  return `${minutes} min read`;
+};
+
 // ─────────────────────────────────────────────────────────────
-// Skeleton Card
+// Skeleton Card — mirrors the 2-up mobile → 5-up desktop grid
 // ─────────────────────────────────────────────────────────────
 const CardSkeleton = () => (
-  <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 overflow-hidden animate-pulse">
+  <div
+    className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 overflow-hidden animate-pulse"
+    aria-hidden="true"
+  >
     <div className="aspect-[4/3] bg-gray-200 dark:bg-zinc-800 relative">
       <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
     </div>
-    <div className="p-3 sm:p-4 space-y-2">
-      <div className="h-3 w-16 bg-gray-200 dark:bg-zinc-800" />
-      <div className="h-4 w-full bg-gray-200 dark:bg-zinc-800" />
-      <div className="h-4 w-2/3 bg-gray-200 dark:bg-zinc-800" />
-      <div className="flex items-center gap-3 pt-1">
-        <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-zinc-800" />
-        <div className="h-3 w-20 bg-gray-200 dark:bg-zinc-800" />
-        <div className="h-3 w-16 bg-gray-200 dark:bg-zinc-800 ml-auto" />
+    <div className="p-2 sm:p-3 md:p-4 space-y-1.5 sm:space-y-2">
+      <div className="h-2.5 sm:h-3 w-12 sm:w-16 bg-gray-200 dark:bg-zinc-800" />
+      <div className="h-3.5 sm:h-4 w-full bg-gray-200 dark:bg-zinc-800" />
+      <div className="h-3.5 sm:h-4 w-2/3 bg-gray-200 dark:bg-zinc-800" />
+      <div className="flex items-center gap-2 sm:gap-3 pt-1">
+        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gray-200 dark:bg-zinc-800 flex-shrink-0" />
+        <div className="h-2.5 sm:h-3 w-14 sm:w-20 bg-gray-200 dark:bg-zinc-800" />
+        <div className="h-2.5 sm:h-3 w-10 sm:w-16 bg-gray-200 dark:bg-zinc-800 ml-auto" />
       </div>
     </div>
   </div>
 );
 
 // ─────────────────────────────────────────────────────────────
-// Story Card
+// Story Card — image on top, text below, compact on mobile
 // ─────────────────────────────────────────────────────────────
-const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) {
+const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, index }) {
   const src = isBroken
     ? FALLBACK_IMG
     : post.images && post.images.length > 0
@@ -384,16 +399,20 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) 
 
   const authorName = getAuthorName(post.author);
   const initial = authorName.charAt(0).toUpperCase();
+  const readTime = getReadTime(post);
 
   return (
-    <li className="list-none">
-      <article className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 overflow-hidden hover:border-gray-400 dark:hover:border-zinc-600 transition-colors h-full flex flex-col">
+    <li
+      className="list-none opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
+      style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
+    >
+      <article className="group bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 overflow-hidden hover:border-gray-400 dark:hover:border-zinc-600 hover:shadow-[0_6px_0_0_rgba(0,0,0,0.06)] dark:hover:shadow-[0_6px_0_0_rgba(255,255,255,0.04)] transition-all duration-300 h-full flex flex-col">
         <Link
           to={`/news/${post.slug || post._id}`}
           aria-label={`Read story: ${post.title}`}
-          className="block overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900"
+          className="block overflow-hidden relative focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900"
         >
-          <div className="aspect-[4/3] relative bg-gray-100 dark:bg-zinc-800">
+          <div className="aspect-[4/3] relative bg-gray-100 dark:bg-zinc-800 overflow-hidden">
             <img
               src={src}
               alt={post.title}
@@ -401,47 +420,55 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) 
               onError={() => onImgError(post._id)}
               className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             />
-            {isNew(post.createdAt) && (
-              <span className="absolute top-2 left-2 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider bg-green-500 text-white px-2 py-0.5">
-                New
-              </span>
-            )}
+            <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 flex flex-col gap-1 items-start">
+              {isNew(post.createdAt) && (
+                <span className="text-[7px] sm:text-[9px] font-bold uppercase tracking-wider bg-green-500 text-white px-1.5 sm:px-2 py-0.5">
+                  New
+                </span>
+              )}
+              {post.category && (
+                <span className="text-[7px] sm:text-[9px] font-bold uppercase tracking-wider bg-black/80 text-white px-1.5 sm:px-2 py-0.5">
+                  {post.category}
+                </span>
+              )}
+            </div>
           </div>
         </Link>
 
-        <div className="p-3 sm:p-4 flex-1 flex flex-col">
+        <div className="p-2 sm:p-3 md:p-4 flex-1 flex flex-col">
           <Link
             to={`/news/${post.slug || post._id}`}
-            className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
           >
-            <h3 className="text-sm sm:text-base md:text-lg font-bold leading-tight line-clamp-2 text-gray-900 dark:text-white group-hover:text-red-500 transition-colors">
+            <h3 className="text-xs sm:text-base md:text-lg font-bold leading-tight line-clamp-2 text-gray-900 dark:text-white group-hover:text-red-500 transition-colors">
               {post.title}
             </h3>
           </Link>
 
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1.5 line-clamp-2 flex-1">
+          <p className="text-[10px] sm:text-sm text-gray-600 dark:text-gray-400 mt-1 sm:mt-1.5 line-clamp-2 flex-1 hidden xs:block">
             {post.excerpt || post.description || ""}
           </p>
 
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-200 dark:bg-zinc-700 flex items-center justify-center text-[8px] sm:text-[9px] font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-100 dark:border-zinc-800">
+            <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-gray-200 dark:bg-zinc-700 flex items-center justify-center text-[7px] sm:text-[9px] font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">
               {initial}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+              <p className="text-[8px] sm:text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
                 {authorName}
               </p>
-              <div className="flex items-center gap-2 text-[8px] sm:text-[10px] text-gray-400 dark:text-gray-500">
-                <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                <span>·</span>
-                <span>{timeAgo(post.createdAt)}</span>
+              <div className="flex items-center gap-1 sm:gap-2 text-[7px] sm:text-[10px] text-gray-400 dark:text-gray-500">
+                <span className="whitespace-nowrap">{timeAgo(post.createdAt)}</span>
+                <span className="hidden xs:inline">·</span>
+                <span className="hidden xs:inline whitespace-nowrap">{readTime}</span>
               </div>
             </div>
             <Link
               to={`/news/${post.slug || post._id}`}
-              className="text-[10px] sm:text-xs font-semibold text-red-500 hover:text-red-600 transition-colors whitespace-nowrap"
+              aria-label={`Continue reading: ${post.title}`}
+              className="text-[8px] sm:text-xs font-semibold text-red-500 hover:text-red-600 transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             >
-              Read More →
+              Read →
             </Link>
           </div>
         </div>
@@ -476,6 +503,7 @@ const LatestStories = () => {
     hasMoreRef.current = hasMore;
   }, [hasMore]);
 
+  // ─── Fetch posts ──────────────────────────────────────
   const fetchPosts = useCallback(async (pageNum = 1, append = false) => {
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
@@ -510,6 +538,7 @@ const LatestStories = () => {
     }
   }, []);
 
+  // ─── Initial load ──────────────────────────────
   useEffect(() => {
     setPage(1);
     setPosts([]);
@@ -520,6 +549,7 @@ const LatestStories = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ─── Load more ──────────────────────────────────────
   const loadMore = useCallback(() => {
     if (isLoadingMoreRef.current || !hasMoreRef.current) return;
     setPage((prev) => {
@@ -529,6 +559,7 @@ const LatestStories = () => {
     });
   }, [fetchPosts]);
 
+  // ─── Infinite scroll observer ──────────────────────────
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return undefined;
@@ -553,6 +584,7 @@ const LatestStories = () => {
     });
   }, []);
 
+  // Memoized derived data
   const showEmptyState = useMemo(
     () => !loading && !error && posts.length === 0,
     [loading, error, posts.length]
@@ -572,9 +604,14 @@ const LatestStories = () => {
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
         }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
 
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6 sm:mb-8">
+      {/* ─── Header ────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-5 sm:mb-8">
         <div>
           <p className="uppercase text-red-500 tracking-[3px] sm:tracking-[4px] text-xs sm:text-sm font-bold">
             Browse &amp; Read
@@ -599,9 +636,9 @@ const LatestStories = () => {
         </Link>
       </div>
 
-      {/* ─── Grid: 1 column on mobile, 2 columns on tablet and up ── */}
+      {/* ─── Story Grid — 2 up on mobile, scaling to 5 up on wide desktop ── */}
       {loading && initialLoad ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 md:gap-5 lg:gap-6">
           {Array.from({ length: 12 }).map((_, i) => (
             <CardSkeleton key={i} />
           ))}
@@ -627,17 +664,19 @@ const LatestStories = () => {
         </div>
       ) : (
         <>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-            {posts.map((post) => (
+          <ul className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 md:gap-5 lg:gap-6">
+            {posts.map((post, index) => (
               <StoryCard
                 key={post._id}
                 post={post}
+                index={index}
                 isBroken={brokenImages.has(post._id)}
                 onImgError={handleImgError}
               />
             ))}
           </ul>
 
+          {/* Infinite-scroll sentinel */}
           {hasMore && (
             <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />
           )}
