@@ -318,24 +318,6 @@ const FALLBACK_IMG = "https://via.placeholder.com/500x500/111111/FFFFFF?text=No+
 // ─────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────
-const timeAgo = (dateStr) => {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return "";
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  const steps = [
-    ["year", 31536000],
-    ["month", 2592000],
-    ["day", 86400],
-    ["hour", 3600],
-    ["minute", 60],
-  ];
-  for (const [label, secs] of steps) {
-    const val = Math.floor(seconds / secs);
-    if (val >= 1) return `${val}${label[0]}${val > 1 ? "" : ""} ago`;
-  }
-  return "just now";
-};
-
 const isNew = (dateStr) => {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return false;
@@ -343,32 +325,12 @@ const isNew = (dateStr) => {
   return diff < 24 * 60 * 60 * 1000;
 };
 
-// ─── Safe author name extractor ────────────────────────────
-const getAuthorName = (author) => {
-  if (!author) return "Unknown";
-  if (typeof author === "string") return author;
-  if (typeof author === "object" && author.name) return author.name;
-  if (Array.isArray(author) && author.length > 0 && author[0]?.name) return author[0].name;
-  return "Unknown";
-};
-
-// ─── Estimated read time (falls back to word count of excerpt) ──
-const getReadTime = (post) => {
-  if (post.readTime) return post.readTime;
-  const words = (post.excerpt || post.description || "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean).length;
-  const minutes = Math.max(1, Math.round(words / 200) || 1);
-  return `${minutes} min read`;
-};
-
 // ─────────────────────────────────────────────────────────────
-// Skeleton Card — mirrors the 2-up mobile → 5-up desktop grid
+// Skeleton Card — matches the grid (2 up → 5 up)
 // ─────────────────────────────────────────────────────────────
 const CardSkeleton = () => (
   <div
-    className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 overflow-hidden animate-pulse"
+    className="bg-white dark:bg-zinc-900 overflow-hidden animate-pulse"
     aria-hidden="true"
   >
     <div className="aspect-[4/3] bg-gray-200 dark:bg-zinc-800 relative">
@@ -378,17 +340,13 @@ const CardSkeleton = () => (
       <div className="h-2.5 sm:h-3 w-12 sm:w-16 bg-gray-200 dark:bg-zinc-800" />
       <div className="h-3.5 sm:h-4 w-full bg-gray-200 dark:bg-zinc-800" />
       <div className="h-3.5 sm:h-4 w-2/3 bg-gray-200 dark:bg-zinc-800" />
-      <div className="flex items-center gap-2 sm:gap-3 pt-1">
-        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gray-200 dark:bg-zinc-800 flex-shrink-0" />
-        <div className="h-2.5 sm:h-3 w-14 sm:w-20 bg-gray-200 dark:bg-zinc-800" />
-        <div className="h-2.5 sm:h-3 w-10 sm:w-16 bg-gray-200 dark:bg-zinc-800 ml-auto" />
-      </div>
+      <div className="h-3 sm:h-4 w-full bg-gray-200 dark:bg-zinc-800" />
     </div>
   </div>
 );
 
 // ─────────────────────────────────────────────────────────────
-// Story Card — image on top, text below, compact on mobile
+// Story Card — image on top, title, excerpt with ellipsis
 // ─────────────────────────────────────────────────────────────
 const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, index }) {
   const src = isBroken
@@ -397,16 +355,12 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
     ? post.images[0]
     : FALLBACK_IMG;
 
-  const authorName = getAuthorName(post.author);
-  const initial = authorName.charAt(0).toUpperCase();
-  const readTime = getReadTime(post);
-
   return (
     <li
       className="list-none opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
       style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
     >
-      <article className="group bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 overflow-hidden hover:border-gray-400 dark:hover:border-zinc-600 hover:shadow-[0_6px_0_0_rgba(0,0,0,0.06)] dark:hover:shadow-[0_6px_0_0_rgba(255,255,255,0.04)] transition-all duration-300 h-full flex flex-col">
+      <article className="group bg-white dark:bg-zinc-900 overflow-hidden hover:shadow-[0_6px_0_0_rgba(0,0,0,0.06)] dark:hover:shadow-[0_6px_0_0_rgba(255,255,255,0.04)] transition-all duration-300 h-full flex flex-col">
         <Link
           to={`/news/${post.slug || post._id}`}
           aria-label={`Read story: ${post.title}`}
@@ -445,32 +399,17 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
             </h3>
           </Link>
 
-          <p className="text-[10px] sm:text-sm text-gray-600 dark:text-gray-400 mt-1 sm:mt-1.5 line-clamp-2 flex-1 hidden xs:block">
+          <p className="text-[10px] sm:text-sm text-gray-600 dark:text-gray-400 mt-1 sm:mt-1.5 line-clamp-3 flex-1">
             {post.excerpt || post.description || ""}
           </p>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-100 dark:border-zinc-800">
-            <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-gray-200 dark:bg-zinc-700 flex items-center justify-center text-[7px] sm:text-[9px] font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">
-              {initial}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[8px] sm:text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
-                {authorName}
-              </p>
-              <div className="flex items-center gap-1 sm:gap-2 text-[7px] sm:text-[10px] text-gray-400 dark:text-gray-500">
-                <span className="whitespace-nowrap">{timeAgo(post.createdAt)}</span>
-                <span className="hidden xs:inline">·</span>
-                <span className="hidden xs:inline whitespace-nowrap">{readTime}</span>
-              </div>
-            </div>
-            <Link
-              to={`/news/${post.slug || post._id}`}
-              aria-label={`Continue reading: ${post.title}`}
-              className="text-[8px] sm:text-xs font-semibold text-red-500 hover:text-red-600 transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-            >
-              Read →
-            </Link>
-          </div>
+          <Link
+            to={`/news/${post.slug || post._id}`}
+            aria-label={`Continue reading: ${post.title}`}
+            className="text-[8px] sm:text-xs font-semibold text-red-500 hover:text-red-600 transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 mt-2 sm:mt-3 inline-block w-fit"
+          >
+            Read →
+          </Link>
         </div>
       </article>
     </li>
@@ -636,7 +575,7 @@ const LatestStories = () => {
         </Link>
       </div>
 
-      {/* ─── Story Grid — 2 up on mobile, scaling to 5 up on wide desktop ── */}
+      {/* ─── Story Grid — 2 up → 5 up ── */}
       {loading && initialLoad ? (
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 md:gap-5 lg:gap-6">
           {Array.from({ length: 12 }).map((_, i) => (
