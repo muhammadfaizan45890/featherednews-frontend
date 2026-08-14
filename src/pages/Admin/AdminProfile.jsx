@@ -40,16 +40,9 @@ import {
 import { FaXTwitter } from "react-icons/fa6";
 
 /* ────────────────────────────────────────────────────────────
-   Design notes
-   A profile page for a writing/publishing product should read
-   like a masthead & byline, not a settings screen. This pass
-   pairs a serif display face (Newsreader) for names & headings
-   with Inter for body copy and IBM Plex Mono for labels, meta,
-   and numerals — the classic "editorial data" contrast. Layout
-   moves to a sticky bio sidebar + tabbed main column so the
-   page can hold real content (posts / activity) later without
-   another redesign. Accent stays the app's existing black/white
-   ink so it doesn't fight the rest of the product.
+   Design notes – same editorial style, but without animations
+   and without the cover banner. The page is now purely static
+   in terms of transitions.
    ──────────────────────────────────────────────────────────── */
 
 // ─── Helpers ───────────────────────────────────────────
@@ -73,52 +66,16 @@ const getAvatarUrl = (avatarPath) => {
   return base ? `${base}/${path}` : null;
 };
 
-// ─── Global type/keyframe injection ───────────────────
-const EditorialStyles = () => (
-  <style>{`
-    @keyframes riseIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .rise-in { animation: riseIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-    @keyframes shimmer {
-      0% { background-position: -400px 0; }
-      100% { background-position: 400px 0; }
-    }
-    .shimmer {
-      background: linear-gradient(90deg, rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.09) 37%, rgba(0,0,0,0.04) 63%);
-      background-size: 800px 100%;
-      animation: shimmer 1.6s linear infinite;
-    }
-    .dark .shimmer {
-      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 37%, rgba(255,255,255,0.04) 63%);
-      background-size: 800px 100%;
-    }
-
-    .ink-focus:focus-visible {
-      outline: 2px solid currentColor;
-      outline-offset: 2px;
-      border-radius: 4px;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .rise-in, .shimmer { animation: none !important; }
-    }
-  `}</style>
-);
-
 // ─── Skeleton ──────────────────────────────────────────
 const SkeletonProfile = () => (
   <div className="min-h-screen bg-[#FAFAF8] dark:bg-[#0B0D10] px-3 sm:px-4 md:px-6">
-    <EditorialStyles />
     <div className="max-w-6xl mx-auto pt-4 sm:pt-10 md:pt-14">
-      <div className="h-20 sm:h-32 md:h-44 lg:h-52 rounded-2xl shimmer" />
+      <div className="h-20 sm:h-32 md:h-44 lg:h-52 rounded-2xl bg-zinc-200 dark:bg-zinc-800" />
       <div className="px-2 sm:px-4 -mt-8 sm:-mt-12 flex items-end gap-4">
-        <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-[#FAFAF8] dark:border-[#0B0D10] shimmer" />
+        <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-zinc-300 dark:bg-zinc-700" />
         <div className="flex-1 pb-2 space-y-2">
-          <div className="h-5 sm:h-7 w-40 sm:w-56 rounded shimmer" />
-          <div className="h-3 sm:h-4 w-24 sm:w-32 rounded shimmer" />
+          <div className="h-5 sm:h-7 w-40 sm:w-56 rounded bg-zinc-300 dark:bg-zinc-700" />
+          <div className="h-3 sm:h-4 w-24 sm:w-32 rounded bg-zinc-300 dark:bg-zinc-700" />
         </div>
       </div>
     </div>
@@ -128,7 +85,7 @@ const SkeletonProfile = () => (
 // ─── Editable Field ────────────────────────────────────
 const EditableField = ({ icon: Icon, label, value, name, onChange, isEditing, type = "text", placeholder }) => (
   <div className="group flex items-start gap-3 py-3 sm:py-3.5 border-b border-zinc-200/80 dark:border-zinc-800/80 last:border-0">
-    <div className="mt-0.5 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 flex items-center justify-center flex-shrink-0 transition-colors group-focus-within:bg-black group-focus-within:text-white dark:group-focus-within:bg-white dark:group-focus-within:text-black">
+    <div className="mt-0.5 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400 flex items-center justify-center flex-shrink-0">
       <Icon size={14} className="sm:w-4 sm:h-4" />
     </div>
     <div className="flex-1 min-w-0">
@@ -140,7 +97,7 @@ const EditableField = ({ icon: Icon, label, value, name, onChange, isEditing, ty
             value={value}
             onChange={onChange}
             rows={2}
-            className="ink-focus w-full mt-1 bg-transparent border-b-2 border-zinc-300 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none py-0.5 text-zinc-900 dark:text-white text-sm sm:text-base resize-none transition-colors"
+            className="ink-focus w-full mt-1 bg-transparent border-b-2 border-zinc-300 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none py-0.5 text-zinc-900 dark:text-white text-sm sm:text-base resize-none"
             placeholder={placeholder || `Enter ${label}`}
           />
         ) : (
@@ -149,7 +106,7 @@ const EditableField = ({ icon: Icon, label, value, name, onChange, isEditing, ty
             name={name}
             value={value}
             onChange={onChange}
-            className="ink-focus w-full mt-1 bg-transparent border-b-2 border-zinc-300 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none py-0.5 text-zinc-900 dark:text-white text-sm sm:text-base transition-colors"
+            className="ink-focus w-full mt-1 bg-transparent border-b-2 border-zinc-300 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none py-0.5 text-zinc-900 dark:text-white text-sm sm:text-base"
             placeholder={placeholder || `Enter ${label}`}
           />
         )
@@ -170,7 +127,7 @@ const SocialCube = ({ icon: Icon, href, label, color }) => {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`ink-focus w-11 h-11 sm:w-12 sm:h-12 rounded-lg border-2 border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:text-white hover:border-transparent transition-colors duration-200 ${color}`}
+      className={`ink-focus w-11 h-11 sm:w-12 sm:h-12 rounded-lg border-2 border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:text-white hover:border-transparent ${color}`}
       aria-label={label}
       title={label}
     >
@@ -183,7 +140,7 @@ const SocialCube = ({ icon: Icon, href, label, color }) => {
 const TabButton = ({ active, onClick, children, icon: Icon }) => (
   <button
     onClick={onClick}
-    className={`ink-focus relative flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-lg transition-colors whitespace-nowrap ${
+    className={`ink-focus relative flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-lg whitespace-nowrap ${
       active
         ? "bg-black dark:bg-white text-white dark:text-black"
         : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
@@ -412,8 +369,7 @@ const AdminProfile = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-[#FAFAF8] p-5 dark:bg-[#0B0D10] flex items-center justify-center px-4">
-        <EditorialStyles />
-        <div className="text-center rise-in">
+        <div className="text-center">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-3 sm:mb-4">
             <User size={24} className="sm:w-8 sm:h-8 text-red-500 dark:text-red-400" />
           </div>
@@ -421,7 +377,7 @@ const AdminProfile = () => {
           <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 mt-2">Your session may have expired.</p>
           <button
             onClick={() => navigate("/login")}
-            className="ink-focus mt-4 sm:mt-6 px-4 sm:px-6 py-1.5 sm:py-2 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-sm sm:text-base transition hover:opacity-90"
+            className="ink-focus mt-4 sm:mt-6 px-4 sm:px-6 py-1.5 sm:py-2 bg-black dark:bg-white text-white dark:text-black rounded-xl font-semibold text-sm sm:text-base"
           >
             Go to Login
           </button>
@@ -433,19 +389,16 @@ const AdminProfile = () => {
   // ─── Render ─────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#FAFAF8] dark:bg-[#0B0D10] pb-16 sm:pb-20">
-      <EditorialStyles />
       <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 pt-4 sm:pt-10 md:pt-14">
 
-        {/* ─── Masthead / Cover ────────────────────────── */}
-        <div className="relative rise-in">
-          <div className="h-20 sm:h-32 md:h-44 lg:h-52 rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900">
-            {/* subtle overlay can go here if needed */}
-          </div>
+        {/* ─── Masthead (no cover banner) ────────────────── */}
+        <div className="relative">
+          {/* The cover banner has been removed entirely */}
 
-          <div className="relative px-2 sm:px-4 -mt-8 sm:-mt-12 flex flex-wrap items-end gap-3 sm:gap-5 md:gap-6">
+          <div className="relative px-2 sm:px-4 flex flex-wrap items-end gap-3 sm:gap-5 md:gap-6">
             <div className="relative group flex-shrink-0">
               <div
-                className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 border-[#FAFAF8] dark:border-[#0B0D10] shadow-lg overflow-hidden flex items-center justify-center bg-white dark:bg-black transition-shadow duration-300 group-hover:shadow-xl"
+                className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full overflow-hidden flex items-center justify-center bg-white dark:bg-black"
                 style={{ backgroundColor: avatarUrl ? undefined : avatarColor }}
               >
                 {avatarUrl ? (
@@ -458,7 +411,7 @@ const AdminProfile = () => {
                 <>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="ink-focus absolute bottom-0 right-0 sm:bottom-1 sm:right-1 bg-black dark:bg-white text-white dark:text-black rounded-full p-1.5 sm:p-2 shadow-lg hover:scale-110 transition duration-300"
+                    className="ink-focus absolute bottom-0 right-0 sm:bottom-1 sm:right-1 bg-black dark:bg-white text-white dark:text-black rounded-full p-1.5 sm:p-2"
                     aria-label="Change avatar"
                   >
                     <Camera size={13} className="sm:w-4 sm:h-4" />
@@ -481,7 +434,7 @@ const AdminProfile = () => {
                   name="fullname"
                   value={formData.fullname}
                   onChange={handleInputChange}
-                  className="ink-focus font-display text-xl sm:text-2xl md:text-3xl font-semibold bg-transparent border-b-2 border-zinc-300 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none w-full text-zinc-900 dark:text-white transition"
+                  className="ink-focus font-display text-xl sm:text-2xl md:text-3xl font-semibold bg-transparent border-b-2 border-zinc-300 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none w-full text-zinc-900 dark:text-white"
                   placeholder="Full name"
                 />
               ) : (
@@ -521,7 +474,7 @@ const AdminProfile = () => {
               {!isEditing ? (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="ink-focus flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-xl text-xs sm:text-sm font-semibold hover:opacity-90 transition shadow-sm"
+                  className="ink-focus flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-xl text-xs sm:text-sm font-semibold"
                 >
                   <Edit2 size={14} className="sm:w-4 sm:h-4" />
                   Edit profile
@@ -531,14 +484,14 @@ const AdminProfile = () => {
                   <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="ink-focus flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-xl text-xs sm:text-sm font-semibold hover:opacity-90 transition disabled:opacity-60 shadow-sm"
+                    className="ink-focus flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-xl text-xs sm:text-sm font-semibold disabled:opacity-60"
                   >
                     {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                     Save
                   </button>
                   <button
                     onClick={handleCancel}
-                    className="ink-focus flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl text-xs sm:text-sm font-semibold hover:bg-zinc-300 dark:hover:bg-zinc-700 transition"
+                    className="ink-focus flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl text-xs sm:text-sm font-semibold hover:bg-zinc-300 dark:hover:bg-zinc-700"
                   >
                     <X size={14} />
                     Cancel
@@ -571,7 +524,7 @@ const AdminProfile = () => {
         <div className="mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4 sm:gap-6">
 
           {/* Sidebar */}
-          <aside className="space-y-4 sm:space-y-6 lg:sticky lg:top-6 lg:self-start rise-in" style={{ animationDelay: "100ms" }}>
+          <aside className="space-y-4 sm:space-y-6 lg:sticky lg:top-6 lg:self-start">
             {/* Bio card */}
             <div className="bg-white dark:bg-black rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 sm:p-5">
               <h3 className="font-meta text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
@@ -583,7 +536,7 @@ const AdminProfile = () => {
                   value={formData.bio}
                   onChange={handleInputChange}
                   rows={4}
-                  className="ink-focus w-full bg-transparent border-b-2 border-zinc-300 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none py-1 text-zinc-900 dark:text-white text-sm resize-none transition-colors"
+                  className="ink-focus w-full bg-transparent border-b-2 border-zinc-300 dark:border-zinc-700 focus:border-black dark:focus:border-white outline-none py-1 text-zinc-900 dark:text-white text-sm resize-none"
                   placeholder="Tell readers about yourself"
                 />
               ) : (
@@ -612,7 +565,7 @@ const AdminProfile = () => {
           </aside>
 
           {/* Main column */}
-          <main className="min-w-0 rise-in" style={{ animationDelay: "140ms" }}>
+          <main className="min-w-0">
             {/* Tabs */}
             <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 mb-4 sm:mb-5 -mx-1 px-1">
               <TabButton active={activeTab === "overview"} onClick={() => setActiveTab("overview")} icon={User}>
@@ -667,7 +620,7 @@ const AdminProfile = () => {
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="ink-focus w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition font-medium text-sm"
+            className="ink-focus w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 font-medium text-sm"
           >
             <LogOut size={15} />
             Log out
