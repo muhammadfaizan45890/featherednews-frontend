@@ -328,7 +328,6 @@ const isNew = (dateStr) => {
   return diff < 24 * 60 * 60 * 1000;
 };
 
-// ─── Strip HTML tags from strings ────────────────────────────
 const stripHtml = (html) => {
   if (!html) return "";
   return html.replace(/<[^>]*>/g, "").trim();
@@ -355,7 +354,7 @@ const CardSkeleton = () => (
 );
 
 // ─────────────────────────────────────────────────────────────
-// Story Card — image on top, title, excerpt with ellipsis
+// Story Card
 // ─────────────────────────────────────────────────────────────
 const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, index }) {
   const src = isBroken
@@ -467,7 +466,8 @@ const LatestStories = () => {
       }
       setError(null);
 
-      const params = { page: pageNum, limit: 12, sort: "desc" };
+      // 👇 Changed limit from 12 to 10
+      const params = { page: pageNum, limit: 10, sort: "desc" };
 
       const res = await api.get("/api/posts", { params, signal: controller.signal });
       const { data, pagination } = res.data;
@@ -539,10 +539,7 @@ const LatestStories = () => {
     () => !loading && !error && posts.length === 0,
     [loading, error, posts.length]
   );
-  const showEndMessage = useMemo(
-    () => !hasMore && !isLoadingMore && posts.length > 0,
-    [hasMore, isLoadingMore, posts.length]
-  );
+  // ✅ Removed showEndMessage – no "You're all caught up"
 
   return (
     <section
@@ -589,7 +586,7 @@ const LatestStories = () => {
       {/* ─── Story Grid — 2 up → 5 up ── */}
       {loading && initialLoad ? (
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 md:gap-5 lg:gap-6">
-          {Array.from({ length: 12 }).map((_, i) => (
+          {Array.from({ length: 10 }).map((_, i) => (
             <CardSkeleton key={i} />
           ))}
         </div>
@@ -660,11 +657,7 @@ const LatestStories = () => {
             </div>
           )}
 
-          {showEndMessage && (
-            <p className="text-center text-gray-400 dark:text-gray-500 text-xs sm:text-sm mt-6">
-              You&apos;re all caught up
-            </p>
-          )}
+          {/* ✅ Removed "You're all caught up" message */}
         </>
       )}
     </section>
