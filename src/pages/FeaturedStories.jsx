@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, EffectCoverflow } from 'swiper/modules';
+import { EffectCoverflow } from 'swiper/modules';
 import { Clock, Calendar, User } from 'lucide-react';
 import axios from 'axios';
 import API from '../utils/api';
@@ -25,19 +25,72 @@ api.interceptors.request.use(
 
 // ─── Static fallback data ──────────────────────────────────
 const staticStories = [
-  // ... (your existing static data)
+  {
+    id: 1,
+    image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=600&q=80',
+    category: 'News',
+    title: 'At daybreak of the fifteenth day of my search',
+    excerpt: 'When the amphitheater had cleared I crept stealthily to the top...',
+    date: 'Apr 12, 2025',
+    readTime: '5 min read',
+    author: { name: 'Jane Doe' },
+  },
+  {
+    id: 2,
+    image: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&q=80',
+    category: 'Travel',
+    title: 'Beyond the horizon lies a world of wonder',
+    excerpt: 'The journey of a thousand miles begins with a single step.',
+    date: 'Apr 10, 2025',
+    readTime: '4 min read',
+    author: { name: 'John Smith' },
+  },
+  {
+    id: 3,
+    image: 'https://images.unsplash.com/photo-1496568816309-51d7c20e3b21?w=600&q=80',
+    category: 'Culture',
+    title: 'Whispers of ancient civilizations',
+    excerpt: 'Through the corridors of time, stories of forgotten empires echo.',
+    date: 'Apr 8, 2025',
+    readTime: '6 min read',
+    author: { name: 'Alice Johnson' },
+  },
+  {
+    id: 4,
+    image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600&q=80',
+    category: 'Nature',
+    title: 'Where the mountains meet the sky',
+    excerpt: 'In the quiet embrace of nature, find peace that transcends the chaos.',
+    date: 'Apr 5, 2025',
+    readTime: '3 min read',
+    author: { name: 'Bob Williams' },
+  },
+  {
+    id: 5,
+    image: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=600&q=80',
+    category: 'Business',
+    title: 'The quiet forces reshaping the global economy',
+    excerpt: 'Behind every headline number is a chain of decisions.',
+    date: 'Apr 3, 2025',
+    readTime: '7 min read',
+    author: { name: 'Eva Chen' },
+  },
 ];
 
 // ─── Skeleton Card ─────────────────────────────────────────
 const SkeletonCard = () => (
-  <div className="w-[260px] sm:w-[300px] md:w-[340px] lg:w-[380px] xl:w-[420px] shrink-0">
-    <div className="aspect-[4/3] sm:aspect-[16/10] md:aspect-[4/3] lg:aspect-[16/9] bg-gray-200 dark:bg-zinc-800 relative overflow-hidden">
-      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite] bg-gradient-to-r from-transparent via-white/40 dark:via-white/10 to-transparent" />
+  <div className="w-[240px] sm:w-[280px] md:w-[320px] lg:w-[360px] xl:w-[400px] shrink-0">
+    <div className="aspect-[4/3] sm:aspect-[16/10] md:aspect-[4/3] lg:aspect-[16/9] bg-gray-200 relative overflow-hidden">
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
     </div>
-    <div className="mt-3 space-y-2">
-      <div className="h-3 w-20 bg-gray-200 dark:bg-zinc-800" />
-      <div className="h-4 w-full bg-gray-200 dark:bg-zinc-800" />
-      <div className="h-4 w-2/3 bg-gray-200 dark:bg-zinc-800" />
+    <div className="mt-2 space-y-1.5">
+      <div className="h-3 w-16 bg-gray-200" />
+      <div className="h-4 w-full bg-gray-200" />
+      <div className="h-4 w-2/3 bg-gray-200" />
+      <div className="flex gap-3 mt-1">
+        <div className="h-2.5 w-12 bg-gray-200" />
+        <div className="h-2.5 w-12 bg-gray-200" />
+      </div>
     </div>
   </div>
 );
@@ -51,11 +104,8 @@ const Card = ({ post, isActive }) => {
       to={`/article/${slug}`}
       className={`
         block relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]
-        ${isActive 
-          ? 'scale-100' 
-          : 'scale-90 opacity-60 blur-[1px]'
-        }
-        group bg-white dark:bg-zinc-800
+        ${isActive ? 'scale-100' : 'scale-90 opacity-50 blur-[0.5px]'}
+        group bg-white
       `}
     >
       <div className="aspect-[4/3] sm:aspect-[16/10] md:aspect-[4/3] lg:aspect-[16/9] relative">
@@ -70,27 +120,27 @@ const Card = ({ post, isActive }) => {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
-          <span className="inline-block text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-red-500 px-3 py-1 mb-2">
+        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 text-white">
+          <span className="inline-block text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-red-500 px-2 py-0.5 mb-1.5">
             {post.category}
           </span>
-          <h3 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight line-clamp-2">
+          <h3 className="text-base sm:text-lg md:text-xl font-bold leading-tight line-clamp-2">
             {post.title}
           </h3>
-          <p className="text-sm text-white/80 line-clamp-2 mt-1 hidden sm:block">
+          <p className="text-xs text-white/80 line-clamp-2 mt-0.5 hidden sm:block">
             {post.excerpt}
           </p>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-white/70 mt-2">
-            <span className="flex items-center gap-1">
-              <Calendar size={12} />
+          <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-white/70 mt-1.5">
+            <span className="flex items-center gap-0.5">
+              <Calendar size={10} />
               {post.date}
             </span>
-            <span className="flex items-center gap-1">
-              <Clock size={12} />
+            <span className="flex items-center gap-0.5">
+              <Clock size={10} />
               {post.readTime}
             </span>
-            <span className="flex items-center gap-1 ml-auto">
-              <User size={12} />
+            <span className="flex items-center gap-0.5 ml-auto">
+              <User size={10} />
               {post.author?.name || 'Unknown'}
             </span>
           </div>
@@ -129,27 +179,21 @@ const FeaturedStories = () => {
     fetchFeatured();
   }, []);
 
-  // ─── Render header – always visible ──────────────────────
+  // ─── Render header – compact ─────────────────────────────
   const renderHeader = () => (
-    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8">
+    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-4">
       <div>
-        <span className="text-xs font-bold uppercase tracking-[4px] text-red-500">
+        <span className="text-xs font-bold uppercase tracking-[3px] text-red-500">
           Featured Stories
         </span>
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black dark:text-white">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-black">
           Editor's Picks
         </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
+        <p className="text-xs text-gray-500 mt-0.5 max-w-xl">
           Our handpicked selection of the most compelling stories from around the world.
-          Curated just for you.
         </p>
       </div>
-      <Link
-        to="/news"
-        className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors hidden sm:inline-block mt-2 sm:mt-0"
-      >
-        View All →
-      </Link>
+      {/* View All link removed */}
     </div>
   );
 
@@ -157,7 +201,7 @@ const FeaturedStories = () => {
   const renderContent = () => {
     if (loading) {
       return (
-        <div className="flex gap-4 sm:gap-6 md:gap-8 overflow-hidden">
+        <div className="flex gap-3 sm:gap-4 overflow-hidden">
           {Array.from({ length: 3 }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
@@ -167,11 +211,11 @@ const FeaturedStories = () => {
 
     if (error) {
       return (
-        <div className="text-center py-12 text-red-500 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg">
+        <div className="text-center py-8 text-red-500 bg-red-50 border border-red-200">
           <p>{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-3 px-4 py-2 bg-black text-white text-sm rounded hover:bg-gray-800"
+            className="mt-2 px-3 py-1.5 bg-black text-white text-xs hover:bg-gray-800"
           >
             Retry
           </button>
@@ -181,8 +225,8 @@ const FeaturedStories = () => {
 
     if (!posts.length) {
       return (
-        <div className="text-center py-20 text-gray-500 dark:text-gray-400">
-          <p className="text-xl font-medium">No featured stories available</p>
+        <div className="text-center py-12 text-gray-500">
+          <p className="text-lg font-medium">No featured stories available</p>
         </div>
       );
     }
@@ -190,7 +234,7 @@ const FeaturedStories = () => {
     return (
       <Swiper
         onSwiper={(swiper) => (swiperRef.current = swiper)}
-        modules={[Autoplay, EffectCoverflow]}
+        modules={[EffectCoverflow]}
         effect="coverflow"
         grabCursor
         centeredSlides
@@ -202,24 +246,20 @@ const FeaturedStories = () => {
           modifier: 1.5,
           slideShadows: false,
         }}
-        autoplay={{
-          delay: 3000,
-          disableOnInteraction: true,
-          pauseOnMouseEnter: true,
-        }}
-        speed={800}
+        // Removed autoplay – user controls manually
+        speed={700}
         loop
         breakpoints={{
-          480: { slidesPerView: 1.2, spaceBetween: 12 },
-          640: { slidesPerView: 1.5, spaceBetween: 20 },
-          768: { slidesPerView: 2, spaceBetween: 24 },
-          1024: { slidesPerView: 2.5, spaceBetween: 30 },
-          1280: { slidesPerView: 3, spaceBetween: 32 },
+          480: { slidesPerView: 1.2, spaceBetween: 8 },
+          640: { slidesPerView: 1.5, spaceBetween: 12 },
+          768: { slidesPerView: 2, spaceBetween: 16 },
+          1024: { slidesPerView: 2.5, spaceBetween: 20 },
+          1280: { slidesPerView: 3, spaceBetween: 24 },
         }}
-        className="hero-slider"
+        className="featured-slider"
       >
         {posts.map((post) => (
-          <SwiperSlide key={post.id || post._id} className="py-4">
+          <SwiperSlide key={post.id || post._id} className="py-2">
             {({ isActive }) => <Card post={post} isActive={isActive} />}
           </SwiperSlide>
         ))}
@@ -228,8 +268,8 @@ const FeaturedStories = () => {
   };
 
   return (
-    <div className="relative w-full bg-gradient-to-b from-gray-50/50 to-white dark:from-zinc-900/50 dark:to-zinc-900 py-8 sm:py-12 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+    <div className="w-full bg-white py-4 sm:py-6 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5">
         {renderHeader()}
         {renderContent()}
       </div>
@@ -239,36 +279,41 @@ const FeaturedStories = () => {
         @keyframes shimmer {
           100% { transform: translateX(100%); }
         }
-        .hero-slider .swiper-slide {
-          width: 260px;
+        .featured-slider .swiper-slide {
+          width: 240px;
           transition-property: transform, opacity, filter;
           transition-duration: 700ms;
           transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
         @media (min-width: 480px) {
-          .hero-slider .swiper-slide {
-            width: 280px;
+          .featured-slider .swiper-slide {
+            width: 260px;
           }
         }
         @media (min-width: 640px) {
-          .hero-slider .swiper-slide {
-            width: 300px;
+          .featured-slider .swiper-slide {
+            width: 280px;
           }
         }
         @media (min-width: 768px) {
-          .hero-slider .swiper-slide {
-            width: 340px;
+          .featured-slider .swiper-slide {
+            width: 320px;
           }
         }
         @media (min-width: 1024px) {
-          .hero-slider .swiper-slide {
-            width: 380px;
+          .featured-slider .swiper-slide {
+            width: 360px;
           }
         }
         @media (min-width: 1280px) {
-          .hero-slider .swiper-slide {
-            width: 420px;
+          .featured-slider .swiper-slide {
+            width: 400px;
           }
+        }
+        /* Remove all rounded corners globally for this component */
+        .featured-slider .swiper-slide,
+        .featured-slider .swiper-slide * {
+          border-radius: 0 !important;
         }
       `}</style>
     </div>
