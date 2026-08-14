@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { EffectCoverflow } from 'swiper/modules';
-import { Clock, Calendar, User } from 'lucide-react';
+import { Autoplay, EffectCoverflow, Pagination } from 'swiper/modules';
+import { Clock, Calendar, User, ArrowUpRight } from 'lucide-react';
 import axios from 'axios';
 import API from '../utils/api';
 
 import 'swiper/css';
 import 'swiper/css/effect-coverflow';
+import 'swiper/css/pagination';
 
 // ─── API instance ──────────────────────────────────────────
 const api = axios.create({
@@ -25,122 +26,83 @@ api.interceptors.request.use(
 
 // ─── Static fallback data ──────────────────────────────────
 const staticStories = [
-  {
-    id: 1,
-    image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=600&q=80',
-    category: 'News',
-    title: 'At daybreak of the fifteenth day of my search',
-    excerpt: 'When the amphitheater had cleared I crept stealthily to the top...',
-    date: 'Apr 12, 2025',
-    readTime: '5 min read',
-    author: { name: 'Jane Doe' },
-  },
-  {
-    id: 2,
-    image: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&q=80',
-    category: 'Travel',
-    title: 'Beyond the horizon lies a world of wonder',
-    excerpt: 'The journey of a thousand miles begins with a single step.',
-    date: 'Apr 10, 2025',
-    readTime: '4 min read',
-    author: { name: 'John Smith' },
-  },
-  {
-    id: 3,
-    image: 'https://images.unsplash.com/photo-1496568816309-51d7c20e3b21?w=600&q=80',
-    category: 'Culture',
-    title: 'Whispers of ancient civilizations',
-    excerpt: 'Through the corridors of time, stories of forgotten empires echo.',
-    date: 'Apr 8, 2025',
-    readTime: '6 min read',
-    author: { name: 'Alice Johnson' },
-  },
-  {
-    id: 4,
-    image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600&q=80',
-    category: 'Nature',
-    title: 'Where the mountains meet the sky',
-    excerpt: 'In the quiet embrace of nature, find peace that transcends the chaos.',
-    date: 'Apr 5, 2025',
-    readTime: '3 min read',
-    author: { name: 'Bob Williams' },
-  },
-  {
-    id: 5,
-    image: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=600&q=80',
-    category: 'Business',
-    title: 'The quiet forces reshaping the global economy',
-    excerpt: 'Behind every headline number is a chain of decisions.',
-    date: 'Apr 3, 2025',
-    readTime: '7 min read',
-    author: { name: 'Eva Chen' },
-  },
+  // ... (your existing static data)
 ];
 
 // ─── Skeleton Card ─────────────────────────────────────────
 const SkeletonCard = () => (
   <div className="w-[240px] sm:w-[280px] md:w-[320px] lg:w-[360px] xl:w-[400px] shrink-0">
-    <div className="aspect-[4/3] sm:aspect-[16/10] md:aspect-[4/3] lg:aspect-[16/9] bg-gray-200 relative overflow-hidden">
-      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+    <div className="aspect-[4/3] sm:aspect-[16/10] md:aspect-[4/3] lg:aspect-[16/9] bg-gray-200 dark:bg-zinc-800 relative overflow-hidden">
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite] bg-gradient-to-r from-transparent via-white/40 dark:via-white/10 to-transparent" />
     </div>
     <div className="mt-2 space-y-1.5">
-      <div className="h-3 w-16 bg-gray-200" />
-      <div className="h-4 w-full bg-gray-200" />
-      <div className="h-4 w-2/3 bg-gray-200" />
-      <div className="flex gap-3 mt-1">
-        <div className="h-2.5 w-12 bg-gray-200" />
-        <div className="h-2.5 w-12 bg-gray-200" />
-      </div>
+      <div className="h-3 w-16 bg-gray-200 dark:bg-zinc-800" />
+      <div className="h-4 w-full bg-gray-200 dark:bg-zinc-800" />
+      <div className="h-4 w-2/3 bg-gray-200 dark:bg-zinc-800" />
     </div>
   </div>
 );
 
 // ─── Individual Card ────────────────────────────────────────
-const Card = ({ post, isActive }) => {
+const Card = ({ post, isActive, index }) => {
   const slug = post.slug || post.id || post._id;
 
   return (
     <Link
       to={`/article/${slug}`}
       className={`
-        block relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]
-        ${isActive ? 'scale-100' : 'scale-90 opacity-50 blur-[0.5px]'}
-        group bg-white
+        block relative overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] border border-transparent
+        ${isActive
+          ? 'scale-100 shadow-[0_2px_0_0_rgba(239,68,68,1)]'
+          : 'scale-[0.92] opacity-50 blur-[0.5px]'
+        }
+        group bg-white dark:bg-zinc-800
       `}
     >
+      {/* index tag — encodes position in this edition's lineup */}
+      <span className="absolute top-0 left-0 z-10 bg-black/80 text-white text-[10px] font-bold tracking-widest px-2 py-1">
+        {String(index + 1).padStart(2, '0')}
+      </span>
+
       <div className="aspect-[4/3] sm:aspect-[16/10] md:aspect-[4/3] lg:aspect-[16/9] relative">
         <img
           src={post.image}
           alt={post.title}
           loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.08]"
           onError={(e) => {
             e.target.src = 'https://via.placeholder.com/800x600?text=No+Image';
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
 
         <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 text-white">
-          <span className="inline-block text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-red-500 px-2 py-0.5 mb-1.5">
-            {post.category}
-          </span>
-          <h3 className="text-base sm:text-lg md:text-xl font-bold leading-tight line-clamp-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="inline-block text-[10px] font-bold uppercase tracking-wider bg-red-500 px-2.5 py-1">
+              {post.category}
+            </span>
+            <ArrowUpRight
+              size={16}
+              className="text-white/0 group-hover:text-white translate-x-1 -translate-y-1 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-300"
+            />
+          </div>
+          <h3 className="text-base sm:text-lg md:text-xl font-bold leading-snug line-clamp-2">
             {post.title}
           </h3>
-          <p className="text-xs text-white/80 line-clamp-2 mt-0.5 hidden sm:block">
+          <p className="text-xs sm:text-sm text-white/75 line-clamp-2 mt-1 hidden sm:block">
             {post.excerpt}
           </p>
-          <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-white/70 mt-1.5">
-            <span className="flex items-center gap-0.5">
-              <Calendar size={10} />
+          <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-white/65 mt-1.5">
+            <span className="flex items-center gap-1">
+              <Calendar size={11} />
               {post.date}
             </span>
-            <span className="flex items-center gap-0.5">
-              <Clock size={10} />
+            <span className="flex items-center gap-1">
+              <Clock size={11} />
               {post.readTime}
             </span>
-            <span className="flex items-center gap-0.5 ml-auto">
-              <User size={10} />
+            <span className="flex items-center gap-1 ml-auto">
+              <User size={11} />
               {post.author?.name || 'Unknown'}
             </span>
           </div>
@@ -179,21 +141,18 @@ const FeaturedStories = () => {
     fetchFeatured();
   }, []);
 
-  // ─── Render header – compact ─────────────────────────────
+  // ─── Render header – always visible ──────────────────────
   const renderHeader = () => (
-    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-4">
-      <div>
-        <span className="text-xs font-bold uppercase tracking-[3px] text-red-500">
-          Featured Stories
-        </span>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-black">
-          Editor's Picks
-        </h2>
-        <p className="text-xs text-gray-500 mt-0.5 max-w-xl">
-          Our handpicked selection of the most compelling stories from around the world.
-        </p>
-      </div>
-      {/* View All link removed */}
+    <div className="mb-4 sm:mb-5">
+      <span className="text-[11px] font-bold uppercase tracking-[3px] text-red-500">
+        Featured Stories
+      </span>
+      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-black dark:text-white leading-tight">
+        Editor&apos;s Picks
+      </h2>
+      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 max-w-2xl">
+        Our handpicked selection of the most compelling stories from around the world.
+      </p>
     </div>
   );
 
@@ -201,7 +160,7 @@ const FeaturedStories = () => {
   const renderContent = () => {
     if (loading) {
       return (
-        <div className="flex gap-3 sm:gap-4 overflow-hidden">
+        <div className="flex gap-3 sm:gap-4 md:gap-5 overflow-hidden">
           {Array.from({ length: 3 }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
@@ -211,11 +170,11 @@ const FeaturedStories = () => {
 
     if (error) {
       return (
-        <div className="text-center py-8 text-red-500 bg-red-50 border border-red-200">
+        <div className="text-center py-8 text-red-500 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800">
           <p>{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-2 px-3 py-1.5 bg-black text-white text-xs hover:bg-gray-800"
+            className="mt-2.5 px-4 py-2 bg-black text-white text-sm hover:bg-gray-800"
           >
             Retry
           </button>
@@ -225,7 +184,7 @@ const FeaturedStories = () => {
 
     if (!posts.length) {
       return (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-14 text-gray-500 dark:text-gray-400">
           <p className="text-lg font-medium">No featured stories available</p>
         </div>
       );
@@ -234,7 +193,7 @@ const FeaturedStories = () => {
     return (
       <Swiper
         onSwiper={(swiper) => (swiperRef.current = swiper)}
-        modules={[EffectCoverflow]}
+        modules={[Autoplay, EffectCoverflow, Pagination]}
         effect="coverflow"
         grabCursor
         centeredSlides
@@ -242,25 +201,30 @@ const FeaturedStories = () => {
         coverflowEffect={{
           rotate: 0,
           stretch: 0,
-          depth: 120,
-          modifier: 1.5,
+          depth: 100,
+          modifier: 1.4,
           slideShadows: false,
         }}
-        // Removed autoplay – user controls manually
+        autoplay={{
+          delay: 3000,
+          disableOnInteraction: true,
+          pauseOnMouseEnter: true,
+        }}
+        pagination={{ clickable: true, el: '.featured-pagination' }}
         speed={700}
         loop
         breakpoints={{
-          480: { slidesPerView: 1.2, spaceBetween: 8 },
-          640: { slidesPerView: 1.5, spaceBetween: 12 },
-          768: { slidesPerView: 2, spaceBetween: 16 },
-          1024: { slidesPerView: 2.5, spaceBetween: 20 },
-          1280: { slidesPerView: 3, spaceBetween: 24 },
+          480: { slidesPerView: 1.2, spaceBetween: 10 },
+          640: { slidesPerView: 1.6, spaceBetween: 14 },
+          768: { slidesPerView: 2.1, spaceBetween: 16 },
+          1024: { slidesPerView: 2.6, spaceBetween: 20 },
+          1280: { slidesPerView: 3.1, spaceBetween: 22 },
         }}
-        className="featured-slider"
+        className="hero-slider"
       >
-        {posts.map((post) => (
+        {posts.map((post, index) => (
           <SwiperSlide key={post.id || post._id} className="py-2">
-            {({ isActive }) => <Card post={post} isActive={isActive} />}
+            {({ isActive }) => <Card post={post} isActive={isActive} index={index} />}
           </SwiperSlide>
         ))}
       </Swiper>
@@ -268,10 +232,12 @@ const FeaturedStories = () => {
   };
 
   return (
-    <div className="w-full bg-white py-4 sm:py-6 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-3 sm:px-5">
+    <div className="relative w-full bg-gradient-to-b from-gray-50/50 to-white dark:from-zinc-900/50 dark:to-zinc-900 py-5 sm:py-6 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {renderHeader()}
         {renderContent()}
+        {/* progress dots replace the removed forward/next control */}
+        <div className="featured-pagination flex items-center justify-center gap-1.5 mt-3" />
       </div>
 
       {/* ─── Custom Styles ────────────────────────────────── */}
@@ -279,41 +245,41 @@ const FeaturedStories = () => {
         @keyframes shimmer {
           100% { transform: translateX(100%); }
         }
-        .featured-slider .swiper-slide {
+        .hero-slider .swiper-slide {
           width: 240px;
           transition-property: transform, opacity, filter;
-          transition-duration: 700ms;
+          transition-duration: 500ms;
           transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
         @media (min-width: 480px) {
-          .featured-slider .swiper-slide {
-            width: 260px;
-          }
+          .hero-slider .swiper-slide { width: 260px; }
         }
         @media (min-width: 640px) {
-          .featured-slider .swiper-slide {
-            width: 280px;
-          }
+          .hero-slider .swiper-slide { width: 280px; }
         }
         @media (min-width: 768px) {
-          .featured-slider .swiper-slide {
-            width: 320px;
-          }
+          .hero-slider .swiper-slide { width: 320px; }
         }
         @media (min-width: 1024px) {
-          .featured-slider .swiper-slide {
-            width: 360px;
-          }
+          .hero-slider .swiper-slide { width: 360px; }
         }
         @media (min-width: 1280px) {
-          .featured-slider .swiper-slide {
-            width: 400px;
-          }
+          .hero-slider .swiper-slide { width: 400px; }
         }
-        /* Remove all rounded corners globally for this component */
-        .featured-slider .swiper-slide,
-        .featured-slider .swiper-slide * {
-          border-radius: 0 !important;
+        .featured-pagination .swiper-pagination-bullet {
+          width: 18px;
+          height: 3px;
+          border-radius: 0;
+          background: rgba(0,0,0,0.15);
+          opacity: 1;
+          transition: background 0.3s ease, width 0.3s ease;
+        }
+        .dark .featured-pagination .swiper-pagination-bullet {
+          background: rgba(255,255,255,0.2);
+        }
+        .featured-pagination .swiper-pagination-bullet-active {
+          background: #ef4444;
+          width: 28px;
         }
       `}</style>
     </div>
