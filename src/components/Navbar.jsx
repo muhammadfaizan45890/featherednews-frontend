@@ -330,7 +330,7 @@ const Navbar = () => {
   // ─── Render ──────────────────────────────────────────
   return (
     <header
-      className={`w-full bg-white sticky top-0 z-50 ${isScrolled ? "shadow-sm" : ""}`}
+      className={`w-full bg-white sticky top-0 z-50 transition-shadow duration-300 ease-in-out ${isScrolled ? "shadow-sm" : ""}`}
     >
       {/* ─── Live Date/Time Bar ──────────────────────────── */}
       <div className="border-b border-gray-800 bg-black">
@@ -355,16 +355,18 @@ const Navbar = () => {
             <button
               ref={menuButtonRef}
               onClick={toggleSidebar}
-              className="hover:text-black rounded-full p-1"
+              className="hover:text-black rounded-full p-1 transition-colors duration-200 ease-in-out"
               aria-label={sidebarOpen ? "Close menu" : "Open menu"}
               aria-expanded={sidebarOpen}
               aria-controls="sidebar-drawer"
             >
-              {sidebarOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+              <span className="inline-flex transition-transform duration-200 ease-in-out">
+                {sidebarOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+              </span>
             </button>
             <button
               onClick={() => setSearchOpen((v) => !v)}
-              className="hover:text-black rounded-full p-1"
+              className="hover:text-black rounded-full p-1 transition-colors duration-200 ease-in-out"
               aria-label="Toggle search"
             >
               <FiSearch size={18} className="sm:size-5" />
@@ -374,7 +376,7 @@ const Navbar = () => {
           {/* ─── Logo (clickable) ────────────────────────── */}
           <Link
             to="/"
-            className="absolute left-1/2 -translate-x-1/2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded"
+            className="absolute left-1/2 -translate-x-1/2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded transition-opacity duration-200 ease-in-out hover:opacity-80"
           >
             <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3">
               <FiFeather className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl text-black" />
@@ -395,28 +397,28 @@ const Navbar = () => {
               <a
                 href="#"
                 aria-label="Facebook"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out"
               >
                 <FaFacebookF size={16} />
               </a>
               <a
                 href="https://x.com/feathered_pen"
                 aria-label="Twitter"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out"
               >
                 <FaXTwitter size={16} />
               </a>
               <a
                 href="#"
                 aria-label="Instagram"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out"
               >
                 <FaInstagram size={16} />
               </a>
               <a
                 href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
                 aria-label="YouTube"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out"
               >
                 <FaYoutube size={16} />
               </a>
@@ -427,10 +429,10 @@ const Navbar = () => {
               <div className="flex items-center gap-3">
                 <Link
                   to={profileRoute}
-                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 group"
+                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 group transition-colors duration-200 ease-in-out"
                 >
                   <div className="relative">
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="h-8 w-8 transition-transform duration-200 ease-in-out group-hover:scale-105">
                       <AvatarImage src={getAvatarUrl(user?.avatar)} />
                       <AvatarFallback className="bg-gray-200 text-gray-700 text-xs font-bold">
                         {getUserInitials()}
@@ -446,7 +448,7 @@ const Navbar = () => {
               <div className="flex items-center gap-2">
                 <Link
                   to="/login"
-                  className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-gray-600 hover:text-black"
+                  className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-gray-600 hover:text-black transition-colors duration-200 ease-in-out"
                   aria-label="Log in"
                 >
                   <User size={20} className="sm:size-[22px]" />
@@ -462,7 +464,7 @@ const Navbar = () => {
             <div className="flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <Link
                 to="/news"
-                className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border ${
+                className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all duration-200 ease-in-out ${
                   location.pathname === "/news" && !new URLSearchParams(location.search).get("category")
                     ? "bg-black text-white border-black"
                     : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
@@ -476,7 +478,7 @@ const Navbar = () => {
                   <Link
                     key={cat}
                     to={`/news?category=${encodeURIComponent(cat)}`}
-                    className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border ${
+                    className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all duration-200 ease-in-out ${
                       active
                         ? "bg-black text-white border-black"
                         : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
@@ -509,7 +511,7 @@ const Navbar = () => {
                 <Link
                   key={item.label}
                   to={item.link}
-                  className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border ${
+                  className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all duration-200 ease-in-out ${
                     isActive
                       ? "bg-black text-white border-black"
                       : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
@@ -527,8 +529,8 @@ const Navbar = () => {
 
       {/* ─── Search Bar ────────────────────────────────────── */}
       <div
-        className={`overflow-hidden ${
-          searchOpen ? "max-h-20 border-t border-gray-200" : "max-h-0"
+        className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${
+          searchOpen ? "max-h-20 opacity-100 border-t border-gray-200" : "max-h-0 opacity-0"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-3">
@@ -540,7 +542,7 @@ const Navbar = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search articles, topics, or keywords..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md transition-colors duration-200 ease-in-out focus:border-black"
               aria-label="Search"
             />
           </form>
@@ -549,8 +551,8 @@ const Navbar = () => {
 
       {/* ─── Sidebar (Drawer) – visible on all screens ── */}
       <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 ${
-          sidebarOpen ? "block" : "hidden"
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 ease-in-out ${
+          sidebarOpen ? "opacity-100 block" : "opacity-0 hidden"
         }`}
         onClick={closeSidebar}
         aria-hidden="true"
@@ -562,7 +564,7 @@ const Navbar = () => {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`fixed top-0 right-0 h-full w-[280px] sm:w-[320px] max-w-[85vw] bg-white z-50 ${
+        className={`fixed top-0 right-0 h-full w-[280px] sm:w-[320px] max-w-[85vw] bg-white z-50 transition-transform duration-300 ease-in-out will-change-transform ${
           sidebarOpen ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
@@ -580,7 +582,7 @@ const Navbar = () => {
             <button
               ref={closeButtonRef}
               onClick={closeSidebar}
-              className="p-2 hover:bg-gray-200 rounded-full"
+              className="p-2 hover:bg-gray-200 rounded-full transition-colors duration-200 ease-in-out"
               aria-label="Close menu"
             >
               <FiX size={24} />
@@ -595,7 +597,7 @@ const Navbar = () => {
                 onClick={closeSidebar}
                 className="flex items-center gap-3 group"
               >
-                <Avatar className="h-12 w-12">
+                <Avatar className="h-12 w-12 transition-transform duration-200 ease-in-out group-hover:scale-105">
                   <AvatarImage src={getAvatarUrl(user?.avatar)} />
                   <AvatarFallback className="bg-gray-200 text-gray-700 text-sm font-bold">
                     {getUserInitials()}
@@ -612,7 +614,7 @@ const Navbar = () => {
                     </span>
                   )}
                 </div>
-                <FiChevronRight className="text-gray-400 group-hover:text-black" size={18} />
+                <FiChevronRight className="text-gray-400 group-hover:text-black transition-all duration-200 ease-in-out group-hover:translate-x-0.5" size={18} />
               </Link>
             </div>
           )}
@@ -631,21 +633,21 @@ const Navbar = () => {
                     <li key={item.label} className="border-b border-gray-100 last:border-0">
                       <button
                         onClick={() => toggleMobileDropdown(item.label)}
-                        className={`flex items-center w-full px-4 py-3 text-left hover:bg-gray-50 ${
+                        className={`flex items-center w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-200 ease-in-out ${
                           isActive ? "bg-gray-50" : ""
                         }`}
                         aria-expanded={isOpen}
                       >
                         <span className="flex-1 font-medium text-gray-700">{item.label}</span>
                         <FiChevronDown
-                          className={`transform ${
+                          className={`transform transition-transform duration-300 ease-in-out ${
                             isOpen ? "rotate-180" : ""
                           } text-gray-400`}
                           size={16}
                         />
                       </button>
                       <div
-                        className={`overflow-hidden ${
+                        className={`overflow-hidden transition-[max-height] duration-300 ease-in-out ${
                           isOpen ? "max-h-[500px]" : "max-h-0"
                         }`}
                       >
@@ -654,7 +656,7 @@ const Navbar = () => {
                             <li key={sub.label}>
                               <Link
                                 to={sub.link}
-                                className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black"
+                                className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition-colors duration-200 ease-in-out"
                                 onClick={closeSidebar}
                               >
                                 {sub.label}
@@ -671,7 +673,7 @@ const Navbar = () => {
                   <li key={item.label}>
                     <Link
                       to={item.link}
-                      className={`flex items-center px-4 py-3 hover:bg-gray-50 ${
+                      className={`flex items-center px-4 py-3 hover:bg-gray-50 transition-colors duration-200 ease-in-out ${
                         isActive ? "bg-gray-50 text-black" : "text-gray-700"
                       }`}
                       onClick={closeSidebar}
@@ -692,28 +694,28 @@ const Navbar = () => {
               <a
                 href="#"
                 aria-label="Facebook"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out"
               >
                 <FaFacebookF size={16} />
               </a>
               <a
                 href="https://x.com/feathered_pen"
                 aria-label="Twitter"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out"
               >
                 <FaXTwitter size={16} />
               </a>
               <a
                 href="#"
                 aria-label="Instagram"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out"
               >
                 <FaInstagram size={16} />
               </a>
               <a
                 href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
                 aria-label="YouTube"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600"
+                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out"
               >
                 <FaYoutube size={16} />
               </a>
@@ -724,7 +726,7 @@ const Navbar = () => {
                   {userRole === "admin" && (
                     <Link
                       to="/admin/dashboard"
-                      className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700"
+                      className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors duration-200 ease-in-out"
                       onClick={closeSidebar}
                     >
                       Admin Panel
@@ -732,7 +734,7 @@ const Navbar = () => {
                   )}
                   <button
                     onClick={logoutHandler}
-                    className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700"
+                    className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition-colors duration-200 ease-in-out"
                   >
                     Sign Out
                   </button>
@@ -741,7 +743,7 @@ const Navbar = () => {
                 <div className="flex gap-2">
                   <Link
                     to="/login"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors duration-200 ease-in-out"
                     onClick={closeSidebar}
                   >
                     <FiLogIn size={16} />
@@ -749,7 +751,7 @@ const Navbar = () => {
                   </Link>
                   <Link
                     to="/signup"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors duration-200 ease-in-out"
                     onClick={closeSidebar}
                   >
                     <FiUser size={16} />
