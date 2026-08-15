@@ -118,6 +118,13 @@ const staticSlides = [
 const SLIDE_DURATION = 2500;
 const INPUT_LOCK_MS = 200;
 
+// ─── Hero height: unchanged on mobile/tablet, shorter on desktop (lg+) ──
+// Below `lg` this keeps its original fluid clamp() behavior.
+// From `lg` up, height steps down and scales more gently, since desktop
+// viewports don't need a hero this tall to feel "above the fold".
+const HERO_HEIGHT_CLASSES =
+  "h-[clamp(220px,50vw,640px)] lg:h-[400px] xl:h-[440px] 2xl:h-[470px]";
+
 const Hero = () => {
   const [slides, setSlides] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -284,10 +291,7 @@ const Hero = () => {
     return (
       <section className="w-full bg-white py-4 md:py-6 lg:py-8">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div
-            className="w-full bg-gray-200 animate-pulse"
-            style={{ height: "clamp(220px, 50vw, 640px)" }}
-          />
+          <div className={`w-full bg-gray-200 animate-pulse ${HERO_HEIGHT_CLASSES}`} />
         </div>
       </section>
     );
@@ -316,10 +320,7 @@ const Hero = () => {
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative w-full overflow-hidden bg-black">
           {/* ─── Slide wrapper ────────────────────────── */}
-          <div
-            className="relative w-full"
-            style={{ height: "clamp(220px, 50vw, 640px)" }}
-          >
+          <div className={`relative w-full ${HERO_HEIGHT_CLASSES}`}>
             <div
               className="absolute inset-0 flex"
               style={{
