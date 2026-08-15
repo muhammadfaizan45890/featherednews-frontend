@@ -89,10 +89,12 @@ const Card = ({ post, isActive, index }) => {
           <h3 className="text-base sm:text-lg md:text-xl font-bold leading-snug line-clamp-2">
             {post.title}
           </h3>
-          {/* ✅ Excerpt now shows on all screen sizes, limited to 2 lines + ellipsis */}
+
+          {/* ✅ Excerpt: always visible, two lines with ellipsis, responsive text size */}
           <p className="text-xs sm:text-sm text-white/75 line-clamp-2 mt-1">
             {post.excerpt}
           </p>
+
           <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-white/65 mt-1.5">
             <span className="flex items-center gap-1">
               <Calendar size={11} />
