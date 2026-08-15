@@ -10,6 +10,8 @@ import {
   FiClock,
   FiPlay,
   FiPause,
+  FiChevronLeft,
+  FiChevronRight,
   FiFacebook,
   FiTwitter,
   FiLinkedin,
@@ -188,23 +190,23 @@ const CommentItem = ({ comment, onReply, onLike, onDelete, currentUser, isRoot =
   const isOwnComment = currentUser?._id === comment.author?._id;
 
   return (
-    <div className="border-b border-[var(--rule)] last:border-0 py-4 sm:py-5">
-      <div className="flex gap-3">
+    <div className="border-b border-[var(--rule)] last:border-0 py-4 sm:py-5 transition-colors duration-200">
+      <div className="flex gap-2.5 sm:gap-3">
         {avatarUrl ? (
           <img
             src={avatarUrl}
             alt={authorDisplay}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0 ring-1 ring-[var(--rule)]"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0 ring-1 ring-[var(--rule)]"
           />
         ) : (
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[var(--accent-soft)] flex items-center justify-center text-[var(--accent)] font-semibold text-sm flex-shrink-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[var(--accent-soft)] flex items-center justify-center text-[var(--accent)] font-semibold text-xs sm:text-sm flex-shrink-0">
             {authorDisplay.charAt(0).toUpperCase()}
           </div>
         )}
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="font-semibold text-[var(--ink)] text-sm">{authorDisplay}</span>
-            <span className="text-xs text-[var(--ink-faint)]">
+            <span className="font-semibold text-[var(--ink)] text-xs sm:text-sm">{authorDisplay}</span>
+            <span className="text-[10px] sm:text-xs text-[var(--ink-faint)]">
               {new Date(comment.createdAt).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
@@ -214,28 +216,28 @@ const CommentItem = ({ comment, onReply, onLike, onDelete, currentUser, isRoot =
             {isOwnComment && (
               <button
                 onClick={() => onDelete(comment._id)}
-                className="text-[var(--ink-faint)] hover:text-[var(--accent)] text-xs ml-auto"
+                className="text-[var(--ink-faint)] hover:text-[var(--accent)] text-xs ml-auto transition-colors duration-200 p-1 -m-1 rounded"
                 aria-label="Delete comment"
               >
                 <FiTrash2 size={14} />
               </button>
             )}
           </div>
-          <p className="text-[var(--ink)] text-sm mt-1.5 break-words leading-relaxed">
+          <p className="text-[var(--ink)] text-[13px] sm:text-sm mt-1.5 break-words leading-relaxed">
             {comment.content}
           </p>
           <div className="flex items-center gap-4 mt-2.5 flex-wrap">
             <button
               onClick={handleLikeClick}
-              className="flex items-center gap-1.5 text-xs text-[var(--ink-faint)] hover:text-[var(--accent)]"
+              className="flex items-center gap-1.5 text-xs text-[var(--ink-faint)] hover:text-[var(--accent)] transition-colors duration-200"
             >
-              <FiHeart size={14} className={comment.liked ? 'fill-[var(--accent)] text-[var(--accent)]' : ''} />
+              <FiHeart size={14} className={`transition-all duration-200 ${comment.liked ? 'fill-[var(--accent)] text-[var(--accent)] scale-110' : ''}`} />
               <span>{comment.likes || 0}</span>
             </button>
             {isRoot && (
               <button
                 onClick={handleReplyClick}
-                className="flex items-center gap-1.5 text-xs text-[var(--ink-faint)] hover:text-[var(--ink)]"
+                className="flex items-center gap-1.5 text-xs text-[var(--ink-faint)] hover:text-[var(--ink)] transition-colors duration-200"
               >
                 <FiCornerUpLeft size={14} />
                 <span>Reply</span>
@@ -244,20 +246,20 @@ const CommentItem = ({ comment, onReply, onLike, onDelete, currentUser, isRoot =
           </div>
 
           {showReplyForm && (
-            <form onSubmit={handleReplySubmit} className="mt-3 flex gap-2">
+            <form onSubmit={handleReplySubmit} className="mt-3 flex gap-2 animate-[fadeIn_0.2s_ease-in-out]">
               <input
                 type="text"
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder="Write a reply…"
-                className="flex-1 px-3 py-2 border border-[var(--rule)] bg-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                className="flex-1 min-w-0 px-3 py-2 border border-[var(--rule)] bg-white rounded-md text-sm transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                 disabled={submitting}
                 autoFocus
               />
               <button
                 type="submit"
                 disabled={submitting || !replyText.trim()}
-                className="px-3 py-2 bg-[var(--ink)] text-white rounded-md text-sm hover:bg-[var(--accent)] disabled:opacity-40"
+                className="px-3 py-2 bg-[var(--ink)] text-white rounded-md text-sm hover:bg-[var(--accent)] disabled:opacity-40 transition-colors duration-200 flex-shrink-0"
               >
                 {submitting ? '…' : <FiSend size={15} />}
               </button>
@@ -265,7 +267,7 @@ const CommentItem = ({ comment, onReply, onLike, onDelete, currentUser, isRoot =
           )}
 
           {comment.replies && comment.replies.length > 0 && (
-            <div className="ml-4 sm:ml-6 mt-3 pl-3 sm:pl-4 border-l-2 border-[var(--rule)] space-y-1">
+            <div className="ml-3 sm:ml-6 mt-3 pl-3 sm:pl-4 border-l-2 border-[var(--rule)] space-y-1">
               {comment.replies.map((reply) => (
                 <CommentItem
                   key={reply._id}
@@ -300,6 +302,7 @@ const FeaturedDetail = () => {
   const [progress, setProgress] = useState(0);
   const [readProgress, setReadProgress] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const articleRef = useRef(null);
   const autoPlayRef = useRef(null);
 
@@ -526,6 +529,7 @@ const FeaturedDetail = () => {
       const scrolled = -rect.top;
       const pct = total > 0 ? Math.min(Math.max(scrolled / total, 0), 1) * 100 : 0;
       setReadProgress(pct);
+      setShowBackToTop(window.scrollY > 640);
     };
     window.addEventListener('scroll', handleReadProgress, { passive: true });
     handleReadProgress();
@@ -562,6 +566,8 @@ const FeaturedDetail = () => {
     }
   };
 
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
   const { html: descriptionHtml, toc } = useMemo(
     () => injectHeadingIds(post?.description || ''),
     [post?.description]
@@ -572,12 +578,12 @@ const FeaturedDetail = () => {
   if (loading) {
     return (
       <div style={TOKENS} className="min-h-screen bg-[var(--paper)]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
-          <div className="animate-pulse space-y-6">
-            <div className="h-3 w-24 bg-[var(--paper-dim)] rounded" />
-            <div className="h-10 w-3/4 bg-[var(--paper-dim)] rounded" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+          <div className="animate-pulse space-y-5 sm:space-y-6">
+            <div className="h-3 w-20 sm:w-24 bg-[var(--paper-dim)] rounded" />
+            <div className="h-8 sm:h-10 w-3/4 bg-[var(--paper-dim)] rounded" />
             <div className="h-4 w-1/2 bg-[var(--paper-dim)] rounded" />
-            <div className="h-72 w-full bg-[var(--paper-dim)] rounded" />
+            <div className="h-56 sm:h-72 w-full bg-[var(--paper-dim)] rounded" />
             <div className="space-y-3">
               <div className="h-4 w-full bg-[var(--paper-dim)] rounded" />
               <div className="h-4 w-full bg-[var(--paper-dim)] rounded" />
@@ -591,16 +597,16 @@ const FeaturedDetail = () => {
 
   if (error || !post) {
     return (
-      <div style={TOKENS} className="min-h-screen bg-[var(--paper)] flex items-center">
+      <div style={TOKENS} className="min-h-screen bg-[var(--paper)] flex items-center px-4">
         <div className="max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
-          <div className="text-5xl mb-4">📰</div>
-          <h2 className="text-2xl font-bold text-[var(--ink)]">{error || 'Post not found'}</h2>
-          <p className="text-[var(--ink-soft)] mt-2">
+          <div className="text-4xl sm:text-5xl mb-4">📰</div>
+          <h2 className="text-xl sm:text-2xl font-bold text-[var(--ink)]">{error || 'Post not found'}</h2>
+          <p className="text-sm sm:text-base text-[var(--ink-soft)] mt-2">
             The story you're looking for doesn't exist or has been taken down.
           </p>
           <Link
             to="/articles" // ✅ Changed from /news to /articles
-            className="inline-block mt-6 px-6 py-2.5 border-2 border-[var(--ink)] text-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--paper)] font-medium"
+            className="inline-block mt-6 px-5 sm:px-6 py-2.5 border-2 border-[var(--ink)] text-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--paper)] font-medium text-sm sm:text-base transition-colors duration-200"
           >
             ← Back to Articles
           </Link>
@@ -623,104 +629,139 @@ const FeaturedDetail = () => {
     <div style={TOKENS} className="min-h-screen bg-[var(--paper)]">
       {/* ─── Reading progress rail ─────────────────────── */}
       <div className="fixed top-0 left-0 right-0 h-[3px] bg-[var(--paper-dim)] z-40">
-        <div className="h-full bg-[var(--accent)]" style={{ width: `${readProgress}%` }} />
+        <div
+          className="h-full bg-[var(--accent)] transition-[width] duration-150 ease-out"
+          style={{ width: `${readProgress}%` }}
+        />
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <div className="flex items-center justify-between mb-6 sm:mb-8">
+      {/* ─── Back to top (mobile + desktop) ────────────── */}
+      <button
+        onClick={scrollToTop}
+        aria-label="Back to top"
+        className={`fixed bottom-5 right-4 sm:bottom-8 sm:right-8 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[var(--ink)] text-white flex items-center justify-center shadow-lg hover:bg-[var(--accent)] transition-all duration-300 ${
+          showBackToTop ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-3 pointer-events-none'
+        }`}
+      >
+        <FiArrowUp size={18} />
+      </button>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 md:py-12">
+        <div className="flex items-center justify-between mb-5 sm:mb-8 gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-[var(--ink-soft)] hover:text-[var(--ink)] text-sm font-medium"
+            className="flex items-center gap-1.5 sm:gap-2 text-[var(--ink-soft)] hover:text-[var(--ink)] text-sm font-medium transition-colors duration-200 group"
           >
-            <FiArrowLeft size={18} />
+            <FiArrowLeft size={18} className="transition-transform duration-200 group-hover:-translate-x-0.5" />
             <span>Back</span>
           </button>
           <button
             onClick={toggleBookmark}
-            className="flex items-center gap-2 text-sm font-medium border border-[var(--rule)] px-3 py-1.5 rounded-full text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium border border-[var(--rule)] px-2.5 sm:px-3 py-1.5 rounded-full text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors duration-200"
           >
-            <FiBookmark size={15} className={bookmarked ? 'fill-[var(--accent)] text-[var(--accent)]' : ''} />
-            <span className="hidden sm:inline">{bookmarked ? 'Saved' : 'Save for later'}</span>
+            <FiBookmark size={15} className={`transition-all duration-200 ${bookmarked ? 'fill-[var(--accent)] text-[var(--accent)]' : ''}`} />
+            <span className="hidden xs:inline">{bookmarked ? 'Saved' : 'Save for later'}</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10 lg:gap-8 xl:gap-12">
           {/* ─── Main Content ────────────────────────────── */}
           <div className="lg:col-span-8">
             <article ref={articleRef}>
-              <div className="flex items-center gap-3 mb-4 flex-wrap">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1 rounded-sm">
+              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 flex-wrap">
+                <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1 rounded-sm">
                   {category}
                 </span>
                 {!isPublished && (
-                  <span className="text-xs font-medium bg-[var(--paper-dim)] text-[var(--ink-soft)] px-2.5 py-1 rounded-sm">
+                  <span className="text-[11px] sm:text-xs font-medium bg-[var(--paper-dim)] text-[var(--ink-soft)] px-2.5 py-1 rounded-sm">
                     Draft
                   </span>
                 )}
               </div>
 
-              <h1 className="text-3xl sm:text-4xl md:text-[2.75rem] font-bold text-[var(--ink)] leading-[1.12]">
+              <h1 className="text-[clamp(1.75rem,4.5vw,2.75rem)] font-bold text-[var(--ink)] leading-[1.14] tracking-tight">
                 {title}
               </h1>
 
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 text-sm text-[var(--ink-soft)] border-y border-[var(--rule)] py-3">
-                <span className="flex items-center gap-1.5"><FiCalendar size={15} />{date}</span>
-                <span className="flex items-center gap-1.5"><FiUser size={15} />{authorDisplay}</span>
-                <span className="flex items-center gap-1.5"><FiClock size={15} />{readingStats.minutes} min · {readingStats.words.toLocaleString()} words</span>
+              <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-5 gap-y-2 mt-4 sm:mt-5 text-xs sm:text-sm text-[var(--ink-soft)] border-y border-[var(--rule)] py-2.5 sm:py-3">
+                <span className="flex items-center gap-1.5"><FiCalendar size={14} className="flex-shrink-0" />{date}</span>
+                <span className="flex items-center gap-1.5"><FiUser size={14} className="flex-shrink-0" />{authorDisplay}</span>
+                <span className="flex items-center gap-1.5"><FiClock size={14} className="flex-shrink-0" />{readingStats.minutes} min · {readingStats.words.toLocaleString()} words</span>
               </div>
 
               {/* Share buttons */}
-              <div className="flex flex-wrap items-center gap-2.5 mt-4">
-                <span className="text-xs text-[var(--ink-faint)] uppercase tracking-wide mr-1">Share</span>
-                <button onClick={shareOnFacebook} aria-label="Share on Facebook" className="w-8 h-8 rounded-full border border-[var(--rule)] flex items-center justify-center text-[var(--ink-soft)] hover:bg-[#1877F2] hover:text-white hover:border-[#1877F2]"><FiFacebook size={15} /></button>
-                <button onClick={shareOnTwitter} aria-label="Share on X" className="w-8 h-8 rounded-full border border-[var(--rule)] flex items-center justify-center text-[var(--ink-soft)] hover:bg-[#111] hover:text-white hover:border-[#111]"><FiTwitter size={15} /></button>
-                <button onClick={shareOnLinkedIn} aria-label="Share on LinkedIn" className="w-8 h-8 rounded-full border border-[var(--rule)] flex items-center justify-center text-[var(--ink-soft)] hover:bg-[#0A66C2] hover:text-white hover:border-[#0A66C2]"><FiLinkedin size={15} /></button>
-                <button onClick={copyLink} aria-label="Copy link" className="w-8 h-8 rounded-full border border-[var(--rule)] flex items-center justify-center text-[var(--ink-soft)] hover:bg-[var(--ink)] hover:text-white hover:border-[var(--ink)]"><FiLink size={15} /></button>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 mt-4">
+                <span className="text-[11px] sm:text-xs text-[var(--ink-faint)] uppercase tracking-wide mr-1">Share</span>
+                <button onClick={shareOnFacebook} aria-label="Share on Facebook" className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[var(--rule)] flex items-center justify-center text-[var(--ink-soft)] hover:bg-[#1877F2] hover:text-white hover:border-[#1877F2] transition-colors duration-200"><FiFacebook size={14} /></button>
+                <button onClick={shareOnTwitter} aria-label="Share on X" className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[var(--rule)] flex items-center justify-center text-[var(--ink-soft)] hover:bg-[#111] hover:text-white hover:border-[#111] transition-colors duration-200"><FiTwitter size={14} /></button>
+                <button onClick={shareOnLinkedIn} aria-label="Share on LinkedIn" className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[var(--rule)] flex items-center justify-center text-[var(--ink-soft)] hover:bg-[#0A66C2] hover:text-white hover:border-[#0A66C2] transition-colors duration-200"><FiLinkedin size={14} /></button>
+                <button onClick={copyLink} aria-label="Copy link" className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[var(--rule)] flex items-center justify-center text-[var(--ink-soft)] hover:bg-[var(--ink)] hover:text-white hover:border-[var(--ink)] transition-colors duration-200"><FiLink size={14} /></button>
               </div>
 
               {/* Image Gallery */}
               {Array.isArray(images) && images.length > 0 && (
                 <div
-                  className="mt-6 relative group"
+                  className="mt-5 sm:mt-6 relative group"
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                   onTouchStart={handleTouchStart}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                 >
-                  <div className="overflow-hidden bg-[var(--paper-dim)]">
+                  <div className="overflow-hidden bg-[var(--paper-dim)] aspect-[4/3] xs:aspect-[16/10] sm:aspect-[16/9] md:aspect-[2/1]">
                     <img
                       src={images[currentImageIndex] || images[0]}
                       alt={title}
-                      className="w-full h-56 xs:h-64 sm:h-80 md:h-[26rem] object-cover"
+                      className="w-full h-full object-cover transition-opacity duration-300"
                     />
                   </div>
+
+                  {/* Prev/Next arrows — revealed on hover for pointer devices, always tappable via swipe on touch */}
+                  {hasMultipleImages && (
+                    <>
+                      <button
+                        onClick={handleImagePrev}
+                        aria-label="Previous image"
+                        className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-black/70 transition-all duration-200"
+                      >
+                        <FiChevronLeft size={18} />
+                      </button>
+                      <button
+                        onClick={handleImageNext}
+                        aria-label="Next image"
+                        className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-black/70 transition-all duration-200"
+                      >
+                        <FiChevronRight size={18} />
+                      </button>
+                    </>
+                  )}
+
                   {hasMultipleImages && (
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/30">
-                      <div className="h-full bg-white" style={{ width: `${progress}%` }} />
+                      <div className="h-full bg-white transition-[width] duration-150 ease-linear" style={{ width: `${progress}%` }} />
                     </div>
                   )}
-                  <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded-sm">
+                  <div className="absolute bottom-3 right-3 bg-black/70 text-white text-[10px] sm:text-xs px-2 py-1 rounded-sm">
                     {currentImageIndex + 1} / {images.length}
                   </div>
                   {hasMultipleImages && (
                     <button
                       onClick={() => setAutoPlay(!autoPlay)}
                       aria-label={autoPlay ? 'Pause slideshow' : 'Play slideshow'}
-                      className="absolute top-3 left-3 bg-black/70 text-white p-1.5 rounded-sm hover:bg-black/90"
+                      className="absolute top-3 left-3 bg-black/70 text-white p-1.5 rounded-sm hover:bg-black/90 transition-colors duration-200"
                     >
-                      {autoPlay ? <FiPause size={17} /> : <FiPlay size={17} />}
+                      {autoPlay ? <FiPause size={16} /> : <FiPlay size={16} />}
                     </button>
                   )}
                   {hasMultipleImages && (
-                    <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                    <div className="flex gap-1.5 sm:gap-2 mt-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                       {images.map((img, idx) => (
                         <button
                           key={idx}
                           onClick={() => goToImage(idx)}
                           aria-label={`Go to image ${idx + 1}`}
-                          className={`flex-shrink-0 w-16 h-16 border-2 overflow-hidden ${
-                            idx === currentImageIndex ? 'border-[var(--accent)]' : 'border-transparent'
+                          className={`flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 border-2 overflow-hidden transition-colors duration-200 ${
+                            idx === currentImageIndex ? 'border-[var(--accent)]' : 'border-transparent hover:border-[var(--rule)]'
                           }`}
                         >
                           <img src={img} alt="" className="w-full h-full object-cover" />
@@ -733,7 +774,7 @@ const FeaturedDetail = () => {
 
               {/* Mobile table of contents */}
               {toc.length > 0 && (
-                <div className="mt-6 lg:hidden border border-[var(--rule)] rounded-sm p-4 bg-[var(--paper-dim)]/50">
+                <div className="mt-5 sm:mt-6 lg:hidden border border-[var(--rule)] rounded-sm p-3.5 sm:p-4 bg-[var(--paper-dim)]/50">
                   <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)] mb-2">
                     <FiList size={16} /> In this article
                   </div>
@@ -742,7 +783,7 @@ const FeaturedDetail = () => {
                       <li key={item.id} className={item.level === 'h3' ? 'ml-4' : ''}>
                         <button
                           onClick={() => scrollToSection(item.id)}
-                          className="text-sm text-[var(--ink-soft)] hover:text-[var(--accent)] text-left"
+                          className="text-sm text-[var(--ink-soft)] hover:text-[var(--accent)] text-left transition-colors duration-200"
                         >
                           {item.text}
                         </button>
@@ -754,45 +795,45 @@ const FeaturedDetail = () => {
 
               {/* ─── Description (HTML content) ────────────── */}
               <div
-                className="mt-8 prose prose-lg max-w-none text-[var(--ink)] prose-p:leading-[1.8] prose-hr:my-8 prose-hr:border-[var(--rule)]"
+                className="mt-6 sm:mt-8 prose prose-sm sm:prose-base md:prose-lg max-w-none text-[var(--ink)] prose-p:leading-[1.8] prose-hr:my-8 prose-hr:border-[var(--rule)] prose-img:rounded-sm"
                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               />
 
               {/* ─── Author Bio ────────────────────────────── */}
-              <div className="mt-10 p-5 bg-[var(--paper-dim)] border-l-2 border-[var(--accent)] flex items-start gap-4 rounded-sm">
+              <div className="mt-8 sm:mt-10 p-4 sm:p-5 bg-[var(--paper-dim)] border-l-2 border-[var(--accent)] flex items-start gap-3 sm:gap-4 rounded-sm">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt={authorDisplay} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
+                  <img src={avatarUrl} alt={authorDisplay} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0" />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-[var(--accent-soft)] flex items-center justify-center text-[var(--accent)] font-semibold text-lg flex-shrink-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[var(--accent-soft)] flex items-center justify-center text-[var(--accent)] font-semibold text-base sm:text-lg flex-shrink-0">
                     {authorDisplay.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-[var(--ink-faint)]">Written by</p>
-                  <h4 className="font-bold text-[var(--ink)] mt-0.5 text-lg">{authorDisplay}</h4>
-                  <p className="text-sm text-[var(--ink-soft)] mt-1">{author?.bio || 'Writer and storyteller.'}</p>
-                  {author?.email && <p className="text-xs text-[var(--ink-faint)] mt-1">{author.email}</p>}
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs uppercase tracking-wide text-[var(--ink-faint)]">Written by</p>
+                  <h4 className="font-bold text-[var(--ink)] mt-0.5 text-base sm:text-lg truncate">{authorDisplay}</h4>
+                  <p className="text-xs sm:text-sm text-[var(--ink-soft)] mt-1">{author?.bio || 'Writer and storyteller.'}</p>
+                  {author?.email && <p className="text-[11px] sm:text-xs text-[var(--ink-faint)] mt-1 truncate">{author.email}</p>}
                 </div>
               </div>
 
               {/* ─── Comment Section ────────────────────────── */}
-              <div className="mt-12 border-t border-[var(--rule)] pt-8">
-                <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
-                  <h3 className="text-2xl font-bold flex items-center gap-2 text-[var(--ink)]">
-                    <FiMessageCircle size={22} />
-                    Comments <span className="text-[var(--ink-faint)] font-normal text-lg">({comments.length})</span>
+              <div className="mt-10 sm:mt-12 border-t border-[var(--rule)] pt-6 sm:pt-8">
+                <div className="flex items-center justify-between flex-wrap gap-3 mb-5 sm:mb-6">
+                  <h3 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-[var(--ink)]">
+                    <FiMessageCircle size={20} />
+                    Comments <span className="text-[var(--ink-faint)] font-normal text-base sm:text-lg">({comments.length})</span>
                   </h3>
                   {comments.length > 1 && (
-                    <div className="flex items-center gap-1 text-sm bg-[var(--paper-dim)] rounded-full p-1">
+                    <div className="flex items-center gap-1 text-xs sm:text-sm bg-[var(--paper-dim)] rounded-full p-1">
                       <button
                         onClick={() => setCommentSort('newest')}
-                        className={`px-3 py-1 rounded-full ${commentSort === 'newest' ? 'bg-[var(--ink)] text-white' : 'text-[var(--ink-soft)]'}`}
+                        className={`px-2.5 sm:px-3 py-1 rounded-full transition-colors duration-200 ${commentSort === 'newest' ? 'bg-[var(--ink)] text-white' : 'text-[var(--ink-soft)]'}`}
                       >
                         Newest
                       </button>
                       <button
                         onClick={() => setCommentSort('liked')}
-                        className={`px-3 py-1 rounded-full ${commentSort === 'liked' ? 'bg-[var(--ink)] text-white' : 'text-[var(--ink-soft)]'}`}
+                        className={`px-2.5 sm:px-3 py-1 rounded-full transition-colors duration-200 ${commentSort === 'liked' ? 'bg-[var(--ink)] text-white' : 'text-[var(--ink-soft)]'}`}
                       >
                         Most liked
                       </button>
@@ -807,14 +848,14 @@ const FeaturedDetail = () => {
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
                       placeholder="Share your thoughts…"
-                      className="flex-1 px-4 py-2.5 border border-[var(--rule)] bg-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                      className="flex-1 min-w-0 px-4 py-2.5 border border-[var(--rule)] bg-white rounded-md text-sm transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
                       required
                       disabled={submittingComment}
                     />
                     <button
                       type="submit"
                       disabled={submittingComment || !commentText.trim()}
-                      className="px-4 py-2.5 bg-[var(--ink)] text-white rounded-md text-sm font-semibold hover:bg-[var(--accent)] disabled:opacity-40 flex items-center justify-center gap-1.5 whitespace-nowrap"
+                      className="px-4 py-2.5 bg-[var(--ink)] text-white rounded-md text-sm font-semibold hover:bg-[var(--accent)] disabled:opacity-40 flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors duration-200"
                     >
                       <FiSend size={16} />
                       Post
@@ -861,7 +902,7 @@ const FeaturedDetail = () => {
 
           {/* ─── Sidebar ──────────────────────────────────── */}
           <div className="lg:col-span-4">
-            <div className="lg:sticky lg:top-20 space-y-8">
+            <div className="lg:sticky lg:top-20 space-y-6 sm:space-y-8">
               {toc.length > 0 && (
                 <div className="hidden lg:block border border-[var(--rule)] rounded-sm p-5">
                   <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)] mb-3">
@@ -872,7 +913,7 @@ const FeaturedDetail = () => {
                       <li key={item.id} className={item.level === 'h3' ? 'pl-6' : 'pl-3'}>
                         <button
                           onClick={() => scrollToSection(item.id)}
-                          className="text-sm text-[var(--ink-soft)] hover:text-[var(--accent)] text-left"
+                          className="text-sm text-[var(--ink-soft)] hover:text-[var(--accent)] text-left transition-colors duration-200"
                         >
                           {item.text}
                         </button>
@@ -884,7 +925,7 @@ const FeaturedDetail = () => {
 
               <div className="p-4 bg-[var(--paper-dim)] border border-[var(--rule)] rounded-sm">
                 <div className="flex items-center gap-2">
-                  <FiBookOpen className="text-[var(--accent)]" size={19} />
+                  <FiBookOpen className="text-[var(--accent)] flex-shrink-0" size={18} />
                   <span className="font-semibold text-[var(--ink)] text-sm">{readingStats.minutes} min read</span>
                 </div>
                 <p className="text-xs text-[var(--ink-soft)] mt-1">{readingStats.words.toLocaleString()} words · approximate reading time.</p>
@@ -892,10 +933,10 @@ const FeaturedDetail = () => {
 
               {relatedPosts.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-bold mb-4 border-b border-[var(--rule)] pb-2 text-[var(--ink)]">
+                  <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 border-b border-[var(--rule)] pb-2 text-[var(--ink)]">
                     Related Posts
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {relatedPosts.map((related) => (
                       <Link
                         key={related._id}
@@ -903,19 +944,19 @@ const FeaturedDetail = () => {
                         className="group block"
                       >
                         <div className="flex gap-3">
-                          <div className="flex-shrink-0 w-20 h-20 overflow-hidden bg-[var(--paper-dim)]">
+                          <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 overflow-hidden bg-[var(--paper-dim)]">
                             <img
                               src={related.images?.[0] || 'https://via.placeholder.com/80'}
                               alt={related.title}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">{related.category}</p>
-                            <h4 className="text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--accent)] line-clamp-2 mt-0.5">
+                            <p className="text-[11px] sm:text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">{related.category}</p>
+                            <h4 className="text-xs sm:text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--accent)] line-clamp-2 mt-0.5 transition-colors duration-200">
                               {related.title}
                             </h4>
-                            <p className="text-xs text-[var(--ink-faint)] mt-1">{new Date(related.createdAt).toLocaleDateString()}</p>
+                            <p className="text-[11px] sm:text-xs text-[var(--ink-faint)] mt-1">{new Date(related.createdAt).toLocaleDateString()}</p>
                           </div>
                         </div>
                       </Link>
