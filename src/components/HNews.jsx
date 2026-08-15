@@ -276,6 +276,36 @@ const formatDate = (dateStr) =>
     day: "numeric",
   });
 
+// ─── Responsive items-per-page hook (matches the grid's own breakpoints) ──
+// grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5, 2 rows per page
+const useItemsPerPage = () => {
+  const getCount = () => {
+    if (typeof window === "undefined") return 10;
+    const w = window.innerWidth;
+    if (w >= 1024) return 10; // lg: 5 cols × 2 rows
+    if (w >= 768) return 8; // md: 4 cols × 2 rows
+    if (w >= 640) return 6; // sm: 3 cols × 2 rows
+    return 4; // base: 2 cols × 2 rows
+  };
+
+  const [count, setCount] = useState(getCount);
+
+  useEffect(() => {
+    let raf;
+    const handleResize = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => setCount(getCount()));
+    };
+    window.addEventListener("resize", handleResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  return count;
+};
+
 // ─── Skeletons ───────────────────────────────────────
 const SmallCardSkeleton = () => (
   <div className="animate-pulse">
@@ -301,6 +331,7 @@ const HNews = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [brokenImages, setBrokenImages] = useState(() => new Set());
+  const [morePage, setMorePage] = useState(0);
 
   const abortRef = useRef(null);
 
@@ -356,6 +387,20 @@ const HNews = () => {
     [posts]
   );
   const morePosts = useMemo(() => posts.slice(FEATURED_COUNT + SMALL_COUNT), [posts]);
+
+  // ─── Pagination for "More Stories" ───────────────────
+  const itemsPerPage = useItemsPerPage();
+  const morePageCount = Math.max(1, Math.ceil(morePosts.length / itemsPerPage));
+
+  useEffect(() => {
+    // clamp current page if the responsive page size changes the total page count
+    setMorePage((prev) => Math.min(prev, morePageCount - 1));
+  }, [morePageCount]);
+
+  const visibleMorePosts = useMemo(
+    () => morePosts.slice(morePage * itemsPerPage, morePage * itemsPerPage + itemsPerPage),
+    [morePosts, morePage, itemsPerPage]
+  );
 
   const Heading = ({ label = "News" }) => (
     <div className="flex items-center gap-3 mb-8 sm:mb-10 md:mb-12">
@@ -474,7 +519,7 @@ const HNews = () => {
         </div>
       </div>
 
-      {/* ═══ More Stories: compact responsive grid, rest of the 20 ═══ */}
+      {/* ═══ More Stories: compact responsive grid, paginated with dots ═══ */}
       {(loading || morePosts.length > 0) && (
         <div className="mt-12 sm:mt-16 md:mt-20">
           <div className="flex items-center gap-3 mb-6 sm:mb-8">
@@ -488,7 +533,7 @@ const HNews = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             {loading
               ? Array.from({ length: 10 }).map((_, i) => <MiniCardSkeleton key={i} />)
-              : morePosts.map((item) => (
+              : visibleMorePosts.map((item) => (
                   <Link
                     key={item._id}
                     to={`/news/${item.slug || item._id}`}
@@ -502,7 +547,7 @@ const HNews = () => {
                       onError={() => handleImgError(item._id)}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
                     <div className="absolute inset-0 p-2 sm:p-3 flex flex-col justify-end text-white">
                       <span className="text-[7px] sm:text-[9px] font-bold uppercase tracking-wider bg-red-500 px-1.5 py-0.5 inline-block w-fit mb-1">
                         {item.category}
@@ -510,13 +555,38 @@ const HNews = () => {
                       <h4 className="text-[10px] sm:text-xs md:text-sm font-bold leading-tight line-clamp-2">
                         {item.title}
                       </h4>
-                      <p className="text-[7px] sm:text-[8px] text-gray-300 mt-0.5 hidden xs:block">
+                      {/* ✅ Excerpt: short snippet of the post shown right under the title */}
+                      {item.description && (
+                        <p className="text-[7px] sm:text-[9px] md:text-[10px] text-gray-300 leading-snug line-clamp-1 sm:line-clamp-2 mt-0.5">
+                          {stripHtml(item.description)}
+                        </p>
+                      )}
+                      <p className="text-[7px] sm:text-[8px] text-gray-400 mt-0.5 hidden xs:block">
                         {formatDate(item.createdAt)}
                       </p>
                     </div>
                   </Link>
                 ))}
           </div>
+
+          {/* ✅ Pagination dots — fully responsive, only shown when there's more than one page */}
+          {!loading && morePageCount > 1 && (
+            <div className="flex items-center justify-center gap-1 sm:gap-1.5 mt-5 sm:mt-6 flex-wrap">
+              {Array.from({ length: morePageCount }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setMorePage(i)}
+                  aria-label={`Go to page ${i + 1} of More Stories`}
+                  aria-current={morePage === i ? "true" : undefined}
+                  className={`h-[2.5px] sm:h-[3px] rounded-none transition-all duration-300 ease-in-out ${
+                    morePage === i
+                      ? "w-6 sm:w-7 md:w-8 lg:w-9 bg-red-500"
+                      : "w-3.5 sm:w-4 md:w-[18px] lg:w-[22px] bg-gray-300 hover:bg-gray-400"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
