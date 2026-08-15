@@ -86,14 +86,17 @@ const Card = ({ post, isActive, index }) => {
               className="text-white/0 group-hover:text-white translate-x-1 -translate-y-1 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-300"
             />
           </div>
+
           <h3 className="text-base sm:text-lg md:text-xl font-bold leading-snug line-clamp-2">
             {post.title}
           </h3>
 
-          {/* ✅ Excerpt: always visible, two lines with ellipsis, responsive text size */}
-          <p className="text-xs sm:text-sm text-white/75 line-clamp-2 mt-1">
-            {post.excerpt}
-          </p>
+          {/* ✅ Excerpt: sits right under the title, always visible, 2-line clamp, scales with breakpoint */}
+          {post.excerpt && (
+            <p className="text-[11px] sm:text-xs md:text-sm text-white/75 leading-snug line-clamp-2 mt-1 max-w-[95%]">
+              {post.excerpt}
+            </p>
+          )}
 
           <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-white/65 mt-1.5">
             <span className="flex items-center gap-1">
@@ -239,8 +242,8 @@ const FeaturedStories = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {renderHeader()}
         {renderContent()}
-        {/* progress dots replace the removed forward/next control */}
-        <div className="featured-pagination flex items-center justify-center gap-1.5 mt-3" />
+        {/* progress dots replace the removed forward/next control — scales across breakpoints */}
+        <div className="featured-pagination flex items-center justify-center gap-1 sm:gap-1.5 mt-3 flex-wrap" />
       </div>
 
       {/* ─── Custom Styles ────────────────────────────────── */}
@@ -269,20 +272,43 @@ const FeaturedStories = () => {
         @media (min-width: 1280px) {
           .hero-slider .swiper-slide { width: 400px; }
         }
+
+        /* ✅ Fully responsive pagination dots — scale down on small screens,
+           scale up gracefully on large ones, and wrap instead of overflowing
+           when there are many slides on a narrow viewport. */
         .featured-pagination .swiper-pagination-bullet {
-          width: 18px;
-          height: 3px;
+          width: 14px;
+          height: 2.5px;
           border-radius: 0;
           background: rgba(0,0,0,0.15);
           opacity: 1;
+          margin: 0 !important;
           transition: background 0.3s ease, width 0.3s ease;
+        }
+        @media (min-width: 480px) {
+          .featured-pagination .swiper-pagination-bullet { width: 16px; height: 3px; }
+        }
+        @media (min-width: 768px) {
+          .featured-pagination .swiper-pagination-bullet { width: 18px; height: 3px; }
+        }
+        @media (min-width: 1280px) {
+          .featured-pagination .swiper-pagination-bullet { width: 22px; height: 3px; }
         }
         .dark .featured-pagination .swiper-pagination-bullet {
           background: rgba(255,255,255,0.2);
         }
         .featured-pagination .swiper-pagination-bullet-active {
           background: #ef4444;
-          width: 28px;
+          width: 24px;
+        }
+        @media (min-width: 480px) {
+          .featured-pagination .swiper-pagination-bullet-active { width: 26px; }
+        }
+        @media (min-width: 768px) {
+          .featured-pagination .swiper-pagination-bullet-active { width: 30px; }
+        }
+        @media (min-width: 1280px) {
+          .featured-pagination .swiper-pagination-bullet-active { width: 36px; }
         }
       `}</style>
     </div>
