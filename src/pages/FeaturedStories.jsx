@@ -89,7 +89,8 @@ const Card = ({ post, isActive, index }) => {
           <h3 className="text-base sm:text-lg md:text-xl font-bold leading-snug line-clamp-2">
             {post.title}
           </h3>
-          <p className="text-xs sm:text-sm text-white/75 line-clamp-2 mt-1 hidden sm:block">
+          {/* ✅ Excerpt now shows on all screen sizes, limited to 2 lines + ellipsis */}
+          <p className="text-xs sm:text-sm text-white/75 line-clamp-2 mt-1">
             {post.excerpt}
           </p>
           <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-white/65 mt-1.5">
