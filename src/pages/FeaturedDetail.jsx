@@ -16,7 +16,7 @@ import {
   FiTwitter,
   FiLinkedin,
   FiLink,
-  FiArrowUp,
+  // FiArrowUp removed – no longer needed
   FiBookOpen,
   FiMessageCircle,
   FiHeart,
@@ -302,7 +302,7 @@ const FeaturedDetail = () => {
   const [progress, setProgress] = useState(0);
   const [readProgress, setReadProgress] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
-  const [showBackToTop, setShowBackToTop] = useState(false);
+  // const [showBackToTop, setShowBackToTop] = useState(false); ← removed
   const articleRef = useRef(null);
   const autoPlayRef = useRef(null);
 
@@ -529,7 +529,7 @@ const FeaturedDetail = () => {
       const scrolled = -rect.top;
       const pct = total > 0 ? Math.min(Math.max(scrolled / total, 0), 1) * 100 : 0;
       setReadProgress(pct);
-      setShowBackToTop(window.scrollY > 640);
+      // setShowBackToTop(window.scrollY > 640); ← removed
     };
     window.addEventListener('scroll', handleReadProgress, { passive: true });
     handleReadProgress();
@@ -566,7 +566,7 @@ const FeaturedDetail = () => {
     }
   };
 
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  // scrollToTop removed
 
   const { html: descriptionHtml, toc } = useMemo(
     () => injectHeadingIds(post?.description || ''),
@@ -605,7 +605,7 @@ const FeaturedDetail = () => {
             The story you're looking for doesn't exist or has been taken down.
           </p>
           <Link
-            to="/articles" // ✅ Changed from /news to /articles
+            to="/articles"
             className="inline-block mt-6 px-5 sm:px-6 py-2.5 border-2 border-[var(--ink)] text-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--paper)] font-medium text-sm sm:text-base transition-colors duration-200"
           >
             ← Back to Articles
@@ -635,16 +635,7 @@ const FeaturedDetail = () => {
         />
       </div>
 
-      {/* ─── Back to top (mobile + desktop) ────────────── */}
-      <button
-        onClick={scrollToTop}
-        aria-label="Back to top"
-        className={`fixed bottom-5 right-4 sm:bottom-8 sm:right-8 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[var(--ink)] text-white flex items-center justify-center shadow-lg hover:bg-[var(--accent)] transition-all duration-300 ${
-          showBackToTop ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-3 pointer-events-none'
-        }`}
-      >
-        <FiArrowUp size={18} />
-      </button>
+      {/* ─── Back to top button REMOVED ─────────────────── */}
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 md:py-12">
         <div className="flex items-center justify-between mb-5 sm:mb-8 gap-3">
@@ -940,7 +931,7 @@ const FeaturedDetail = () => {
                     {relatedPosts.map((related) => (
                       <Link
                         key={related._id}
-                        to={`/article/${related.slug || related._id}`} // ✅ Changed to /article/
+                        to={`/article/${related.slug || related._id}`}
                         className="group block"
                       >
                         <div className="flex gap-3">
