@@ -11,7 +11,7 @@ import {
   FaPinterest,
   FaChevronDown,
   FaChevronUp,
-  FaArrowUp,
+  FaArrowUp,             // ← already imported
   FaPaperPlane,
 } from "react-icons/fa";
 import { FiClock, FiCalendar, FiFeather } from "react-icons/fi";
@@ -398,16 +398,15 @@ const Footer = () => {
       </div>
 
       {/* ─── Floating Back to Top ──────────────────────────── */}
-     {/* ─── Back to top (mobile + desktop) ────────────── */}
-<button
-  onClick={scrollToTop}
-  aria-label="Back to top"
-  className={`fixed bottom-5 right-4 sm:bottom-8 sm:right-8 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[var(--ink)] text-white flex items-center justify-center shadow-lg hover:bg-[var(--accent)] transition-all duration-300 ${
-    showBackToTop ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-3 pointer-events-none'
-  }`}
->
-  <FiArrowUp size={18} />
-</button>
+      <button
+        onClick={scrollToTop}
+        aria-label="Back to top"
+        className={`fixed bottom-5 right-4 sm:bottom-8 sm:right-8 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[var(--ink)] text-white flex items-center justify-center shadow-lg hover:bg-[var(--accent)] transition-all duration-300 ${
+          showBackToTop ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-3 pointer-events-none'
+        }`}
+      >
+        <FaArrowUp size={18} />  {/* ← fixed: replaced FiArrowUp with FaArrowUp */}
+      </button>
     </footer>
   );
 };
