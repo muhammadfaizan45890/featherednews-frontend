@@ -398,18 +398,16 @@ const Footer = () => {
       </div>
 
       {/* ─── Floating Back to Top ──────────────────────────── */}
-      <button
-        onClick={scrollToTop}
-        className={`fixed bottom-6 right-6 bg-white text-black rounded-full px-4 py-2.5 shadow-2xl flex items-center gap-2 transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
-          showBackToTop
-            ? "opacity-100 translate-y-0 pointer-events-auto"
-            : "opacity-0 translate-y-10 pointer-events-none"
-        }`}
-        aria-label="Back to top"
-      >
-        <FaArrowUp className="text-sm" />
-        <span className="text-sm font-medium">Top</span>
-      </button>
+     {/* ─── Back to top (mobile + desktop) ────────────── */}
+<button
+  onClick={scrollToTop}
+  aria-label="Back to top"
+  className={`fixed bottom-5 right-4 sm:bottom-8 sm:right-8 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[var(--ink)] text-white flex items-center justify-center shadow-lg hover:bg-[var(--accent)] transition-all duration-300 ${
+    showBackToTop ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-3 pointer-events-none'
+  }`}
+>
+  <FiArrowUp size={18} />
+</button>
     </footer>
   );
 };
