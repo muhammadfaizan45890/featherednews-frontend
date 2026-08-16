@@ -1,20 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
 import axios from 'axios';
 import API from '../../utils/api';
@@ -26,6 +10,8 @@ import {
   FiSearch,
   FiLoader,
   FiX,
+  FiChevronUp,
+  FiChevronDown,
 } from 'react-icons/fi';
 
 // ─── API instance ──────────────────────────────────────
@@ -39,23 +25,17 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ─── Sortable Item ─────────────────────────────────────
-const SortableItem = ({ item, index, onToggle, onDelete, processing }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item._id || item.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
+// ─── Sortable Item (now with arrow buttons) ────────────
+const SortableItem = ({
+  item,
+  index,
+  total,
+  onToggle,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+  processing,
+}) => {
   const id = item._id || item.id;
   const isProcessing = processing[id] === 'toggling' || processing[id] === 'deleting';
   const isToggling = processing[id] === 'toggling';
@@ -63,16 +43,10 @@ const SortableItem = ({ item, index, onToggle, onDelete, processing }) => {
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
       className={`
         flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 p-2.5 sm:p-4
         hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors
-        cursor-grab active:cursor-grabbing
         border-b border-gray-200 dark:border-zinc-700
-        ${isDragging ? 'shadow-lg ring-2 ring-blue-500' : ''}
         ${isProcessing ? 'opacity-60' : ''}
       `}
     >
@@ -80,7 +54,25 @@ const SortableItem = ({ item, index, onToggle, onDelete, processing }) => {
         <span className="text-gray-400 text-xs sm:text-sm font-mono w-5 sm:w-6 flex-shrink-0">
           {index + 1}
         </span>
-        <span className="text-gray-300 dark:text-gray-600 text-xs sm:hidden">↕</span>
+        {/* Up / Down arrows */}
+        <div className="flex flex-col items-center gap-0.5">
+          <button
+            onClick={() => onMoveUp(index)}
+            disabled={index === 0 || isProcessing}
+            className="text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 p-0.5 transition-colors"
+            title="Move up"
+          >
+            <FiChevronUp size={14} className="sm:w-4 sm:h-4" />
+          </button>
+          <button
+            onClick={() => onMoveDown(index)}
+            disabled={index === total - 1 || isProcessing}
+            className="text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-30 p-0.5 transition-colors"
+            title="Move down"
+          >
+            <FiChevronDown size={14} className="sm:w-4 sm:h-4" />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 min-w-0 w-full">
@@ -156,13 +148,6 @@ const AdminFeatured = () => {
   const [processing, setProcessing] = useState({}); // { id: 'toggling' | 'deleting' }
   const [addSearch, setAddSearch] = useState('');
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
   // ─── Fetch data ──────────────────────────────────────
   const fetchFeatured = useCallback(async () => {
     setLoading(true);
@@ -216,39 +201,57 @@ const AdminFeatured = () => {
     return items;
   }, [featured, statusFilter, searchTerm]);
 
-  // ─── Drag & Drop ─────────────────────────────────────
-  const handleDragEnd = async (event) => {
-    const { active, over } = event;
-    if (active.id !== over.id) {
-      const oldIndex = filteredFeatured.findIndex((item) => (item._id || item.id) === active.id);
-      const newIndex = filteredFeatured.findIndex((item) => (item._id || item.id) === over.id);
-      const newOrder = arrayMove(filteredFeatured, oldIndex, newIndex);
-      
-      const fullNewOrder = featured.map((item) => {
-        const found = newOrder.find((f) => (f._id || f.id) === (item._id || item.id));
-        return found || item;
-      });
-      setFeatured(fullNewOrder);
+  // ─── Reorder (move up/down) ──────────────────────────
+  const reorder = async (fromIndex, toIndex) => {
+    // Guard
+    if (fromIndex === toIndex) return;
 
-      const reorderPayload = fullNewOrder.map((item, index) => ({
-        id: item._id || item.id,
-        order: index,
-      }));
+    // 1. Reorder the filtered list
+    const newFiltered = [...filteredFeatured];
+    const [movedItem] = newFiltered.splice(fromIndex, 1);
+    newFiltered.splice(toIndex, 0, movedItem);
 
-      try {
-        await api.post('/api/featured/admin/reorder', { items: reorderPayload });
-        toast.success('Order updated');
-      } catch (error) {
-        toast.error('Failed to reorder');
-        fetchFeatured();
-      }
+    // 2. Reconstruct the full featured array preserving the new order
+    //    We'll map each item in the full list to its position in the filtered list.
+    //    For items not in the filtered list, keep them in their original relative order.
+    const filteredIds = new Set(newFiltered.map((item) => item._id || item.id));
+    const nonFiltered = featured.filter((item) => !filteredIds.has(item._id || item.id));
+
+    // Merge: newFiltered (in new order) + nonFiltered (unchanged order)
+    const newFullOrder = [...newFiltered, ...nonFiltered];
+
+    // Optimistically update UI
+    setFeatured(newFullOrder);
+
+    // 3. Build payload for API
+    const reorderPayload = newFullOrder.map((item, index) => ({
+      id: item._id || item.id,
+      order: index,
+    }));
+
+    try {
+      await api.post('/api/featured/admin/reorder', { items: reorderPayload });
+      toast.success('Order updated');
+    } catch (error) {
+      toast.error('Failed to reorder');
+      // Rollback on error
+      fetchFeatured();
     }
+  };
+
+  const handleMoveUp = (index) => {
+    if (index === 0) return;
+    reorder(index, index - 1);
+  };
+
+  const handleMoveDown = (index) => {
+    if (index === filteredFeatured.length - 1) return;
+    reorder(index, index + 1);
   };
 
   // ─── Toggle ─────────────────────────────────────────
   const toggleActive = async (id, currentStatus) => {
     if (!id) return;
-    // Prevent double click
     if (processing[id]) return;
     setProcessing(prev => ({ ...prev, [id]: 'toggling' }));
 
@@ -391,34 +394,26 @@ const AdminFeatured = () => {
             </p>
           </div>
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={filteredFeatured.map((item) => item._id || item.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="bg-white dark:bg-zinc-800 rounded-lg shadow overflow-hidden">
-                <div className="hidden sm:grid grid-cols-[40px,1fr,auto] gap-4 px-4 py-2 bg-gray-50 dark:bg-zinc-700 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-zinc-600">
-                  <span>#</span>
-                  <span>Title</span>
-                  <span>Actions</span>
-                </div>
-                {filteredFeatured.map((item, index) => (
-                  <SortableItem
-                    key={item._id || item.id}
-                    item={item}
-                    index={index}
-                    onToggle={toggleActive}
-                    onDelete={handleDelete}
-                    processing={processing}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+          <div className="bg-white dark:bg-zinc-800 rounded-lg shadow overflow-hidden">
+            <div className="hidden sm:grid grid-cols-[40px,1fr,auto] gap-4 px-4 py-2 bg-gray-50 dark:bg-zinc-700 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-zinc-600">
+              <span># / Order</span>
+              <span>Title</span>
+              <span>Actions</span>
+            </div>
+            {filteredFeatured.map((item, index) => (
+              <SortableItem
+                key={item._id || item.id}
+                item={item}
+                index={index}
+                total={filteredFeatured.length}
+                onToggle={toggleActive}
+                onDelete={handleDelete}
+                onMoveUp={handleMoveUp}
+                onMoveDown={handleMoveDown}
+                processing={processing}
+              />
+            ))}
+          </div>
         )}
       </div>
 
