@@ -223,7 +223,6 @@
 
 
 
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -276,37 +275,6 @@ const formatDate = (dateStr) =>
     day: "numeric",
   });
 
-// ─── Responsive items-per-page hook (matches the "More Stories" grid breakpoints) ──
-// grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6, 2 rows per page
-const useItemsPerPage = () => {
-  const getCount = () => {
-    if (typeof window === "undefined") return 10;
-    const w = window.innerWidth;
-    if (w >= 1280) return 12; // xl: 6 cols × 2 rows
-    if (w >= 1024) return 10; // lg: 5 cols × 2 rows
-    if (w >= 768) return 8; // md: 4 cols × 2 rows
-    if (w >= 640) return 6; // sm: 3 cols × 2 rows
-    return 4; // base: 2 cols × 2 rows
-  };
-
-  const [count, setCount] = useState(getCount);
-
-  useEffect(() => {
-    let raf;
-    const handleResize = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => setCount(getCount()));
-    };
-    window.addEventListener("resize", handleResize);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
-
-  return count;
-};
-
 // ─── Skeletons ───────────────────────────────────────
 const SmallCardSkeleton = () => (
   <div className="animate-pulse">
@@ -322,8 +290,13 @@ const FeaturedSkeleton = () => (
 );
 
 const MiniCardSkeleton = () => (
-  <div className="animate-pulse rounded-lg overflow-hidden" style={{ aspectRatio: "4 / 3" }}>
-    <div className="w-full h-full bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_200%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+  <div className="animate-pulse">
+    <div className="w-full aspect-[4/3] bg-gray-200" />
+    <div className="h-2 w-14 bg-gray-200 mt-3" />
+    <div className="h-3.5 w-full bg-gray-200 mt-2" />
+    <div className="h-3.5 w-3/4 bg-gray-200 mt-1.5" />
+    <div className="h-2.5 w-full bg-gray-200 mt-2" />
+    <div className="h-2.5 w-1/2 bg-gray-200 mt-1" />
   </div>
 );
 
@@ -333,7 +306,6 @@ const HNews = () => {
   const [error, setError] = useState(null);
   const [brokenImages, setBrokenImages] = useState(() => new Set());
   const [loadedImages, setLoadedImages] = useState(() => new Set());
-  const [morePage, setMorePage] = useState(0);
 
   const abortRef = useRef(null);
 
@@ -398,32 +370,6 @@ const HNews = () => {
     [posts]
   );
   const morePosts = useMemo(() => posts.slice(FEATURED_COUNT + SMALL_COUNT), [posts]);
-
-  // ─── Pagination for "More Stories" ───────────────────
-  const itemsPerPage = useItemsPerPage();
-  const morePageCount = Math.max(1, Math.ceil(morePosts.length / itemsPerPage));
-
-  useEffect(() => {
-    // clamp current page if the responsive page size changes the total page count
-    setMorePage((prev) => Math.min(prev, morePageCount - 1));
-  }, [morePageCount]);
-
-  const visibleMorePosts = useMemo(
-    () => morePosts.slice(morePage * itemsPerPage, morePage * itemsPerPage + itemsPerPage),
-    [morePosts, morePage, itemsPerPage]
-  );
-
-  // keyboard navigation for the "More Stories" pager
-  const handlePagerKeyDown = (e) => {
-    if (morePageCount <= 1) return;
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      setMorePage((p) => Math.min(p + 1, morePageCount - 1));
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      setMorePage((p) => Math.max(p - 1, 0));
-    }
-  };
 
   const Heading = ({ label = "News" }) => (
     <div className="flex items-center gap-3 mb-8 sm:mb-10 md:mb-12">
@@ -568,82 +514,52 @@ const HNews = () => {
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 sm:gap-x-5 md:gap-x-6 gap-y-8 sm:gap-y-10">
             {loading
               ? Array.from({ length: 12 }).map((_, i) => <MiniCardSkeleton key={i} />)
-              : visibleMorePosts.map((item) => (
+              : morePosts.map((item) => (
                   <Link
                     key={item._id}
                     to={`/news/${item.slug || item._id}`}
-                    className="group relative block overflow-hidden rounded-lg bg-gray-100 shadow-sm ring-1 ring-black/5 transition-all duration-300 ease-out hover:shadow-xl hover:shadow-black/20 hover:ring-red-500/40 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 active:translate-y-0 active:scale-[0.98]"
-                    style={{ aspectRatio: "4 / 3" }}
+                    className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                   >
-                    {/* Image with skeleton shimmer until loaded */}
-                    {!loadedImages.has(item._id) && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_200%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
-                    )}
-                    <img
-                      src={getImageSrc(item, FALLBACK_SQUARE)}
-                      alt={item.title}
-                      loading="lazy"
-                      onError={() => handleImgError(item._id)}
-                      onLoad={() => handleImgLoad(item._id)}
-                      className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110 ${
-                        loadedImages.has(item._id) ? "tile-img-loaded opacity-100" : "opacity-0"
-                      }`}
-                    />
+                    {/* Image */}
+                    <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100">
+                      {!loadedImages.has(item._id) && (
+                        <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_200%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+                      )}
+                      <img
+                        src={getImageSrc(item, FALLBACK_SQUARE)}
+                        alt={item.title}
+                        loading="lazy"
+                        onError={() => handleImgError(item._id)}
+                        onLoad={() => handleImgLoad(item._id)}
+                        className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 ${
+                          loadedImages.has(item._id) ? "tile-img-loaded opacity-100" : "opacity-0"
+                        }`}
+                      />
+                    </div>
 
-                    {/* Gradient overlay — deepens on hover for readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent transition-opacity duration-300 group-hover:from-black/95 group-hover:via-black/50" />
-
-                    {/* Corner accent that sweeps in on hover */}
-                    <div className="absolute top-0 right-0 w-0 h-0 border-t-[28px] border-t-red-500 border-l-[28px] border-l-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                    <div className="absolute inset-0 p-2 sm:p-3 md:p-3.5 flex flex-col justify-end text-white">
-                      <span className="text-[7px] sm:text-[9px] md:text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white px-1.5 py-0.5 rounded-sm inline-block w-fit mb-1 sm:mb-1.5 shadow-sm">
-                        {item.category}
+                    {/* Details below the image — fully visible, no overlay */}
+                    <div className="pt-3 sm:pt-4">
+                      <span className="inline-block text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-[2px] sm:tracking-[3px] text-red-500">
+                        ■ {item.category}
                       </span>
-                      <h4 className="text-[10px] sm:text-xs md:text-sm lg:text-[15px] font-bold leading-tight line-clamp-2 transition-colors duration-300 group-hover:text-red-300">
+                      <h4 className="text-sm sm:text-base md:text-[17px] font-bold leading-snug mt-1.5 sm:mt-2 line-clamp-2 text-gray-900 transition-colors duration-300 group-hover:text-red-500">
                         {item.title}
                       </h4>
                       {item.description && (
-                        <p className="text-[7px] sm:text-[9px] md:text-[10px] lg:text-[11px] text-gray-300 leading-snug line-clamp-1 sm:line-clamp-2 mt-0.5 md:mt-1">
+                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed line-clamp-2 mt-1.5 sm:mt-2">
                           {stripHtml(item.description)}
                         </p>
                       )}
-                      <p className="text-[7px] sm:text-[8px] md:text-[9px] text-gray-400 mt-0.5 md:mt-1 hidden xs:block">
+                      <p className="text-[10px] sm:text-xs text-gray-400 mt-2 sm:mt-3">
                         {formatDate(item.createdAt)}
                       </p>
                     </div>
                   </Link>
                 ))}
           </div>
-
-          {/* ✅ Pagination dots — fully responsive, keyboard-navigable, only shown when there's more than one page */}
-          {!loading && morePageCount > 1 && (
-            <div
-              className="flex items-center justify-center gap-1 sm:gap-1.5 mt-5 sm:mt-6 flex-wrap"
-              role="tablist"
-              aria-label="More Stories pages"
-              tabIndex={0}
-              onKeyDown={handlePagerKeyDown}
-            >
-              {Array.from({ length: morePageCount }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setMorePage(i)}
-                  role="tab"
-                  aria-selected={morePage === i}
-                  aria-label={`Go to page ${i + 1} of ${morePageCount}, More Stories`}
-                  className={`h-[3px] sm:h-[3.5px] rounded-full transition-all duration-300 ease-in-out ${
-                    morePage === i
-                      ? "w-6 sm:w-7 md:w-8 lg:w-9 bg-red-500"
-                      : "w-3.5 sm:w-4 md:w-[18px] lg:w-[22px] bg-gray-300 hover:bg-gray-400"
-                  }`}
-                />
-              ))}
-            </div>
-          )}
         </div>
       )}
     </section>
