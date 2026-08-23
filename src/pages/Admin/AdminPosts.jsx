@@ -664,10 +664,10 @@
 
 
 
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import DOMPurify from 'dompurify';
 import API from '../../utils/api';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -692,10 +692,16 @@ import {
   FiLink as FiLinkIcon,
   FiImage as FiImageIcon,
   FiType,
+  FiGrid,
+  FiList as FiListView,
+  FiMaximize2,
+  FiMinimize2,
+  FiFilter,
+  FiAlertTriangle,
 } from 'react-icons/fi';
 
 // ───────────────────────────────────────────────────────
-// API instance
+// API instance (unchanged — do not recreate per render)
 // ───────────────────────────────────────────────────────
 const getApiInstance = () => {
   let instance;
@@ -732,11 +738,80 @@ const EMPTY_FORM = {
   isPublished: true,
 };
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const URL_REGEX = /^https?:\/\/.+\..+/i;
+
+// ───────────────────────────────────────────────────────
+// Sanitization / content helpers
+// ───────────────────────────────────────────────────────
+
+// Allow the formatting Tiptap currently produces; strip everything else
+// (scripts, event handlers, javascript: links, iframes, etc.)
+const sanitizeHtml = (html) =>
+  DOMPurify.sanitize(html || '', {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'em', 'u', 's', 'a', 'ul', 'ol', 'li',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'img',
+      'code', 'pre', 'span',
+    ],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel', 'class'],
+    ALLOW_DATA_ATTR: false,
+  });
+
+const getContentStats = (html) => {
+  if (!html) return { words: 0, chars: 0, paragraphs: 0, readingTime: 0 };
+  const temp = document.createElement('div');
+  temp.innerHTML = sanitizeHtml(html);
+  const text = temp.textContent || '';
+  const chars = text.length;
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const paragraphs =
+    temp.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, blockquote').length ||
+    (text.trim() ? 1 : 0);
+  const readingTime = words > 0 ? Math.max(1, Math.ceil(words / 200)) : 0;
+  return { words, chars, paragraphs, readingTime };
+};
+
+const isEmptyDescription = (html) => {
+  if (!html) return true;
+  const stripped = html.replace(/<[^>]*>/g, '').trim();
+  return stripped === '';
+};
+
+// ───────────────────────────────────────────────────────
+// Validation
+// ───────────────────────────────────────────────────────
+
+const validatePostForm = (formData) => {
+  const errors = {};
+
+  const title = (formData.title || '').trim();
+  if (!title) errors.title = 'Title is required.';
+  else if (title.length < 5) errors.title = 'Title should be at least 5 characters.';
+  else if (title.length > 150) errors.title = 'Title should be under 150 characters.';
+
+  const category = (formData.category || '').trim();
+  if (!category) errors.category = 'Category is required.';
+
+  if (isEmptyDescription(formData.description)) {
+    errors.description = 'Description content is required.';
+  }
+
+  if (!formData.images || formData.images.length === 0) {
+    errors.images = 'At least one image is required.';
+  } else {
+    const badUrl = formData.images.find((url) => !URL_REGEX.test(url));
+    if (badUrl) errors.images = `That doesn't look like a valid image URL: ${badUrl}`;
+  }
+
+  return errors;
+};
+
 // ───────────────────────────────────────────────────────
 // Small presentational components
 // ───────────────────────────────────────────────────────
 
-const ToolbarButton = ({ onClick, isActive, icon: Icon, label }) => (
+const ToolbarButton = React.memo(({ onClick, isActive, icon: Icon, label }) => (
   <button
     type="button"
     onClick={onClick}
@@ -748,10 +823,9 @@ const ToolbarButton = ({ onClick, isActive, icon: Icon, label }) => (
   >
     <Icon size={15} />
   </button>
-);
+));
 
 const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
-  // ✅ Guard against destroyed editor
   if (!editor || editor.isDestroyed) return null;
 
   return (
@@ -828,52 +902,124 @@ const PostThumbnail = ({ images, title }) => (
   </div>
 );
 
-const PostCard = ({ post, onEdit, onDelete }) => (
-  <div className="relative bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden flex flex-col">
-    <PostThumbnail images={post.images} title={post.title} />
-    <StatusBadge isPublished={post.isPublished} />
-    <div className="p-3 sm:p-4 flex-1 flex flex-col min-w-0">
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider truncate">
-          {post.category}
-        </span>
-        <span className="text-[10px] text-gray-400 shrink-0">
-          {new Date(post.createdAt).toLocaleDateString()}
-        </span>
-      </div>
-      <h3 className="text-sm sm:text-base md:text-lg font-bold mt-1 line-clamp-2 break-words">{post.title}</h3>
-      <div
-        className="text-gray-600 text-xs sm:text-sm line-clamp-2 mt-1 flex-1 break-words"
-        dangerouslySetInnerHTML={{ __html: post.description }}
-      />
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <span className="text-[10px] text-gray-500 truncate">by {post.authorName || 'Admin'}</span>
-        <div className="flex gap-1 shrink-0">
-          <button
-            onClick={() => onEdit(post)}
-            aria-label="Edit post"
-            className="h-8 w-8 flex items-center justify-center text-gray-500 hover:text-black rounded hover:bg-gray-100"
-          >
-            <FiEdit2 size={15} />
-          </button>
-          <button
-            onClick={() => onDelete(post._id)}
-            aria-label="Delete post"
-            className="h-8 w-8 flex items-center justify-center text-gray-500 hover:text-red-600 rounded hover:bg-red-50"
-          >
-            <FiTrash2 size={15} />
-          </button>
+const PostCard = React.memo(({ post, onEdit, onDelete }) => {
+  const safeDescription = useMemo(() => sanitizeHtml(post.description), [post.description]);
+  return (
+    <div className="relative bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden flex flex-col">
+      <PostThumbnail images={post.images} title={post.title} />
+      <StatusBadge isPublished={post.isPublished} />
+      <div className="p-3 sm:p-4 flex-1 flex flex-col min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider truncate">
+            {post.category}
+          </span>
+          <span className="text-[10px] text-gray-400 shrink-0">
+            {new Date(post.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+        <h3 className="text-sm sm:text-base md:text-lg font-bold mt-1 line-clamp-2 break-words">{post.title}</h3>
+        <div
+          className="text-gray-600 text-xs sm:text-sm line-clamp-2 mt-1 flex-1 break-words"
+          dangerouslySetInnerHTML={{ __html: safeDescription }}
+        />
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <span className="text-[10px] text-gray-500 truncate">by {post.authorName || 'Admin'}</span>
+          <div className="flex gap-1 shrink-0">
+            <button
+              onClick={() => onEdit(post)}
+              aria-label="Edit post"
+              className="h-8 w-8 flex items-center justify-center text-gray-500 hover:text-black rounded hover:bg-gray-100"
+            >
+              <FiEdit2 size={15} />
+            </button>
+            <button
+              onClick={() => onDelete(post)}
+              aria-label="Delete post"
+              className="h-8 w-8 flex items-center justify-center text-gray-500 hover:text-red-600 rounded hover:bg-red-50"
+            >
+              <FiTrash2 size={15} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+});
 
 const PostsGrid = ({ posts, onEdit, onDelete }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
     {posts.map((post) => (
       <PostCard key={post._id} post={post} onEdit={onEdit} onDelete={onDelete} />
     ))}
+  </div>
+);
+
+const PostsTable = ({ posts, onEdit, onDelete }) => (
+  <div className="overflow-x-auto border border-gray-200 rounded-lg bg-white">
+    <table className="min-w-full divide-y divide-gray-200 text-sm">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-3 py-2.5 text-left font-semibold text-gray-600 w-16">Image</th>
+          <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Title</th>
+          <th className="px-3 py-2.5 text-left font-semibold text-gray-600 hidden sm:table-cell">Category</th>
+          <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Status</th>
+          <th className="px-3 py-2.5 text-left font-semibold text-gray-600 hidden md:table-cell">Date</th>
+          <th className="px-3 py-2.5 text-right font-semibold text-gray-600">Actions</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-100">
+        {posts.map((post) => (
+          <tr key={post._id} className="hover:bg-gray-50">
+            <td className="px-3 py-2">
+              <div className="h-10 w-10 rounded overflow-hidden bg-gray-100 shrink-0">
+                {post.images?.[0] ? (
+                  <img src={post.images[0]} alt={post.title} className="h-full w-full object-cover" loading="lazy" />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-gray-400">
+                    <FiImage size={14} />
+                  </div>
+                )}
+              </div>
+            </td>
+            <td className="px-3 py-2 max-w-[220px] sm:max-w-xs">
+              <p className="font-medium text-gray-900 truncate">{post.title}</p>
+              <p className="text-[11px] text-gray-400 sm:hidden truncate">{post.category}</p>
+            </td>
+            <td className="px-3 py-2 text-gray-600 hidden sm:table-cell">{post.category}</td>
+            <td className="px-3 py-2">
+              <span
+                className={`px-2 py-0.5 rounded text-[10px] sm:text-xs font-semibold whitespace-nowrap ${
+                  post.isPublished ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'
+                }`}
+              >
+                {post.isPublished ? 'Published' : 'Draft'}
+              </span>
+            </td>
+            <td className="px-3 py-2 text-gray-500 whitespace-nowrap hidden md:table-cell">
+              {new Date(post.createdAt).toLocaleDateString()}
+            </td>
+            <td className="px-3 py-2">
+              <div className="flex justify-end gap-1">
+                <button
+                  onClick={() => onEdit(post)}
+                  aria-label="Edit post"
+                  className="h-8 w-8 flex items-center justify-center text-gray-500 hover:text-black rounded hover:bg-gray-100"
+                >
+                  <FiEdit2 size={14} />
+                </button>
+                <button
+                  onClick={() => onDelete(post)}
+                  aria-label="Delete post"
+                  className="h-8 w-8 flex items-center justify-center text-gray-500 hover:text-red-600 rounded hover:bg-red-50"
+                >
+                  <FiTrash2 size={14} />
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   </div>
 );
 
@@ -904,38 +1050,103 @@ const Pagination = ({ page, totalPages, onChange }) => {
   );
 };
 
-const SearchFilterBar = ({ search, onSearchChange, category, onCategoryChange, categories, onRefresh }) => (
-  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 sm:mb-6">
-    <div className="flex-1 relative">
-      <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
-      <input
-        type="text"
-        placeholder="Search posts..."
-        value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
-        className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
-      />
+const ViewToggle = ({ viewMode, onChange }) => (
+  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden shrink-0">
+    <button
+      onClick={() => onChange('grid')}
+      aria-label="Grid view"
+      aria-pressed={viewMode === 'grid'}
+      className={`h-9 w-9 flex items-center justify-center ${
+        viewMode === 'grid' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+      }`}
+    >
+      <FiGrid size={15} />
+    </button>
+    <button
+      onClick={() => onChange('table')}
+      aria-label="Table view"
+      aria-pressed={viewMode === 'table'}
+      className={`h-9 w-9 flex items-center justify-center border-l border-gray-300 ${
+        viewMode === 'table' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+      }`}
+    >
+      <FiListView size={15} />
+    </button>
+  </div>
+);
+
+const SearchFilterBar = ({
+  searchInput,
+  onSearchChange,
+  category,
+  onCategoryChange,
+  categories,
+  onRefresh,
+  pageSize,
+  onPageSizeChange,
+  viewMode,
+  onViewModeChange,
+  hasActiveFilters,
+  onClearFilters,
+  resultsLabel,
+}) => (
+  <div className="mb-4 sm:mb-6">
+    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+      <div className="flex-1 relative">
+        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+        <input
+          type="text"
+          placeholder="Search posts by title..."
+          value={searchInput}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+        />
+      </div>
+      <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+        <select
+          value={category}
+          onChange={(e) => onCategoryChange(e.target.value)}
+          className="flex-1 sm:flex-none px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-black min-w-0 sm:min-w-[140px]"
+        >
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <select
+          value={pageSize}
+          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          aria-label="Posts per page"
+          className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-black shrink-0"
+        >
+          {PAGE_SIZE_OPTIONS.map((n) => (
+            <option key={n} value={n}>
+              {n} / page
+            </option>
+          ))}
+        </select>
+        <ViewToggle viewMode={viewMode} onChange={onViewModeChange} />
+        <button
+          onClick={onRefresh}
+          aria-label="Refresh posts"
+          className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm shrink-0"
+        >
+          <FiRefreshCw size={15} />
+          <span className="hidden sm:inline">Refresh</span>
+        </button>
+      </div>
     </div>
-    <div className="flex gap-2">
-      <select
-        value={category}
-        onChange={(e) => onCategoryChange(e.target.value)}
-        className="flex-1 sm:flex-none px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-black min-w-0 sm:min-w-[140px]"
-      >
-        {categories.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
-      <button
-        onClick={onRefresh}
-        aria-label="Refresh posts"
-        className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm shrink-0"
-      >
-        <FiRefreshCw size={15} />
-        <span className="hidden sm:inline">Refresh</span>
-      </button>
+    <div className="flex items-center justify-between gap-2 mt-2 flex-wrap">
+      <p className="text-xs text-gray-500">{resultsLabel}</p>
+      {hasActiveFilters && (
+        <button
+          onClick={onClearFilters}
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-black underline underline-offset-2"
+        >
+          <FiFilter size={11} /> Clear filters
+        </button>
+      )}
     </div>
   </div>
 );
@@ -961,7 +1172,7 @@ const ImageUrlList = ({ images, onRemove }) => {
   );
 };
 
-const ImageUrlInput = ({ imageInput, setImageInput, images, onAdd, onRemove }) => (
+const ImageUrlInput = ({ imageInput, setImageInput, images, onAdd, onRemove, error }) => (
   <div>
     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Images (URLs) *</label>
     <div className="flex flex-col xs:flex-row gap-2">
@@ -969,8 +1180,16 @@ const ImageUrlInput = ({ imageInput, setImageInput, images, onAdd, onRemove }) =
         type="url"
         value={imageInput}
         onChange={(e) => setImageInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            onAdd();
+          }
+        }}
         placeholder="Enter image URL"
-        className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm"
+        className={`flex-1 min-w-0 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-black text-sm ${
+          error ? 'border-red-400' : 'border-gray-300'
+        }`}
       />
       <button
         type="button"
@@ -982,7 +1201,10 @@ const ImageUrlInput = ({ imageInput, setImageInput, images, onAdd, onRemove }) =
       </button>
     </div>
     <ImageUrlList images={images} onRemove={onRemove} />
-    <p className="text-[10px] sm:text-xs text-gray-500 mt-1">{images.length} / 10 images</p>
+    <div className="flex items-center justify-between mt-1">
+      <p className="text-[10px] sm:text-xs text-gray-500">{images.length} / 10 images</p>
+      {error && <p className="text-[10px] sm:text-xs text-red-500">{error}</p>}
+    </div>
   </div>
 );
 
@@ -1007,22 +1229,82 @@ const PublishToggle = ({ isPublished, onToggle }) => (
   </div>
 );
 
-// ✅ Updated DescriptionEditor to check editor.isDestroyed
-const DescriptionEditor = ({ editor, charCount, onSetLink, onAddImage }) => {
+const DescriptionEditor = ({ editor, stats, onSetLink, onAddImage, error }) => {
   if (!editor || editor.isDestroyed) return null;
 
   return (
     <div>
       <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Description (content) *</label>
-      <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-black">
+      <div
+        className={`border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-black ${
+          error ? 'border-red-400' : 'border-gray-300'
+        }`}
+      >
         <EditorToolbar editor={editor} onSetLink={onSetLink} onAddImage={onAddImage} />
         <EditorContent
           editor={editor}
           className="p-3 sm:p-4 min-h-[140px] sm:min-h-[200px] md:min-h-[280px] prose prose-sm max-w-none focus:outline-none text-sm"
         />
       </div>
-      <div className="flex justify-end text-[10px] sm:text-xs text-gray-500 mt-1">
-        <span className={charCount > 5000 ? 'text-red-500' : ''}>{charCount} characters (plain text)</span>
+      <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-[10px] sm:text-xs text-gray-500 mt-1">
+        <span className={error ? 'text-red-500' : ''}>{error || ' '}</span>
+        <span className="flex gap-3 shrink-0">
+          <span className={stats.chars > 5000 ? 'text-red-500' : ''}>{stats.chars} chars</span>
+          <span>{stats.words} words</span>
+          <span>{stats.paragraphs} paragraphs</span>
+          <span>{stats.readingTime > 0 ? `${stats.readingTime} min read` : '—'}</span>
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// ───────────────────────────────────────────────────────
+// Delete confirmation modal
+// ───────────────────────────────────────────────────────
+
+const DeleteConfirmModal = ({ post, onCancel, onConfirm, deleting }) => {
+  if (!post) return null;
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl overflow-hidden">
+        <div className="p-5">
+          <div className="flex items-center gap-2 text-red-600">
+            <FiAlertTriangle size={18} />
+            <h3 className="text-base font-bold text-gray-900">Delete this post?</h3>
+          </div>
+          <div className="flex items-center gap-3 mt-3">
+            <div className="h-12 w-12 rounded overflow-hidden bg-gray-100 shrink-0">
+              {post.images?.[0] ? (
+                <img src={post.images[0]} alt={post.title} className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center text-gray-400">
+                  <FiImage size={16} />
+                </div>
+              )}
+            </div>
+            <p className="text-sm font-medium text-gray-800 line-clamp-2">{post.title}</p>
+          </div>
+          <p className="text-xs sm:text-sm text-red-600 mt-3">
+            This action is permanent and cannot be undone.
+          </p>
+        </div>
+        <div className="flex justify-end gap-2 px-5 py-3 bg-gray-50 border-t border-gray-200">
+          <button
+            onClick={onCancel}
+            disabled={deleting}
+            className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={deleting}
+            className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-semibold"
+          >
+            {deleting ? 'Deleting…' : 'Delete permanently'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1039,9 +1321,12 @@ const PostFormModal = ({
   imageInput,
   setImageInput,
   editor,
-  charCount,
+  stats,
   submitting,
-  onClose,
+  formErrors,
+  isFullscreen,
+  onToggleFullscreen,
+  onRequestClose,
   onSubmit,
   onSetLink,
   onAddImage,
@@ -1058,13 +1343,33 @@ const PostFormModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4">
-      <div className="bg-white w-full sm:max-w-4xl sm:rounded-xl shadow-2xl h-[95vh] sm:h-auto sm:max-h-[95vh] overflow-y-auto rounded-t-2xl flex flex-col">
+    <div
+      className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex ${
+        isFullscreen ? 'items-stretch justify-stretch p-0' : 'items-end sm:items-center justify-center sm:p-4'
+      }`}
+    >
+      <div
+        className={`bg-white overflow-y-auto flex flex-col ${
+          isFullscreen
+            ? 'w-full h-full rounded-none'
+            : 'w-full sm:max-w-4xl sm:rounded-xl shadow-2xl h-[95vh] sm:h-auto sm:max-h-[95vh] rounded-t-2xl'
+        }`}
+      >
         <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between z-10 shrink-0">
           <h2 className="text-base sm:text-xl font-bold">{editingPost ? 'Edit Post' : 'Create New Post'}</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-gray-100 rounded-full">
-            <FiX size={20} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onToggleFullscreen}
+              aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              className="p-2 hover:bg-gray-100 rounded-full text-gray-500 hidden sm:flex"
+            >
+              {isFullscreen ? <FiMinimize2 size={17} /> : <FiMaximize2 size={17} />}
+            </button>
+            <button onClick={onRequestClose} aria-label="Close" className="p-1 hover:bg-gray-100 rounded-full">
+              <FiX size={20} />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={onSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 flex-1">
@@ -1074,9 +1379,20 @@ const PostFormModal = ({
               type="text"
               value={formData.title}
               onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
-              required
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm ${
+                formErrors.title ? 'border-red-400' : 'border-gray-300'
+              }`}
             />
+            <div className="flex items-center justify-between mt-1">
+              {formErrors.title ? (
+                <p className="text-[10px] sm:text-xs text-red-500">{formErrors.title}</p>
+              ) : (
+                <span />
+              )}
+              <p className="text-[10px] sm:text-xs text-gray-400 shrink-0">
+                {formData.title.length}/150
+              </p>
+            </div>
           </div>
 
           <div>
@@ -1085,10 +1401,14 @@ const PostFormModal = ({
               type="text"
               value={formData.category}
               onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm"
-              required
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-black focus:border-transparent text-sm ${
+                formErrors.category ? 'border-red-400' : 'border-gray-300'
+              }`}
               placeholder="e.g., Technology, Travel, Food"
             />
+            {formErrors.category && (
+              <p className="text-[10px] sm:text-xs text-red-500 mt-1">{formErrors.category}</p>
+            )}
           </div>
 
           <ImageUrlInput
@@ -1097,15 +1417,16 @@ const PostFormModal = ({
             images={formData.images}
             onAdd={handleImageAdd}
             onRemove={handleImageRemove}
+            error={formErrors.images}
           />
 
-          {/* ✅ Conditional rendering with destroyed check */}
           {editor && !editor.isDestroyed ? (
             <DescriptionEditor
               editor={editor}
-              charCount={charCount}
+              stats={stats}
               onSetLink={onSetLink}
               onAddImage={onAddImage}
+              error={formErrors.description}
             />
           ) : (
             <div className="border border-gray-300 rounded-lg p-4 text-gray-400 text-sm">
@@ -1121,14 +1442,14 @@ const PostFormModal = ({
           <div className="sticky bottom-0 bg-white flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-200 -mx-4 sm:mx-0 px-4 sm:px-0 pb-1">
             <button
               type="button"
-              onClick={onClose}
+              onClick={onRequestClose}
               className="px-4 py-2.5 sm:py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={submitting || formData.images.length === 0}
+              disabled={submitting}
               className="px-6 py-2.5 sm:py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 font-semibold text-sm"
             >
               {submitting ? 'Saving...' : editingPost ? 'Update Post' : 'Create Post'}
@@ -1149,16 +1470,36 @@ const AdminPosts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [pagination, setPagination] = useState({ totalPages: 1, total: null });
+  const [pageSize, setPageSize] = useState(10);
+
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [categories, setCategories] = useState(['All']);
+
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('adminPostsViewMode') || 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [imageInput, setImageInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const [postToDelete, setPostToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
   const isInternalUpdate = useRef(false);
+  const initialFormRef = useRef(EMPTY_FORM);
+  const abortControllerRef = useRef(null);
 
   const editor = useEditor({
     extensions: [
@@ -1178,7 +1519,7 @@ const AdminPosts = () => {
     },
   });
 
-  // ✅ Sync effect with destroyed check
+  // Sync editor content when formData.description changes externally (e.g. opening edit modal)
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     if (isInternalUpdate.current) return;
@@ -1190,101 +1531,177 @@ const AdminPosts = () => {
     }
   }, [formData.description, editor]);
 
-  const fetchPosts = async () => {
+  // Persist view mode preference
+  useEffect(() => {
+    try {
+      localStorage.setItem('adminPostsViewMode', viewMode);
+    } catch {
+      /* ignore storage errors (e.g. private browsing) */
+    }
+  }, [viewMode]);
+
+  // Debounce free-typed search into the actual query param
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const fetchPosts = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     setError(null);
     try {
       const res = await api.get('/api/posts', {
         params: {
           page,
-          limit: 9,
+          limit: pageSize,
           search: search || undefined,
           category: category !== 'All' ? category : undefined,
         },
+        signal: controller.signal,
       });
 
       setPosts(res.data.data);
-      setTotalPages(res.data.pagination.totalPages);
+      setPagination(res.data.pagination || { totalPages: 1, total: null });
 
       const allCats = res.data.data.map((p) => p.category);
-      setCategories(['All', ...new Set(allCats)]);
+      setCategories((prev) => {
+        // Keep categories accumulated across pages so the filter dropdown
+        // doesn't shrink to only what's on the current page.
+        const merged = new Set([...prev.filter((c) => c !== 'All'), ...allCats]);
+        return ['All', ...merged];
+      });
     } catch (err) {
+      if (axios.isCancel?.(err) || err.code === 'ERR_CANCELED' || err.name === 'CanceledError') {
+        return; // superseded by a newer request, ignore
+      }
       console.error('Fetch error:', err);
       setError(err.response?.data?.message || 'Failed to fetch posts');
       toast.error('Error loading posts');
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, pageSize, search, category]);
 
   useEffect(() => {
     fetchPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, category]);
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, [fetchPosts]);
 
-  const openCreateModal = () => {
+  const handleCategoryChange = useCallback((val) => {
+    setCategory(val);
+    setPage(1);
+  }, []);
+
+  const handlePageSizeChange = useCallback((val) => {
+    setPageSize(val);
+    setPage(1);
+  }, []);
+
+  const hasActiveFilters = search !== '' || category !== 'All';
+
+  const clearFilters = useCallback(() => {
+    setSearchInput('');
+    setSearch('');
+    setCategory('All');
+    setPage(1);
+  }, []);
+
+  const resultsLabel = loading
+    ? 'Loading posts…'
+    : pagination.total != null
+    ? `Showing ${posts.length} of ${pagination.total} post${pagination.total === 1 ? '' : 's'}`
+    : `Showing ${posts.length} post${posts.length === 1 ? '' : 's'}`;
+
+  const openCreateModal = useCallback(() => {
     setEditingPost(null);
     setFormData(EMPTY_FORM);
+    initialFormRef.current = EMPTY_FORM;
     setImageInput('');
+    setFormErrors({});
+    setIsFullscreen(false);
     setModalOpen(true);
-  };
+  }, []);
 
-  const openEditModal = (post) => {
-    setEditingPost(post);
-    setFormData({
+  const openEditModal = useCallback((post) => {
+    const initial = {
       title: post.title,
       category: post.category,
       images: post.images || [],
       description: post.description || '',
       isPublished: post.isPublished !== undefined ? post.isPublished : true,
-    });
+    };
+    setEditingPost(post);
+    setFormData(initial);
+    initialFormRef.current = initial;
     setImageInput('');
+    setFormErrors({});
+    setIsFullscreen(false);
     setModalOpen(true);
-  };
+  }, []);
 
-  // ✅ Close modal with destroyed check
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setModalOpen(false);
     setEditingPost(null);
     setFormData(EMPTY_FORM);
     setImageInput('');
+    setFormErrors({});
+    setIsFullscreen(false);
     if (editor && !editor.isDestroyed) {
       editor.commands.setContent('');
     }
-  };
+  }, [editor]);
+
+  const hasUnsavedChanges = useCallback(
+    () => JSON.stringify(formData) !== JSON.stringify(initialFormRef.current),
+    [formData]
+  );
+
+  const requestCloseModal = useCallback(() => {
+    if (hasUnsavedChanges()) {
+      const confirmed = window.confirm('You have unsaved changes. Are you sure you want to leave?');
+      if (!confirmed) return;
+    }
+    closeModal();
+  }, [hasUnsavedChanges, closeModal]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const errors = validatePostForm(formData);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error('Please fix the highlighted fields.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const payload = { ...formData };
-
-      const isEmptyDescription =
-        !payload.description ||
-        payload.description === '<p></p>' ||
-        payload.description === '<p><br></p>' ||
-        payload.description.trim() === '';
-      if (isEmptyDescription) {
-        toast.error('Please add content to the description.');
-        setSubmitting(false);
-        return;
-      }
-
-      if (!payload.images || payload.images.length === 0) {
-        toast.error('Please add at least one image');
-        setSubmitting(false);
-        return;
-      }
+      const payload = {
+        ...formData,
+        title: formData.title.trim(),
+        category: formData.category.trim(),
+      };
 
       let res;
       if (editingPost) {
         res = await api.patch(`/api/posts/${editingPost._id}`, payload);
         toast.success('Post updated successfully');
-        setPosts(posts.map((p) => (p._id === editingPost._id ? res.data.data : p)));
+        setPosts((prev) => prev.map((p) => (p._id === editingPost._id ? res.data.data : p)));
       } else {
         res = await api.post('/api/posts', payload);
         toast.success('Post created successfully');
-        setPosts([res.data.data, ...posts]);
+        setPosts((prev) => [res.data.data, ...prev]);
       }
       closeModal();
       fetchPosts();
@@ -1297,16 +1714,24 @@ const AdminPosts = () => {
     }
   };
 
-  const handleDelete = async (postId) => {
-    if (!window.confirm('Are you sure you want to delete this post?')) return;
+  const requestDelete = useCallback((post) => {
+    setPostToDelete(post);
+  }, []);
+
+  const confirmDelete = async () => {
+    if (!postToDelete) return;
+    setDeleting(true);
     try {
-      await api.delete(`/api/posts/${postId}`);
+      await api.delete(`/api/posts/${postToDelete._id}`);
       toast.success('Post deleted');
-      setPosts(posts.filter((p) => p._id !== postId));
+      setPosts((prev) => prev.filter((p) => p._id !== postToDelete._id));
+      setPostToDelete(null);
       fetchPosts();
     } catch (err) {
       console.error('Delete error:', err);
       toast.error(err.response?.data?.message || 'Failed to delete post');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -1326,14 +1751,8 @@ const AdminPosts = () => {
     }
   };
 
-  const getPlainTextLength = (html) => {
-    if (!html) return 0;
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    return temp.textContent?.length || 0;
-  };
-
-  const charCount = getPlainTextLength(formData.description);
+  const contentStats = useMemo(() => getContentStats(formData.description), [formData.description]);
+  const totalPages = pagination.totalPages || 1;
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
@@ -1351,12 +1770,19 @@ const AdminPosts = () => {
       </div>
 
       <SearchFilterBar
-        search={search}
-        onSearchChange={setSearch}
+        searchInput={searchInput}
+        onSearchChange={setSearchInput}
         category={category}
-        onCategoryChange={setCategory}
+        onCategoryChange={handleCategoryChange}
         categories={categories}
         onRefresh={fetchPosts}
+        pageSize={pageSize}
+        onPageSizeChange={handlePageSizeChange}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={clearFilters}
+        resultsLabel={resultsLabel}
       />
 
       {loading ? (
@@ -1367,10 +1793,19 @@ const AdminPosts = () => {
         <div className="text-center py-10 sm:py-12 text-red-500 text-sm sm:text-base">{error}</div>
       ) : posts.length === 0 ? (
         <div className="text-center py-10 sm:py-12">
-          <p className="text-gray-500 text-sm sm:text-base">No posts found. Create your first post!</p>
+          <p className="text-gray-500 text-sm sm:text-base">
+            {hasActiveFilters ? 'No posts match your filters.' : 'No posts found. Create your first post!'}
+          </p>
+          {hasActiveFilters && (
+            <button onClick={clearFilters} className="text-sm text-black underline underline-offset-2 mt-2">
+              Clear filters
+            </button>
+          )}
         </div>
+      ) : viewMode === 'grid' ? (
+        <PostsGrid posts={posts} onEdit={openEditModal} onDelete={requestDelete} />
       ) : (
-        <PostsGrid posts={posts} onEdit={openEditModal} onDelete={handleDelete} />
+        <PostsTable posts={posts} onEdit={openEditModal} onDelete={requestDelete} />
       )}
 
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
@@ -1383,14 +1818,24 @@ const AdminPosts = () => {
           imageInput={imageInput}
           setImageInput={setImageInput}
           editor={editor}
-          charCount={charCount}
+          stats={contentStats}
           submitting={submitting}
-          onClose={closeModal}
+          formErrors={formErrors}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={() => setIsFullscreen((v) => !v)}
+          onRequestClose={requestCloseModal}
           onSubmit={handleSubmit}
           onSetLink={setLink}
           onAddImage={addImage}
         />
       )}
+
+      <DeleteConfirmModal
+        post={postToDelete}
+        deleting={deleting}
+        onCancel={() => setPostToDelete(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };
