@@ -226,6 +226,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { Eye } from "lucide-react";
 import API from "../utils/api";
 
 const MAX_POSTS = 20;
@@ -290,13 +291,16 @@ const FeaturedSkeleton = () => (
 );
 
 const MiniCardSkeleton = () => (
-  <div className="animate-pulse">
-    <div className="w-full aspect-[4/3] bg-gray-200" />
-    <div className="h-2 w-14 bg-gray-200 mt-3" />
-    <div className="h-3.5 w-full bg-gray-200 mt-2" />
-    <div className="h-3.5 w-3/4 bg-gray-200 mt-1.5" />
-    <div className="h-2.5 w-full bg-gray-200 mt-2" />
-    <div className="h-2.5 w-1/2 bg-gray-200 mt-1" />
+  <div className="animate-pulse flex flex-col sm:flex-row gap-4 sm:gap-6">
+    <div className="w-full sm:w-40 md:w-48 lg:w-52 xl:w-56 h-44 sm:h-32 md:h-36 lg:h-40 flex-shrink-0 bg-gray-200" />
+    <div className="flex-1 min-w-0 py-1">
+      <div className="h-4 sm:h-5 w-4/5 bg-gray-200 mt-1" />
+      <div className="h-4 sm:h-5 w-3/5 bg-gray-200 mt-2" />
+      <div className="h-3 w-full bg-gray-200 mt-4" />
+      <div className="h-3 w-full bg-gray-200 mt-1.5" />
+      <div className="h-3 w-2/3 bg-gray-200 mt-1.5" />
+      <div className="h-4 w-24 bg-gray-200 mt-4" />
+    </div>
   </div>
 );
 
@@ -514,17 +518,23 @@ const HNews = () => {
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 
-          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 sm:gap-x-5 md:gap-x-6 gap-y-8 sm:gap-y-10">
+          <div className="flex flex-col divide-y divide-gray-100">
             {loading
-              ? Array.from({ length: 12 }).map((_, i) => <MiniCardSkeleton key={i} />)
-              : morePosts.map((item) => (
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className={i === 0 ? "pb-6 sm:pb-8" : "py-6 sm:py-8"}>
+                    <MiniCardSkeleton />
+                  </div>
+                ))
+              : morePosts.map((item, idx) => (
                   <Link
                     key={item._id}
                     to={`/news/${item.slug || item._id}`}
-                    className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                    className={`group flex flex-col sm:flex-row gap-4 sm:gap-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+                      idx === 0 ? "pb-6 sm:pb-8" : "py-6 sm:py-8"
+                    }`}
                   >
                     {/* Image */}
-                    <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100">
+                    <div className="relative w-full sm:w-40 md:w-48 lg:w-52 xl:w-56 h-44 sm:h-32 md:h-36 lg:h-40 flex-shrink-0 overflow-hidden bg-gray-100">
                       {!loadedImages.has(item._id) && (
                         <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_200%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
                       )}
@@ -540,22 +550,41 @@ const HNews = () => {
                       />
                     </div>
 
-                    {/* Details below the image — fully visible, no overlay */}
-                    <div className="pt-3 sm:pt-4">
-                      <span className="inline-block text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-[2px] sm:tracking-[3px] text-red-500">
-                        ■ {item.category}
-                      </span>
-                      <h4 className="text-sm sm:text-base md:text-[17px] font-bold leading-snug mt-1.5 sm:mt-2 line-clamp-2 text-gray-900 transition-colors duration-300 group-hover:text-red-500">
+                    {/* Details */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <h4 className="text-base sm:text-lg md:text-xl font-bold leading-snug line-clamp-2 text-gray-900 transition-colors duration-300 group-hover:text-red-500">
                         {item.title}
                       </h4>
                       {item.description && (
-                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed line-clamp-2 mt-1.5 sm:mt-2">
+                        <p className="text-xs sm:text-sm text-gray-500 leading-relaxed line-clamp-2 sm:line-clamp-3 mt-2 sm:mt-3">
                           {stripHtml(item.description)}
                         </p>
                       )}
-                      <p className="text-[10px] sm:text-xs text-gray-400 mt-2 sm:mt-3">
-                        {formatDate(item.createdAt)}
-                      </p>
+                      <div className="flex items-center flex-wrap gap-x-2 gap-y-1.5 mt-3 sm:mt-4">
+                        <span className="inline-block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white px-2.5 py-1">
+                          {item.category}
+                        </span>
+                        <span className="text-[10px] sm:text-xs text-gray-400">
+                          {formatDate(item.createdAt)}
+                        </span>
+                        {item.author?.name && (
+                          <>
+                            <span className="text-gray-300 text-[10px] sm:text-xs">/</span>
+                            <span className="text-[10px] sm:text-xs text-gray-400">
+                              BY {item.author.name.toUpperCase()}
+                            </span>
+                          </>
+                        )}
+                        {typeof item.views === "number" && (
+                          <>
+                            <span className="text-gray-300 text-[10px] sm:text-xs">/</span>
+                            <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-gray-400">
+                              <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                              {item.views}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </Link>
                 ))}
