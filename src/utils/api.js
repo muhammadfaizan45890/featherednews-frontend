@@ -1,3 +1,3 @@
-const API = "https://featherednews.up.railway.app/";
+const API = "https://featherednews.up.railway.app";
 
 export default API;
