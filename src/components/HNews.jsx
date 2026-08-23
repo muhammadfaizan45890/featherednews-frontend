@@ -226,12 +226,12 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { Eye } from "lucide-react";
+import { Eye, ArrowRight } from "lucide-react";
 import API from "../utils/api";
 
 const MAX_POSTS = 20;
 const FEATURED_COUNT = 2;
-const SMALL_COUNT = 4; // shown alongside the featured hero
+const SMALL_COUNT = 4;
 const FALLBACK_SQUARE = "https://via.placeholder.com/600x600/111111/FFFFFF?text=No+Image";
 const FALLBACK_WIDE = "https://via.placeholder.com/1200x600/111111/FFFFFF?text=No+Image";
 
@@ -272,8 +272,15 @@ const api = getApiInstance();
 const formatDate = (dateStr) =>
   new Date(dateStr).toLocaleDateString("en-US", {
     year: "numeric",
-    month: "short",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+const formatTime = (dateStr) =>
+  new Date(dateStr).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
   });
 
 // ─── Skeletons ───────────────────────────────────────
@@ -290,16 +297,14 @@ const FeaturedSkeleton = () => (
   <div className="w-full h-[240px] sm:h-[280px] md:h-[300px] lg:h-[330px] bg-gray-200 animate-pulse" />
 );
 
-const MiniCardSkeleton = () => (
-  <div className="animate-pulse flex flex-col sm:flex-row gap-4 sm:gap-6">
-    <div className="w-full sm:w-40 md:w-48 lg:w-52 xl:w-56 h-44 sm:h-32 md:h-36 lg:h-40 flex-shrink-0 bg-gray-200" />
-    <div className="flex-1 min-w-0 py-1">
-      <div className="h-4 sm:h-5 w-4/5 bg-gray-200 mt-1" />
-      <div className="h-4 sm:h-5 w-3/5 bg-gray-200 mt-2" />
-      <div className="h-3 w-full bg-gray-200 mt-4" />
-      <div className="h-3 w-full bg-gray-200 mt-1.5" />
-      <div className="h-3 w-2/3 bg-gray-200 mt-1.5" />
-      <div className="h-4 w-24 bg-gray-200 mt-4" />
+const MoreStorySkeleton = () => (
+  <div className="animate-pulse py-6 sm:py-8 border-b border-gray-100 last:border-0">
+    <div className="h-5 w-3/4 bg-gray-200 rounded" />
+    <div className="h-4 w-full bg-gray-200 rounded mt-3" />
+    <div className="h-4 w-2/3 bg-gray-200 rounded mt-1.5" />
+    <div className="flex items-center gap-4 mt-4">
+      <div className="h-3 w-16 bg-gray-200 rounded" />
+      <div className="h-3 w-24 bg-gray-200 rounded" />
     </div>
   </div>
 );
@@ -325,7 +330,6 @@ const HNews = () => {
         params: { page: 1, limit: MAX_POSTS, sort: "desc" },
         signal: controller.signal,
       });
-      // No category filter → fetches both news and blogs
       setPosts((res.data.data || []).slice(0, MAX_POSTS));
     } catch (err) {
       if (axios.isCancel(err) || err.name === "CanceledError" || err.code === "ERR_CANCELED") {
@@ -367,7 +371,7 @@ const HNews = () => {
     return post.images && post.images.length > 0 ? post.images[0] : fallback;
   };
 
-  // Split posts: first 2 as featured, next 4 as small, rest as compact grid
+  // Split posts
   const featuredPosts = useMemo(() => posts.slice(0, FEATURED_COUNT), [posts]);
   const smallPosts = useMemo(
     () => posts.slice(FEATURED_COUNT, FEATURED_COUNT + SMALL_COUNT),
@@ -433,7 +437,7 @@ const HNews = () => {
 
       {/* ═══ Primary grid: small cards + featured hero ═══ */}
       <div className="grid lg:grid-cols-2 gap-8 md:gap-10 lg:gap-12">
-        {/* Left Side – small news cards (2 columns on md+, 1 on mobile) */}
+        {/* Left Side – small news cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
           {loading
             ? Array.from({ length: SMALL_COUNT }).map((_, i) => <SmallCardSkeleton key={i} />)
@@ -485,9 +489,7 @@ const HNews = () => {
                     onError={() => handleImgError(item._id)}
                     className="w-full h-[240px] sm:h-[280px] md:h-[300px] lg:h-[330px] object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                   />
-                  {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-
                   <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 md:p-8 text-white">
                     <p className="uppercase text-[10px] sm:text-xs tracking-[3px] sm:tracking-[4px] text-red-400 mb-2 sm:mb-3 font-semibold">
                       ■ {item.category}
@@ -507,7 +509,7 @@ const HNews = () => {
         </div>
       </div>
 
-      {/* ═══ More Stories: advanced, fully responsive tile grid ═══ */}
+      {/* ═══ More Stories – redesigned in text‑only blog‑list style ═══ */}
       {(loading || morePosts.length > 0) && (
         <div className="mt-12 sm:mt-16 md:mt-20">
           <div className="flex items-center gap-3 mb-6 sm:mb-8">
@@ -518,75 +520,56 @@ const HNews = () => {
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 
-          <div className="flex flex-col divide-y divide-gray-100">
+          <div className="flex flex-col">
             {loading
-              ? Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className={i === 0 ? "pb-6 sm:pb-8" : "py-6 sm:py-8"}>
-                    <MiniCardSkeleton />
-                  </div>
-                ))
+              ? Array.from({ length: 5 }).map((_, i) => <MoreStorySkeleton key={i} />)
               : morePosts.map((item, idx) => (
-                  <Link
+                  <div
                     key={item._id}
-                    to={`/news/${item.slug || item._id}`}
-                    className={`group flex flex-col sm:flex-row gap-4 sm:gap-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
-                      idx === 0 ? "pb-6 sm:pb-8" : "py-6 sm:py-8"
+                    className={`py-6 sm:py-8 ${
+                      idx < morePosts.length - 1 ? "border-b border-gray-100" : ""
                     }`}
                   >
-                    {/* Image */}
-                    <div className="relative w-full sm:w-40 md:w-48 lg:w-52 xl:w-56 h-44 sm:h-32 md:h-36 lg:h-40 flex-shrink-0 overflow-hidden bg-gray-100">
-                      {!loadedImages.has(item._id) && (
-                        <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_200%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
-                      )}
-                      <img
-                        src={getImageSrc(item, FALLBACK_SQUARE)}
-                        alt={item.title}
-                        loading="lazy"
-                        onError={() => handleImgError(item._id)}
-                        onLoad={() => handleImgLoad(item._id)}
-                        className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 ${
-                          loadedImages.has(item._id) ? "tile-img-loaded opacity-100" : "opacity-0"
-                        }`}
-                      />
-                    </div>
-
-                    {/* Details */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <h4 className="text-base sm:text-lg md:text-xl font-bold leading-snug line-clamp-2 text-gray-900 transition-colors duration-300 group-hover:text-red-500">
+                    <Link
+                      to={`/news/${item.slug || item._id}`}
+                      className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                    >
+                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold leading-snug text-gray-900 transition-colors duration-300 group-hover:text-red-500">
                         {item.title}
-                      </h4>
-                      {item.description && (
-                        <p className="text-xs sm:text-sm text-gray-500 leading-relaxed line-clamp-2 sm:line-clamp-3 mt-2 sm:mt-3">
-                          {stripHtml(item.description)}
-                        </p>
-                      )}
-                      <div className="flex items-center flex-wrap gap-x-2 gap-y-1.5 mt-3 sm:mt-4">
-                        <span className="inline-block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white px-2.5 py-1">
-                          {item.category}
+                      </h3>
+                      <p className="text-sm sm:text-base text-gray-600 leading-relaxed mt-3 line-clamp-3">
+                        {stripHtml(item.description)}
+                      </p>
+
+                      {/* Separator line (---) */}
+                      <hr className="my-4 sm:my-5 border-gray-200" />
+
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="inline-flex items-center text-xs sm:text-sm font-medium text-red-500 transition-colors duration-300 group-hover:text-red-700">
+                          READ MORE
+                          <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 transition-transform duration-300 group-hover:translate-x-1" />
                         </span>
-                        <span className="text-[10px] sm:text-xs text-gray-400">
-                          {formatDate(item.createdAt)}
+                        <span className="text-xs sm:text-sm text-gray-400">
+                          {formatDate(item.createdAt)} | {formatTime(item.createdAt)}
                         </span>
-                        {item.author?.name && (
-                          <>
-                            <span className="text-gray-300 text-[10px] sm:text-xs">/</span>
-                            <span className="text-[10px] sm:text-xs text-gray-400">
-                              BY {item.author.name.toUpperCase()}
-                            </span>
-                          </>
+                      </div>
+
+                      {/* Optional: show category or views if you like */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[10px] sm:text-xs text-gray-400">
+                        {item.category && (
+                          <span className="uppercase tracking-wider bg-gray-100 px-2 py-0.5 rounded">
+                            {item.category}
+                          </span>
                         )}
                         {typeof item.views === "number" && (
-                          <>
-                            <span className="text-gray-300 text-[10px] sm:text-xs">/</span>
-                            <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-gray-400">
-                              <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                              {item.views}
-                            </span>
-                          </>
+                          <span className="inline-flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            {item.views}
+                          </span>
                         )}
                       </div>
-                    </div>
-                  </Link>
+                    </Link>
+                  </div>
                 ))}
           </div>
         </div>
