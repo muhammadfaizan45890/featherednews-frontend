@@ -675,6 +675,12 @@ import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
+import Blockquote from '@tiptap/extension-blockquote';
+import CodeBlock from '@tiptap/extension-code-block';
+import HorizontalRule from '@tiptap/extension-horizontal-rule';
+import Strike from '@tiptap/extension-strike';
+import TextAlign from '@tiptap/extension-text-align';
+import Heading from '@tiptap/extension-heading';
 import {
   FiPlus,
   FiEdit2,
@@ -698,10 +704,20 @@ import {
   FiMinimize2,
   FiFilter,
   FiAlertTriangle,
+  FiAlignLeft,
+  FiAlignCenter,
+  FiAlignRight,
+  FiAlignJustify,
+  FiCornerDownRight,
+  FiCode,
+  FiMinus,
+  FiRotateCcw,
+  FiRotateCw,
+  FiSlash as FiStrikethrough, // ✅ fallback alias
 } from 'react-icons/fi';
 
 // ───────────────────────────────────────────────────────
-// API instance (unchanged — do not recreate per render)
+// API instance (unchanged – do not recreate per render)
 // ───────────────────────────────────────────────────────
 const getApiInstance = () => {
   let instance;
@@ -742,19 +758,16 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const URL_REGEX = /^https?:\/\/.+\..+/i;
 
 // ───────────────────────────────────────────────────────
-// Sanitization / content helpers
+// Sanitization – allow all tags used by the editor
 // ───────────────────────────────────────────────────────
-
-// Allow the formatting Tiptap currently produces; strip everything else
-// (scripts, event handlers, javascript: links, iframes, etc.)
 const sanitizeHtml = (html) =>
   DOMPurify.sanitize(html || '', {
     ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'em', 'u', 's', 'a', 'ul', 'ol', 'li',
+      'p', 'br', 'strong', 'em', 'u', 's', 'strike', 'a', 'ul', 'ol', 'li',
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'img',
-      'code', 'pre', 'span',
+      'code', 'pre', 'span', 'hr', 'div',
     ],
-    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel', 'class'],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel', 'class', 'style'],
     ALLOW_DATA_ATTR: false,
   });
 
@@ -781,7 +794,6 @@ const isEmptyDescription = (html) => {
 // ───────────────────────────────────────────────────────
 // Validation
 // ───────────────────────────────────────────────────────
-
 const validatePostForm = (formData) => {
   const errors = {};
 
@@ -808,9 +820,8 @@ const validatePostForm = (formData) => {
 };
 
 // ───────────────────────────────────────────────────────
-// Small presentational components
+// Enhanced Toolbar – now with headings, alignment, etc.
 // ───────────────────────────────────────────────────────
-
 const ToolbarButton = React.memo(({ onClick, isActive, icon: Icon, label }) => (
   <button
     type="button"
@@ -828,8 +839,16 @@ const ToolbarButton = React.memo(({ onClick, isActive, icon: Icon, label }) => (
 const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
   if (!editor || editor.isDestroyed) return null;
 
+  const headingLevels = [
+    { level: 1, label: 'Heading 1' },
+    { level: 2, label: 'Heading 2' },
+    { level: 3, label: 'Heading 3' },
+    { level: 4, label: 'Heading 4' },
+  ];
+
   return (
     <div className="flex flex-wrap items-center gap-0.5 p-1.5 bg-gray-50 border-b border-gray-300 overflow-x-auto">
+      {/* Text formatting */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive('bold')}
@@ -848,14 +867,50 @@ const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
         icon={FiUnderline}
         label="Underline"
       />
-      <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
       <ToolbarButton
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        isActive={editor.isActive('heading', { level: 2 })}
-        icon={FiType}
-        label="Heading"
+        onClick={() => editor.chain().focus().toggleStrike().run()}
+        isActive={editor.isActive('strike')}
+        icon={FiStrikethrough}
+        label="Strikethrough"
       />
       <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
+
+      {/* Headings dropdown */}
+      <div className="relative inline-block">
+        <select
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value === 'paragraph') {
+              editor.chain().focus().setParagraph().run();
+            } else if (value.startsWith('heading')) {
+              const level = parseInt(value.split('-')[1], 10);
+              editor.chain().focus().toggleHeading({ level }).run();
+            }
+          }}
+          value={
+            editor.isActive('heading', { level: 1 })
+              ? 'heading-1'
+              : editor.isActive('heading', { level: 2 })
+              ? 'heading-2'
+              : editor.isActive('heading', { level: 3 })
+              ? 'heading-3'
+              : editor.isActive('heading', { level: 4 })
+              ? 'heading-4'
+              : 'paragraph'
+          }
+          className="h-8 text-xs border border-gray-300 rounded bg-white px-2 py-0 focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <option value="paragraph">Normal</option>
+          {headingLevels.map(({ level, label }) => (
+            <option key={level} value={`heading-${level}`}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
+
+      {/* Lists */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         isActive={editor.isActive('bulletList')}
@@ -869,12 +924,89 @@ const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
         label="Ordered List"
       />
       <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
+
+      {/* Blockquote & Code */}
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        isActive={editor.isActive('blockquote')}
+        icon={FiCornerDownRight}
+        label="Blockquote"
+      />
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+        isActive={editor.isActive('codeBlock')}
+        icon={FiCode}
+        label="Code block"
+      />
+      <ToolbarButton
+        onClick={() => editor.chain().focus().setHorizontalRule().run()}
+        isActive={false}
+        icon={FiMinus}
+        label="Horizontal rule"
+      />
+      <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
+
+      {/* Alignment */}
+      <ToolbarButton
+        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+        isActive={editor.isActive({ textAlign: 'left' })}
+        icon={FiAlignLeft}
+        label="Align left"
+      />
+      <ToolbarButton
+        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+        isActive={editor.isActive({ textAlign: 'center' })}
+        icon={FiAlignCenter}
+        label="Align center"
+      />
+      <ToolbarButton
+        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+        isActive={editor.isActive({ textAlign: 'right' })}
+        icon={FiAlignRight}
+        label="Align right"
+      />
+      <ToolbarButton
+        onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+        isActive={editor.isActive({ textAlign: 'justify' })}
+        icon={FiAlignJustify}
+        label="Justify"
+      />
+      <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
+
+      {/* Undo / Redo */}
+      <ToolbarButton
+        onClick={() => editor.chain().focus().undo().run()}
+        isActive={false}
+        icon={FiRotateCcw}
+        label="Undo"
+      />
+      <ToolbarButton
+        onClick={() => editor.chain().focus().redo().run()}
+        isActive={false}
+        icon={FiRotateCw}
+        label="Redo"
+      />
+      <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
+
+      {/* Link & Image */}
       <ToolbarButton onClick={onSetLink} isActive={editor.isActive('link')} icon={FiLinkIcon} label="Link" />
       <ToolbarButton onClick={onAddImage} isActive={false} icon={FiImageIcon} label="Image" />
+      <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
+
+      {/* Clear formatting */}
+      <ToolbarButton
+        onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
+        isActive={false}
+        icon={FiType}
+        label="Clear formatting"
+      />
     </div>
   );
 };
 
+// ───────────────────────────────────────────────────────
+// Presentational components (unchanged)
+// ───────────────────────────────────────────────────────
 const StatusBadge = ({ isPublished }) => (
   <span
     className={`absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] sm:text-xs font-semibold ${
@@ -1229,6 +1361,7 @@ const PublishToggle = ({ isPublished, onToggle }) => (
   </div>
 );
 
+// ─── Updated DescriptionEditor with enhanced toolbar ──
 const DescriptionEditor = ({ editor, stats, onSetLink, onAddImage, error }) => {
   if (!editor || editor.isDestroyed) return null;
 
@@ -1243,7 +1376,7 @@ const DescriptionEditor = ({ editor, stats, onSetLink, onAddImage, error }) => {
         <EditorToolbar editor={editor} onSetLink={onSetLink} onAddImage={onAddImage} />
         <EditorContent
           editor={editor}
-          className="p-3 sm:p-4 min-h-[140px] sm:min-h-[200px] md:min-h-[280px] prose prose-sm max-w-none focus:outline-none text-sm"
+          className="p-3 sm:p-4 min-h-[140px] sm:min-h-[200px] md:min-h-[280px] prose prose-sm sm:prose-base max-w-none focus:outline-none text-sm [&>p]:leading-7 [&>h1]:text-2xl [&>h1]:font-bold [&>h2]:text-xl [&>h2]:font-semibold [&>h3]:text-lg [&>h3]:font-semibold [&>h4]:text-base [&>h4]:font-semibold [&>blockquote]:border-l-4 [&>blockquote]:border-gray-300 [&>blockquote]:pl-4 [&>blockquote]:italic [&>pre]:bg-gray-100 [&>pre]:p-3 [&>pre]:rounded [&>pre]:overflow-x-auto [&>hr]:my-6 [&>hr]:border-t [&>hr]:border-gray-300"
         />
       </div>
       <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-[10px] sm:text-xs text-gray-500 mt-1">
@@ -1262,7 +1395,6 @@ const DescriptionEditor = ({ editor, stats, onSetLink, onAddImage, error }) => {
 // ───────────────────────────────────────────────────────
 // Delete confirmation modal
 // ───────────────────────────────────────────────────────
-
 const DeleteConfirmModal = ({ post, onCancel, onConfirm, deleting }) => {
   if (!post) return null;
   return (
@@ -1311,9 +1443,8 @@ const DeleteConfirmModal = ({ post, onCancel, onConfirm, deleting }) => {
 };
 
 // ───────────────────────────────────────────────────────
-// Modal (create / edit)
+// Modal (create / edit) – uses updated DescriptionEditor
 // ───────────────────────────────────────────────────────
-
 const PostFormModal = ({
   editingPost,
   formData,
@@ -1462,9 +1593,8 @@ const PostFormModal = ({
 };
 
 // ───────────────────────────────────────────────────────
-// Main component
+// Main component – AdminPosts
 // ───────────────────────────────────────────────────────
-
 const AdminPosts = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1501,13 +1631,26 @@ const AdminPosts = () => {
   const initialFormRef = useRef(EMPTY_FORM);
   const abortControllerRef = useRef(null);
 
+  // ─── Enhanced editor configuration ──────────────────
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        heading: false, // we'll configure heading explicitly
+      }),
       Underline,
       Link.configure({ openOnClick: false }),
       Image,
       Placeholder.configure({ placeholder: 'Write your article content here…' }),
+      Blockquote,
+      CodeBlock,
+      HorizontalRule,
+      Strike,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      Heading.configure({
+        levels: [1, 2, 3, 4],
+      }),
     ],
     content: formData.description || '',
     onUpdate: ({ editor }) => {
@@ -1519,7 +1662,7 @@ const AdminPosts = () => {
     },
   });
 
-  // Sync editor content when formData.description changes externally (e.g. opening edit modal)
+  // Sync editor content when formData.description changes externally
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     if (isInternalUpdate.current) return;
@@ -1536,11 +1679,11 @@ const AdminPosts = () => {
     try {
       localStorage.setItem('adminPostsViewMode', viewMode);
     } catch {
-      /* ignore storage errors (e.g. private browsing) */
+      /* ignore */
     }
   }, [viewMode]);
 
-  // Debounce free-typed search into the actual query param
+  // Debounce search
   useEffect(() => {
     const t = setTimeout(() => {
       setSearch(searchInput.trim());
@@ -1574,14 +1717,12 @@ const AdminPosts = () => {
 
       const allCats = res.data.data.map((p) => p.category);
       setCategories((prev) => {
-        // Keep categories accumulated across pages so the filter dropdown
-        // doesn't shrink to only what's on the current page.
         const merged = new Set([...prev.filter((c) => c !== 'All'), ...allCats]);
         return ['All', ...merged];
       });
     } catch (err) {
       if (axios.isCancel?.(err) || err.code === 'ERR_CANCELED' || err.name === 'CanceledError') {
-        return; // superseded by a newer request, ignore
+        return;
       }
       console.error('Fetch error:', err);
       setError(err.response?.data?.message || 'Failed to fetch posts');
