@@ -713,11 +713,11 @@ import {
   FiMinus,
   FiRotateCcw,
   FiRotateCw,
-  FiSlash as FiStrikethrough, // ✅ fallback alias
+  FiSlash as FiStrikethrough,
 } from 'react-icons/fi';
 
 // ───────────────────────────────────────────────────────
-// API instance (unchanged – do not recreate per render)
+// API instance
 // ───────────────────────────────────────────────────────
 const getApiInstance = () => {
   let instance;
@@ -758,7 +758,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const URL_REGEX = /^https?:\/\/.+\..+/i;
 
 // ───────────────────────────────────────────────────────
-// Sanitization – allow all tags used by the editor
+// Sanitization
 // ───────────────────────────────────────────────────────
 const sanitizeHtml = (html) =>
   DOMPurify.sanitize(html || '', {
@@ -820,7 +820,7 @@ const validatePostForm = (formData) => {
 };
 
 // ───────────────────────────────────────────────────────
-// Enhanced Toolbar – now with headings, alignment, etc.
+// Toolbar components
 // ───────────────────────────────────────────────────────
 const ToolbarButton = React.memo(({ onClick, isActive, icon: Icon, label }) => (
   <button
@@ -848,7 +848,6 @@ const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
 
   return (
     <div className="flex flex-wrap items-center gap-0.5 p-1.5 bg-gray-50 border-b border-gray-300 overflow-x-auto">
-      {/* Text formatting */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive('bold')}
@@ -875,7 +874,6 @@ const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
       />
       <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
 
-      {/* Headings dropdown */}
       <div className="relative inline-block">
         <select
           onChange={(e) => {
@@ -910,7 +908,6 @@ const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
       </div>
       <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
 
-      {/* Lists */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         isActive={editor.isActive('bulletList')}
@@ -925,7 +922,6 @@ const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
       />
       <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
 
-      {/* Blockquote & Code */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         isActive={editor.isActive('blockquote')}
@@ -946,7 +942,6 @@ const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
       />
       <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
 
-      {/* Alignment */}
       <ToolbarButton
         onClick={() => editor.chain().focus().setTextAlign('left').run()}
         isActive={editor.isActive({ textAlign: 'left' })}
@@ -973,7 +968,6 @@ const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
       />
       <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
 
-      {/* Undo / Redo */}
       <ToolbarButton
         onClick={() => editor.chain().focus().undo().run()}
         isActive={false}
@@ -988,12 +982,10 @@ const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
       />
       <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
 
-      {/* Link & Image */}
       <ToolbarButton onClick={onSetLink} isActive={editor.isActive('link')} icon={FiLinkIcon} label="Link" />
       <ToolbarButton onClick={onAddImage} isActive={false} icon={FiImageIcon} label="Image" />
       <span className="w-px h-6 bg-gray-300 mx-1 shrink-0" />
 
-      {/* Clear formatting */}
       <ToolbarButton
         onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
         isActive={false}
@@ -1005,7 +997,7 @@ const EditorToolbar = ({ editor, onSetLink, onAddImage }) => {
 };
 
 // ───────────────────────────────────────────────────────
-// Presentational components (unchanged)
+// Presentational components
 // ───────────────────────────────────────────────────────
 const StatusBadge = ({ isPublished }) => (
   <span
@@ -1361,7 +1353,7 @@ const PublishToggle = ({ isPublished, onToggle }) => (
   </div>
 );
 
-// ─── Updated DescriptionEditor with enhanced toolbar ──
+// ─── Updated DescriptionEditor with whitespace preservation ──
 const DescriptionEditor = ({ editor, stats, onSetLink, onAddImage, error }) => {
   if (!editor || editor.isDestroyed) return null;
 
@@ -1376,7 +1368,8 @@ const DescriptionEditor = ({ editor, stats, onSetLink, onAddImage, error }) => {
         <EditorToolbar editor={editor} onSetLink={onSetLink} onAddImage={onAddImage} />
         <EditorContent
           editor={editor}
-          className="p-3 sm:p-4 min-h-[140px] sm:min-h-[200px] md:min-h-[280px] prose prose-sm sm:prose-base max-w-none focus:outline-none text-sm [&>p]:leading-7 [&>h1]:text-2xl [&>h1]:font-bold [&>h2]:text-xl [&>h2]:font-semibold [&>h3]:text-lg [&>h3]:font-semibold [&>h4]:text-base [&>h4]:font-semibold [&>blockquote]:border-l-4 [&>blockquote]:border-gray-300 [&>blockquote]:pl-4 [&>blockquote]:italic [&>pre]:bg-gray-100 [&>pre]:p-3 [&>pre]:rounded [&>pre]:overflow-x-auto [&>hr]:my-6 [&>hr]:border-t [&>hr]:border-gray-300"
+          className="p-3 sm:p-4 min-h-[140px] sm:min-h-[200px] md:min-h-[280px] prose prose-sm sm:prose-base max-w-none focus:outline-none text-sm [&>p]:leading-7 [&>h1]:text-2xl [&>h1]:font-bold [&>h2]:text-xl [&>h2]:font-semibold [&>h3]:text-lg [&>h3]:font-semibold [&>h4]:text-base [&>h4]:font-semibold [&>blockquote]:border-l-4 [&>blockquote]:border-gray-300 [&>blockquote]:pl-4 [&>blockquote]:italic [&>pre]:bg-gray-100 [&>pre]:p-3 [&>pre]:rounded [&>pre]:overflow-x-auto [&>hr]:my-6 [&>hr]:border-t [&>hr]:border-gray-300 whitespace-pre-wrap"
+          style={{ whiteSpace: 'pre-wrap' }}
         />
       </div>
       <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-[10px] sm:text-xs text-gray-500 mt-1">
@@ -1631,11 +1624,11 @@ const AdminPosts = () => {
   const initialFormRef = useRef(EMPTY_FORM);
   const abortControllerRef = useRef(null);
 
-  // ─── Enhanced editor configuration ──────────────────
+  // ─── Enhanced editor configuration with paste handler ──
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: false, // we'll configure heading explicitly
+        heading: false,
       }),
       Underline,
       Link.configure({ openOnClick: false }),
@@ -1653,6 +1646,48 @@ const AdminPosts = () => {
       }),
     ],
     content: formData.description || '',
+    editorProps: {
+      handlePaste: (view, event) => {
+        const clipboardData = event.clipboardData;
+        if (!clipboardData) return false;
+
+        // If there is HTML, let the default paste handler take over
+        const html = clipboardData.getData('text/html');
+        if (html) return false;
+
+        // Plain text paste – preserve newlines and spaces
+        const text = clipboardData.getData('text/plain');
+        if (!text) return false;
+
+        // Split by newlines and create a fragment with paragraphs
+        const lines = text.split('\n');
+        // Build a schema fragment
+        const { state, dispatch } = view;
+        const tr = state.tr;
+        const { schema } = state;
+
+        // Create a document fragment with paragraphs
+        const nodes = lines.map(line => {
+          if (line.trim() === '') {
+            // Empty line => empty paragraph (to create spacing)
+            return schema.nodes.paragraph.create();
+          } else {
+            // Non-empty line => paragraph with text (preserve multiple spaces via &nbsp;)
+            // But we can just use text; the white-space: pre-wrap will preserve spaces.
+            return schema.nodes.paragraph.create(null, schema.text(line));
+          }
+        });
+
+        // Replace the selection with the fragment
+        const fragment = schema.nodes.doc.create(null, nodes);
+        const { from, to } = state.selection;
+        // We need to replace the selection with the fragment
+        // Use replaceWith
+        tr.replaceWith(from, to, fragment.content);
+        dispatch(tr);
+        return true;
+      },
+    },
     onUpdate: ({ editor }) => {
       isInternalUpdate.current = true;
       setFormData((prev) => ({ ...prev, description: editor.getHTML() }));
