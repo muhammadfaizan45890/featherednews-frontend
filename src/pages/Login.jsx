@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,13 +10,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Loader2, Mail, Lock, BookOpen, Feather } from 'lucide-react';
-import { toast } from 'sonner';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { getData } from '@/context/userContext';
+import { Eye, EyeOff, Loader2, Mail, Lock, Feather } from "lucide-react";
+import { toast } from "sonner";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { getData } from "@/context/userContext";
 import Google from "../assets/googleLogo.png";
-import API from '@/utils/api';
+import API from "@/utils/api";
 
 const Login = () => {
   const { setUser } = getData();
@@ -24,15 +24,25 @@ const Login = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [touched, setTouched] = useState({});
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
-  };
+  const handleChange = useCallback(
+    (e) => {
+      const { name, value } = e.target;
+      setFormData((prev) => ({ ...prev, [name]: value }));
+      if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+    },
+    [errors]
+  );
+
+  const handleBlur = useCallback((e) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -47,6 +57,7 @@ const Login = () => {
       newErrors.password = "Password must be at least 6 characters";
     }
     setErrors(newErrors);
+    setTouched({ email: true, password: true });
     return Object.keys(newErrors).length === 0;
   };
 
@@ -70,38 +81,59 @@ const Login = () => {
       }
     } catch (error) {
       console.error(error);
-      toast.error(
-        error?.response?.data?.message || "Login failed. Please try again."
-      );
+      toast.error(error?.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = () => {
+    setIsGoogleLoading(true);
     window.open(`${API}/auth/google`, "_self");
   };
 
+  const toggleRememberMe = () => setRememberMe((prev) => !prev);
+
+  const handleRememberKeyDown = (e) => {
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      toggleRememberMe();
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-white flex flex-col lg:flex-row">
-      {/* ─── Brand Side (Left) ────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-black text-white p-12 flex-col justify-between">
+    <div className="min-h-screen min-h-[100dvh] bg-white flex flex-col lg:flex-row">
+      {/* ─── Brand Side ───────────────────────────────────────────────
+          Hidden on phones, a condensed strip on tablets, full panel on lg+ */}
+      <div
+        className="
+          hidden md:flex md:w-2/5 lg:w-1/2
+          relative bg-black text-white
+          p-6 sm:p-8 lg:p-12
+          flex-col justify-between
+          shrink-0
+        "
+      >
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_center,_white,_transparent_70%)] pointer-events-none" />
-        
+
         <div className="relative z-10">
-          <div className="flex items-center gap-2 text-xl font-black tracking-tight">
-            <Feather className="h-8 w-8" />
-            <span>
+          <div className="flex items-center gap-2 text-lg sm:text-xl font-black tracking-tight">
+            <Feather className="h-6 w-6 sm:h-8 sm:w-8 shrink-0" />
+            <span className="leading-none">
               <span className="font-light">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span>
               <span className="font-extrabold">NEWS</span>
             </span>
           </div>
-          <p className="mt-2 text-sm text-gray-400">Multipurpose Magazine & Blog</p>
+          <p className="mt-2 text-xs sm:text-sm text-gray-400">
+            Multipurpose Magazine &amp; Blog
+          </p>
         </div>
 
-        <div className="relative z-10 space-y-6 max-w-sm">
-          <h2 className="text-4xl font-black leading-tight">
-            Welcome back,<br />
+        {/* Only show the pitch copy once there's real room for it (lg+) */}
+        <div className="relative z-10 space-y-6 max-w-sm hidden lg:block">
+          <h2 className="text-3xl xl:text-4xl font-black leading-tight">
+            Welcome back,
+            <br />
             <span className="text-gray-400">writer.</span>
           </h2>
           <p className="text-gray-400 text-sm leading-relaxed">
@@ -114,73 +146,84 @@ const Login = () => {
           </div>
         </div>
 
-        <div className="relative z-10 text-xs text-gray-600">
+        <div className="relative z-10 text-[11px] sm:text-xs text-gray-600">
           © {new Date().getFullYear()} FeatheredNews. All rights reserved.
         </div>
       </div>
 
-      {/* ─── Form Side (Right) ────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-12 lg:py-0">
-        <div className="w-full max-w-md space-y-8">
-          {/* Mobile brand (visible only on small screens) */}
-          <div className="lg:hidden text-center">
-            <div className="flex items-center justify-center gap-2 text-2xl font-black tracking-tight">
-              <Feather className="h-6 w-6" />
+      {/* ─── Form Side ─────────────────────────────────────────────── */}
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-10 py-8 sm:py-12">
+        <div className="w-full max-w-sm sm:max-w-md space-y-6 sm:space-y-8">
+          {/* Mobile / tablet brand mark */}
+          <div className="md:hidden text-center">
+            <div className="flex items-center justify-center gap-2 text-xl sm:text-2xl font-black tracking-tight text-black">
+              <Feather className="h-5 w-5 sm:h-6 sm:w-6" />
               <span>
                 <span className="font-light">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span>
                 <span className="font-extrabold">News</span>
               </span>
             </div>
-            <p className="text-sm text-gray-500 mt-1">Multipurpose Magazine & Blog</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              Multipurpose Magazine &amp; Blog
+            </p>
           </div>
 
-          <div className="text-center lg:text-left">
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-black">
+          <div className="text-center md:text-left">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-black">
               Sign in
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-sm sm:text-base text-gray-600">
               Access your writer dashboard and start publishing.
             </p>
           </div>
 
           <Card className="w-full border-none shadow-none bg-transparent">
-            <CardHeader className="space-y-1 px-0 pb-6">
-              <CardTitle className="text-2xl text-black">Welcome back</CardTitle>
-              <CardDescription className="text-gray-500">
+            <CardHeader className="space-y-1 px-0 pb-4 sm:pb-6">
+              <CardTitle className="text-xl sm:text-2xl text-black">Welcome back</CardTitle>
+              <CardDescription className="text-gray-500 text-sm">
                 Enter your credentials to continue
               </CardDescription>
             </CardHeader>
 
             <form onSubmit={handleSubmit} noValidate>
-              <CardContent className="space-y-5 px-0">
+              <CardContent className="space-y-4 sm:space-y-5 px-0">
                 {/* Email Field */}
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-gray-700 font-medium">
                     Email address
                   </Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <Input
                       id="email"
                       type="email"
                       name="email"
+                      inputMode="email"
+                      autoComplete="email"
                       value={formData.email}
                       onChange={handleChange}
+                      onBlur={handleBlur}
+                      disabled={isLoading}
                       placeholder="you@example.com"
                       className={`pl-9 border-gray-300 focus:border-black focus:ring-black/20 ${
-                        errors.email ? "border-red-500 focus:border-red-500" : ""
+                        touched.email && errors.email
+                          ? "border-red-500 focus:border-red-500"
+                          : ""
                       }`}
-                      aria-invalid={!!errors.email}
+                      aria-invalid={!!(touched.email && errors.email)}
+                      aria-describedby="email-error"
                     />
                   </div>
-                  {errors.email && (
-                    <p className="text-sm text-red-600 mt-1">{errors.email}</p>
+                  {touched.email && errors.email && (
+                    <p id="email-error" role="alert" className="text-sm text-red-600 mt-1">
+                      {errors.email}
+                    </p>
                   )}
                 </div>
 
                 {/* Password Field */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     <Label htmlFor="password" className="text-gray-700 font-medium">
                       Password
                     </Label>
@@ -192,26 +235,34 @@ const Login = () => {
                     </Link>
                   </div>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <Input
                       id="password"
                       name="password"
                       placeholder="••••••••"
+                      autoComplete="current-password"
                       value={formData.password}
                       onChange={handleChange}
+                      onBlur={handleBlur}
+                      disabled={isLoading}
                       type={showPassword ? "text" : "password"}
                       className={`pl-9 pr-10 border-gray-300 focus:border-black focus:ring-black/20 ${
-                        errors.password ? "border-red-500 focus:border-red-500" : ""
+                        touched.password && errors.password
+                          ? "border-red-500 focus:border-red-500"
+                          : ""
                       }`}
-                      aria-invalid={!!errors.password}
+                      aria-invalid={!!(touched.password && errors.password)}
+                      aria-describedby="password-error"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400 hover:text-gray-600"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => setShowPassword((prev) => !prev)}
                       disabled={isLoading}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-pressed={showPassword}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -220,8 +271,10 @@ const Login = () => {
                       )}
                     </Button>
                   </div>
-                  {errors.password && (
-                    <p className="text-sm text-red-600 mt-1">{errors.password}</p>
+                  {touched.password && errors.password && (
+                    <p id="password-error" role="alert" className="text-sm text-red-600 mt-1">
+                      {errors.password}
+                    </p>
                   )}
                 </div>
 
@@ -229,11 +282,11 @@ const Login = () => {
                 <div className="flex items-center space-x-2">
                   <button
                     type="button"
-                    onClick={() => setRememberMe(!rememberMe)}
-                    className={`relative w-4 h-4 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-black/50 ${
-                      rememberMe
-                        ? "bg-black border-black"
-                        : "bg-white border-gray-300"
+                    id="remember"
+                    onClick={toggleRememberMe}
+                    onKeyDown={handleRememberKeyDown}
+                    className={`relative w-4 h-4 shrink-0 rounded border transition-colors focus:outline-none focus:ring-2 focus:ring-black/50 focus:ring-offset-1 ${
+                      rememberMe ? "bg-black border-black" : "bg-white border-gray-300"
                     }`}
                     aria-checked={rememberMe}
                     role="checkbox"
@@ -256,8 +309,8 @@ const Login = () => {
                   </button>
                   <Label
                     htmlFor="remember"
-                    className="text-sm text-gray-600 cursor-pointer"
-                    onClick={() => setRememberMe(!rememberMe)}
+                    className="text-sm text-gray-600 cursor-pointer select-none"
+                    onClick={toggleRememberMe}
                   >
                     Remember me
                   </Label>
@@ -268,7 +321,7 @@ const Login = () => {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-black hover:bg-gray-800 text-white shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.98]"
+                  className="w-full bg-black hover:bg-gray-800 text-white shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.98] h-11"
                 >
                   {isLoading ? (
                     <>
@@ -280,24 +333,27 @@ const Login = () => {
                   )}
                 </Button>
 
-                <div className="relative my-2">
+                <div className="relative my-2 w-full">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-200" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-2 text-gray-500">
-                      Or continue with
-                    </span>
+                    <span className="bg-white px-2 text-gray-500">Or continue with</span>
                   </div>
                 </div>
 
                 <Button
                   type="button"
                   onClick={handleGoogleLogin}
+                  disabled={isGoogleLoading}
                   variant="outline"
-                  className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-black transition-colors"
+                  className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-black transition-colors h-11"
                 >
-                  <img src={Google} alt="Google" className="mr-2 h-5 w-5" />
+                  {isGoogleLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <img src={Google} alt="" aria-hidden="true" className="mr-2 h-5 w-5" />
+                  )}
                   Google
                 </Button>
 
