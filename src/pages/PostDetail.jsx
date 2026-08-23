@@ -14,7 +14,6 @@ import {
   FiTwitter,
   FiLinkedin,
   FiLink,
-  // FiArrowUp removed – unused
   FiBookOpen,
   FiMessageCircle,
   FiHeart,
@@ -183,7 +182,6 @@ const CommentItem = ({ comment, onReply, onLike, onDelete, currentUser, isRoot =
     onLike(comment._id);
   };
 
-  // Safe fallback for author display – handle both object and string
   const authorObj = typeof comment.author === 'object' ? comment.author : null;
   const authorDisplay = authorObj?.fullname || authorObj?.username || 'Anonymous';
   const avatarUrl = authorObj?.avatar ? getAvatarUrl(authorObj.avatar) : null;
@@ -604,9 +602,7 @@ const PostDetail = () => {
     );
   }
 
-  // ─── Extract data ──────────────────────────────────────
   const { title, category, images = [], author, authorName, createdAt, isPublished } = post;
-  // Safe author display – use authorName fallback if author is not an object
   const authorObj = typeof author === 'object' ? author : null;
   const authorDisplay = authorObj?.fullname || authorObj?.username || authorName || 'Unknown Author';
   const avatarUrl = authorObj?.avatar ? getAvatarUrl(authorObj.avatar) : null;
@@ -752,9 +748,20 @@ const PostDetail = () => {
 
               {/* ─── Description (HTML content) ────────────── */}
               <div
-                className="mt-8 prose prose-lg max-w-none text-[var(--ink)] prose-p:leading-[1.8] prose-hr:my-8 prose-hr:border-[var(--rule)]"
+                className="mt-8 prose prose-lg max-w-none text-[var(--ink)] prose-p:leading-[1.8] prose-hr:my-8 prose-hr:border-[var(--rule)] post-content"
+                style={{ whiteSpace: 'pre-wrap' }}
                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               />
+
+              <style>{`
+                .post-content,
+                .post-content * {
+                  white-space: pre-wrap !important;
+                }
+                .post-content p {
+                  margin-bottom: 1.25em;
+                }
+              `}</style>
 
               {/* ─── Author Bio ────────────────────────────── */}
               <div className="mt-10 p-5 bg-[var(--paper-dim)] border-l-2 border-[var(--accent)] flex items-start gap-4 rounded-sm">
