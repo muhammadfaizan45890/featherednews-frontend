@@ -785,10 +785,23 @@ const FeaturedDetail = () => {
               )}
 
               {/* ─── Description (HTML content) ────────────── */}
+              {/* Added custom class and inline style for whitespace preservation */}
               <div
-                className="mt-6 sm:mt-8 prose prose-sm sm:prose-base md:prose-lg max-w-none text-[var(--ink)] prose-p:leading-[1.8] prose-hr:my-8 prose-hr:border-[var(--rule)] prose-img:rounded-sm"
+                className="mt-6 sm:mt-8 prose prose-sm sm:prose-base md:prose-lg max-w-none text-[var(--ink)] prose-p:leading-[1.8] prose-hr:my-8 prose-hr:border-[var(--rule)] prose-img:rounded-sm post-content"
+                style={{ whiteSpace: 'pre-wrap' }}
                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               />
+
+              {/* Force all children to preserve whitespace too */}
+              <style>{`
+                .post-content,
+                .post-content * {
+                  white-space: pre-wrap !important;
+                }
+                .post-content p {
+                  margin-bottom: 1.25em;
+                }
+              `}</style>
 
               {/* ─── Author Bio ────────────────────────────── */}
               <div className="mt-8 sm:mt-10 p-4 sm:p-5 bg-[var(--paper-dim)] border-l-2 border-[var(--accent)] flex items-start gap-3 sm:gap-4 rounded-sm">
