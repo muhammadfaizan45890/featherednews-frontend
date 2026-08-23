@@ -14,7 +14,7 @@ import {
   FiTwitter,
   FiLinkedin,
   FiLink,
-  FiArrowUp,
+  // FiArrowUp removed – unused
   FiBookOpen,
   FiMessageCircle,
   FiHeart,
@@ -183,9 +183,11 @@ const CommentItem = ({ comment, onReply, onLike, onDelete, currentUser, isRoot =
     onLike(comment._id);
   };
 
-  const authorDisplay = comment.author?.fullname || comment.author?.username || 'Anonymous';
-  const avatarUrl = comment.author?.avatar ? getAvatarUrl(comment.author.avatar) : null;
-  const isOwnComment = currentUser?._id === comment.author?._id;
+  // Safe fallback for author display – handle both object and string
+  const authorObj = typeof comment.author === 'object' ? comment.author : null;
+  const authorDisplay = authorObj?.fullname || authorObj?.username || 'Anonymous';
+  const avatarUrl = authorObj?.avatar ? getAvatarUrl(authorObj.avatar) : null;
+  const isOwnComment = currentUser?._id === authorObj?._id;
 
   return (
     <div className="border-b border-[var(--rule)] last:border-0 py-4 sm:py-5">
@@ -604,9 +606,10 @@ const PostDetail = () => {
 
   // ─── Extract data ──────────────────────────────────────
   const { title, category, images = [], author, authorName, createdAt, isPublished } = post;
-  // 👇 Use fullname or username – never email
-  const authorDisplay = author?.fullname || author?.username || authorName || 'Unknown Author';
-  const avatarUrl = author?.avatar ? getAvatarUrl(author.avatar) : null;
+  // Safe author display – use authorName fallback if author is not an object
+  const authorObj = typeof author === 'object' ? author : null;
+  const authorDisplay = authorObj?.fullname || authorObj?.username || authorName || 'Unknown Author';
+  const avatarUrl = authorObj?.avatar ? getAvatarUrl(authorObj.avatar) : null;
   const date = new Date(createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -765,8 +768,7 @@ const PostDetail = () => {
                 <div>
                   <p className="text-xs uppercase tracking-wide text-[var(--ink-faint)]">Written by</p>
                   <h4 className="font-bold text-[var(--ink)] mt-0.5 text-lg">{authorDisplay}</h4>
-                  <p className="text-sm text-[var(--ink-soft)] mt-1">{author?.bio || 'Writer and storyteller.'}</p>
-                  {/* Email deliberately omitted */}
+                  <p className="text-sm text-[var(--ink-soft)] mt-1">{authorObj?.bio || 'Writer and storyteller.'}</p>
                 </div>
               </div>
 
