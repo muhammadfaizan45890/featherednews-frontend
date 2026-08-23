@@ -1,3 +1,3 @@
-const API = "https://featherednews-backend-production.up.railway.app";
+const API = "https://featherednews-backend-production-c9a0.up.railway.app";
 
 export default API;
