@@ -201,6 +201,28 @@ const Signup = () => {
           </div>
 
           <Card className="w-full border-none shadow-none bg-transparent">
+            {/* ─── Google Sign-up Button (Now Above the Heading) ─── */}
+            <div className="mb-6">
+              <Button
+                type="button"
+                onClick={handleGoogleSignup}
+                variant="outline"
+                className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-black transition-colors h-11"
+              >
+                <img src={Google} alt="Google" className="mr-2 h-5 w-5" />
+                Sign up with Google
+              </Button>
+
+              <div className="relative w-full my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-gray-500">Or sign up with email</span>
+                </div>
+              </div>
+            </div>
+
             <CardHeader className="space-y-1 px-0 pb-6">
               <CardTitle className="text-2xl text-black">Sign up</CardTitle>
               <CardDescription className="text-gray-500">
@@ -412,27 +434,6 @@ const Signup = () => {
                   ) : (
                     "Create Account"
                   )}
-                </Button>
-
-                {/* ─── Divider ────────────────────────────────── */}
-                <div className="relative w-full my-1">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-2 text-gray-500">Or continue with</span>
-                  </div>
-                </div>
-
-                {/* ─── Google Sign-up Button ──────────────────── */}
-                <Button
-                  type="button"
-                  onClick={handleGoogleSignup}
-                  variant="outline"
-                  className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-black transition-colors"
-                >
-                  <img src={Google} alt="Google" className="mr-2 h-5 w-5" />
-                  Sign up with Google
                 </Button>
 
                 <p className="text-center text-sm text-gray-600">
