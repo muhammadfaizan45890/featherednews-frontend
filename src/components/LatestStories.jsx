@@ -343,15 +343,15 @@ const formatDate = (dateStr) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Skeleton – matching the new design
+// Skeleton – matching the new design (responsive: stacks on mobile)
 // ─────────────────────────────────────────────────────────────
 const SkeletonRow = () => (
-  <div className="flex w-full items-start gap-[24px] animate-pulse">
-    <div className="relative h-[170px] w-[215px] shrink-0 overflow-hidden bg-gray-200 dark:bg-zinc-800">
+  <div className="flex w-full flex-col sm:flex-row items-start gap-[16px] sm:gap-[24px] animate-pulse">
+    <div className="relative h-[200px] w-full sm:h-[170px] sm:w-[215px] shrink-0 overflow-hidden bg-gray-200 dark:bg-zinc-800">
       <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
     </div>
-    <div className="relative min-w-0 flex-1 pt-[14px]">
-      <div className="-ml-[62px] mb-[12px] bg-white dark:bg-zinc-900 px-[20px] py-[8px]">
+    <div className="relative min-w-0 w-full flex-1 sm:pt-[14px]">
+      <div className="mb-[12px] bg-white dark:bg-zinc-900 px-[20px] py-[8px] -mx-[20px] sm:mx-0 sm:-ml-[62px]">
         <div className="h-6 w-3/4 bg-gray-200 dark:bg-zinc-800" />
       </div>
       <div className="space-y-2">
@@ -368,7 +368,7 @@ const SkeletonRow = () => (
 );
 
 // ─────────────────────────────────────────────────────────────
-// Story Card – exact design from the snippet
+// Story Card – same visual design, responsive across breakpoints
 // ─────────────────────────────────────────────────────────────
 const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, index }) {
   const src = isBroken
@@ -387,12 +387,12 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
       className="list-none opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
       style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
     >
-      <article className="group flex w-full items-start gap-[24px]">
+      <article className="group flex w-full flex-col sm:flex-row items-start gap-[16px] sm:gap-[24px]">
         {/* Image */}
         <Link
           to={`/news/${post.slug || post._id}`}
           aria-label={`Read story: ${post.title}`}
-          className="relative h-[170px] w-[215px] shrink-0 overflow-hidden bg-gray-100 dark:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          className="relative h-[200px] w-full sm:h-[170px] sm:w-[215px] shrink-0 overflow-hidden bg-gray-100 dark:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
         >
           <img
             src={src}
@@ -410,9 +410,9 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
         </Link>
 
         {/* Content */}
-        <div className="relative min-w-0 flex-1 pt-[14px]">
-          {/* Overlapping white title box */}
-          <div className="-ml-[62px] mb-[12px] bg-white dark:bg-zinc-900 px-[20px] py-[8px]">
+        <div className="relative min-w-0 w-full flex-1 sm:pt-[14px]">
+          {/* Overlapping white title box (overlap only applies on sm+, where the image sits beside it) */}
+          <div className="-mx-[20px] sm:mx-0 sm:-ml-[62px] mb-[12px] bg-white dark:bg-zinc-900 px-[20px] py-[8px]">
             <Link
               to={`/news/${post.slug || post._id}`}
               className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
@@ -594,7 +594,7 @@ const LatestStories = () => {
             </p>
             <h2
               id="latest-stories-heading"
-              className="text-2xl xs:text-3xl sm:text-4xl font-bold mt-1 text-black dark:text-white"
+              className="text-2xl sm:text-3xl md:text-4xl font-bold mt-1 text-black dark:text-white"
             >
               Latest Stories
             </h2>
@@ -605,7 +605,7 @@ const LatestStories = () => {
           <Link
             to="/news"
             aria-label="View all stories"
-            className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors hidden sm:inline-block mt-2 sm:mt-0"
+            className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors inline-block mt-2 sm:mt-0"
           >
             View All →
           </Link>
