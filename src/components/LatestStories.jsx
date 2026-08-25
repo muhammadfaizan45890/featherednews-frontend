@@ -316,7 +316,6 @@ const getApiInstance = () => {
 const api = getApiInstance();
 
 const FALLBACK_IMG = "https://via.placeholder.com/500x500/111111/FFFFFF?text=No+Image";
-const MAX_RETRIES = 3;
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -336,28 +335,24 @@ const stripHtml = (html) => {
 const formatDate = (dateStr) => {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return "";
-  return date
-    .toLocaleDateString("en-US", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
-    .toUpperCase();
+  return date.toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).toUpperCase();
 };
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 // ─────────────────────────────────────────────────────────────
-// Skeleton – responsive: stacked on mobile, row on sm+
+// Skeleton – matching the new design
 // ─────────────────────────────────────────────────────────────
 const SkeletonRow = () => (
-  <div className="flex w-full flex-col items-start gap-4 animate-pulse sm:flex-row sm:gap-[24px]">
-    <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-gray-200 dark:bg-zinc-800 sm:aspect-auto sm:h-[170px] sm:w-[215px]">
+  <div className="flex w-full items-start gap-[24px] animate-pulse">
+    <div className="relative h-[170px] w-[215px] shrink-0 overflow-hidden bg-gray-200 dark:bg-zinc-800">
       <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
     </div>
-    <div className="relative min-w-0 flex-1 sm:pt-[14px]">
-      <div className="mb-3 bg-white px-0 py-1 dark:bg-zinc-900 sm:-ml-[62px] sm:mb-[12px] sm:px-[20px] sm:py-[8px]">
-        <div className="h-5 w-3/4 bg-gray-200 dark:bg-zinc-800 sm:h-6" />
+    <div className="relative min-w-0 flex-1 pt-[14px]">
+      <div className="-ml-[62px] mb-[12px] bg-white dark:bg-zinc-900 px-[20px] py-[8px]">
+        <div className="h-6 w-3/4 bg-gray-200 dark:bg-zinc-800" />
       </div>
       <div className="space-y-2">
         <div className="h-4 w-full bg-gray-200 dark:bg-zinc-800" />
@@ -373,13 +368,9 @@ const SkeletonRow = () => (
 );
 
 // ─────────────────────────────────────────────────────────────
-// Story Card – same design as original, now fully responsive:
-// image sits on top and full-width on mobile, then moves back
-// to the original overlapping-title row layout from sm+ up.
+// Story Card – exact design from the snippet
 // ─────────────────────────────────────────────────────────────
 const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, index }) {
-  const [imgLoaded, setImgLoaded] = useState(false);
-
   const src = isBroken
     ? FALLBACK_IMG
     : post.images && post.images.length > 0
@@ -396,29 +387,19 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
       className="list-none opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
       style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
     >
-      <article className="group flex w-full flex-col items-start gap-4 sm:flex-row sm:gap-[24px]">
+      <article className="group flex w-full items-start gap-[24px]">
         {/* Image */}
         <Link
           to={`/news/${post.slug || post._id}`}
           aria-label={`Read story: ${post.title}`}
-          className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-gray-100 dark:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 sm:aspect-auto sm:h-[170px] sm:w-[215px]"
+          className="relative h-[170px] w-[215px] shrink-0 overflow-hidden bg-gray-100 dark:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
         >
-          {!imgLoaded && (
-            <div className="absolute inset-0 animate-pulse bg-gray-200 dark:bg-zinc-800" aria-hidden="true" />
-          )}
           <img
             src={src}
             alt={post.title}
             loading="lazy"
-            decoding="async"
-            onLoad={() => setImgLoaded(true)}
-            onError={() => {
-              setImgLoaded(true);
-              onImgError(post._id);
-            }}
-            className={`h-full w-full object-cover transition-all duration-500 ease-out group-hover:scale-105 ${
-              imgLoaded ? "opacity-100" : "opacity-0"
-            }`}
+            onError={() => onImgError(post._id)}
+            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           />
           {/* Optional "New" badge (small) */}
           {isNew(post.createdAt) && (
@@ -429,20 +410,20 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
         </Link>
 
         {/* Content */}
-        <div className="relative min-w-0 flex-1 sm:pt-[14px]">
-          {/* Overlapping white title box (only overlaps from sm+, where the image sits beside it) */}
-          <div className="mb-3 bg-white px-0 py-1 dark:bg-zinc-900 sm:-ml-[62px] sm:mb-[12px] sm:px-[20px] sm:py-[8px]">
+        <div className="relative min-w-0 flex-1 pt-[14px]">
+          {/* Overlapping white title box */}
+          <div className="-ml-[62px] mb-[12px] bg-white dark:bg-zinc-900 px-[20px] py-[8px]">
             <Link
               to={`/news/${post.slug || post._id}`}
               className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             >
-              <h2 className="m-0 max-w-[590px] text-[18px] font-[800] leading-[1.16] tracking-[-0.4px] text-[#151515] dark:text-white sm:text-[20px] sm:leading-[1.12] sm:tracking-[-0.45px] lg:text-[21px] group-hover:text-red-500 transition-colors">
+              <h2 className="m-0 max-w-[590px] text-[20px] font-[800] leading-[1.12] tracking-[-0.45px] text-[#151515] dark:text-white sm:text-[21px] group-hover:text-red-500 transition-colors">
                 {post.title}
               </h2>
             </Link>
           </div>
 
-          <p className="mb-[13px] max-w-[515px] text-[12px] font-normal leading-[1.55] text-[#999] dark:text-gray-400 sm:text-[11px] lg:text-[12px] line-clamp-3">
+          <p className="mb-[13px] max-w-[515px] text-[11px] font-normal leading-[1.55] text-[#999] dark:text-gray-400 sm:text-[12px] line-clamp-3">
             {cleanExcerpt}
           </p>
 
@@ -487,9 +468,6 @@ const LatestStories = () => {
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
-  const [isOffline, setIsOffline] = useState(
-    typeof navigator !== "undefined" ? !navigator.onLine : false
-  );
 
   const [brokenImages, setBrokenImages] = useState(() => new Set());
 
@@ -505,19 +483,7 @@ const LatestStories = () => {
     hasMoreRef.current = hasMore;
   }, [hasMore]);
 
-  // ─── Online / offline awareness ──────────────────────
-  useEffect(() => {
-    const goOnline = () => setIsOffline(false);
-    const goOffline = () => setIsOffline(true);
-    window.addEventListener("online", goOnline);
-    window.addEventListener("offline", goOffline);
-    return () => {
-      window.removeEventListener("online", goOnline);
-      window.removeEventListener("offline", goOffline);
-    };
-  }, []);
-
-  // ─── Fetch posts (with retry/backoff on transient failures) ──
+  // ─── Fetch posts ──────────────────────────────────────
   const fetchPosts = useCallback(async (pageNum = 1, append = false) => {
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
@@ -533,26 +499,7 @@ const LatestStories = () => {
 
       const params = { page: pageNum, limit: 10, sort: "desc" };
 
-      let attempt = 0;
-      let res;
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        try {
-          res = await api.get("/api/posts", { params, signal: controller.signal });
-          break;
-        } catch (err) {
-          const isCanceled =
-            axios.isCancel(err) || err.name === "CanceledError" || err.code === "ERR_CANCELED";
-          const isServerOrNetworkError = !err.response || err.response.status >= 500;
-
-          if (isCanceled || !isServerOrNetworkError || attempt >= MAX_RETRIES) {
-            throw err;
-          }
-          attempt += 1;
-          await sleep(2 ** attempt * 300); // exponential backoff: 600ms, 1200ms, 2400ms
-        }
-      }
-
+      const res = await api.get("/api/posts", { params, signal: controller.signal });
       const { data, pagination } = res.data;
 
       setPosts((prev) => (append ? [...prev, ...data] : data));
@@ -592,19 +539,16 @@ const LatestStories = () => {
     });
   }, [fetchPosts]);
 
-  // ─── Infinite scroll observer (responsive rootMargin) ──
+  // ─── Infinite scroll observer ──────────────────────────
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return undefined;
-
-    const isSmallViewport =
-      typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) loadMore();
       },
-      { rootMargin: isSmallViewport ? "200px" : "400px" }
+      { rootMargin: "400px" }
     );
 
     observer.observe(node);
@@ -639,29 +583,11 @@ const LatestStories = () => {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @media (prefers-reduced-motion: reduce) {
-          .animate-\\[fadeInUp_0\\.5s_ease-out_forwards\\],
-          .animate-\\[shimmer_1\\.6s_infinite\\],
-          .animate-pulse {
-            animation: none !important;
-            opacity: 1 !important;
-          }
-        }
       `}</style>
 
       <div className="mx-auto w-full max-w-[900px] px-[20px] py-[25px] sm:px-[30px]">
-        {/* ─── Offline banner ────────────────────────────── */}
-        {isOffline && (
-          <div
-            role="status"
-            className="mb-4 border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300"
-          >
-            You&apos;re offline. Stories may be out of date.
-          </div>
-        )}
-
         {/* ─── Header ────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6 gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
           <div>
             <p className="uppercase text-red-500 tracking-[3px] text-xs sm:text-sm font-bold">
               Browse &amp; Read
@@ -679,7 +605,7 @@ const LatestStories = () => {
           <Link
             to="/news"
             aria-label="View all stories"
-            className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors self-start sm:self-auto"
+            className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors hidden sm:inline-block mt-2 sm:mt-0"
           >
             View All →
           </Link>
@@ -687,7 +613,7 @@ const LatestStories = () => {
 
         {/* ─── Story List ────────────────────────────────── */}
         {loading && initialLoad ? (
-          <div className="flex flex-col gap-8 sm:gap-[30px]">
+          <div className="flex flex-col gap-[30px]">
             {Array.from({ length: 5 }).map((_, i) => (
               <SkeletonRow key={i} />
             ))}
@@ -713,7 +639,7 @@ const LatestStories = () => {
           </div>
         ) : (
           <>
-            <ul className="flex flex-col gap-8 sm:gap-[30px]">
+            <ul className="flex flex-col gap-[30px]">
               {posts.map((post, index) => (
                 <StoryCard
                   key={post._id}
