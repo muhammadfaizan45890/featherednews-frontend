@@ -343,22 +343,20 @@ const formatDate = (dateStr) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Skeleton – matching the new design
+// Responsive Skeleton
 // ─────────────────────────────────────────────────────────────
 const SkeletonRow = () => (
-  <div className="flex w-full items-start gap-[24px] animate-pulse">
-    <div className="relative h-[170px] w-[215px] shrink-0 overflow-hidden bg-gray-200 dark:bg-zinc-800">
+  <div className="flex flex-col md:flex-row w-full gap-4 md:gap-6 animate-pulse">
+    <div className="w-full md:w-48 lg:w-56 aspect-[4/3] md:aspect-square bg-gray-200 dark:bg-zinc-800 relative overflow-hidden flex-shrink-0">
       <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
     </div>
-    <div className="relative min-w-0 flex-1 pt-[14px]">
-      <div className="-ml-[62px] mb-[12px] bg-white dark:bg-zinc-900 px-[20px] py-[8px]">
-        <div className="h-6 w-3/4 bg-gray-200 dark:bg-zinc-800" />
-      </div>
+    <div className="flex-1 flex flex-col justify-center py-1">
+      <div className="h-6 w-3/4 bg-gray-200 dark:bg-zinc-800 mb-2" />
       <div className="space-y-2">
         <div className="h-4 w-full bg-gray-200 dark:bg-zinc-800" />
         <div className="h-4 w-2/3 bg-gray-200 dark:bg-zinc-800" />
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-[9px] gap-y-[4px]">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <div className="h-[17px] w-16 bg-gray-200 dark:bg-zinc-800" />
         <div className="h-3 w-20 bg-gray-200 dark:bg-zinc-800" />
         <div className="h-3 w-16 bg-gray-200 dark:bg-zinc-800" />
@@ -368,7 +366,7 @@ const SkeletonRow = () => (
 );
 
 // ─────────────────────────────────────────────────────────────
-// Story Card – exact design from the snippet
+// Responsive Story Card
 // ─────────────────────────────────────────────────────────────
 const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, index }) {
   const src = isBroken
@@ -387,12 +385,12 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
       className="list-none opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
       style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
     >
-      <article className="group flex w-full items-start gap-[24px]">
+      <article className="group flex flex-col md:flex-row w-full gap-4 md:gap-6">
         {/* Image */}
         <Link
           to={`/news/${post.slug || post._id}`}
           aria-label={`Read story: ${post.title}`}
-          className="relative h-[170px] w-[215px] shrink-0 overflow-hidden bg-gray-100 dark:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          className="relative w-full md:w-48 lg:w-56 aspect-[4/3] md:aspect-square overflow-hidden bg-gray-100 dark:bg-zinc-800 flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
         >
           <img
             src={src}
@@ -401,53 +399,47 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
             onError={() => onImgError(post._id)}
             className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           />
-          {/* Optional "New" badge (small) */}
           {isNew(post.createdAt) && (
-            <span className="absolute top-2 left-2 text-[7px] font-bold uppercase tracking-wider bg-green-500 text-white px-1.5 py-0.5">
+            <span className="absolute top-2 left-2 text-[8px] font-bold uppercase tracking-wider bg-green-500 text-white px-1.5 py-0.5">
               New
             </span>
           )}
         </Link>
 
         {/* Content */}
-        <div className="relative min-w-0 flex-1 pt-[14px]">
-          {/* Overlapping white title box */}
-          <div className="-ml-[62px] mb-[12px] bg-white dark:bg-zinc-900 px-[20px] py-[8px]">
+        <div className="flex-1 flex flex-col justify-center">
+          {/* Title with overlapping white background – only on md+ */}
+          <div className="md:-ml-[62px] md:mb-3 bg-white dark:bg-zinc-900 md:px-5 md:py-2">
             <Link
               to={`/news/${post.slug || post._id}`}
               className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             >
-              <h2 className="m-0 max-w-[590px] text-[20px] font-[800] leading-[1.12] tracking-[-0.45px] text-[#151515] dark:text-white sm:text-[21px] group-hover:text-red-500 transition-colors">
+              <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-extrabold leading-tight tracking-tight text-gray-900 dark:text-white group-hover:text-red-500 transition-colors">
                 {post.title}
               </h2>
             </Link>
           </div>
 
-          <p className="mb-[13px] max-w-[515px] text-[11px] font-normal leading-[1.55] text-[#999] dark:text-gray-400 sm:text-[12px] line-clamp-3">
+          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-3">
             {cleanExcerpt}
           </p>
 
-          {/* Post meta */}
-          <div className="flex flex-wrap items-center gap-x-[9px] gap-y-[4px]">
+          {/* Meta */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] sm:text-[11px]">
             {post.category && (
-              <span className="inline-flex h-[17px] items-center bg-[#ff4b35] px-[9px] text-[7px] font-bold uppercase tracking-[0.2px] text-white">
+              <span className="inline-flex h-[17px] items-center bg-[#ff4b35] px-2 text-[8px] font-bold uppercase tracking-wider text-white">
                 {post.category}
               </span>
             )}
-
-            <span className="text-[8px] font-medium uppercase text-[#aaa] dark:text-gray-500">
+            <span className="font-medium uppercase text-gray-400 dark:text-gray-500">
               {formattedDate}
             </span>
-
-            <span className="text-[8px] text-[#aaa] dark:text-gray-500">/</span>
-
-            <span className="text-[8px] font-medium uppercase text-[#aaa] dark:text-gray-500">
+            <span className="text-gray-300 dark:text-gray-600">/</span>
+            <span className="font-medium uppercase text-gray-400 dark:text-gray-500">
               BY {authorName}
             </span>
-
-            <span className="text-[8px] text-[#aaa] dark:text-gray-500">/</span>
-
-            <span className="text-[8px] font-medium text-[#aaa] dark:text-gray-500">
+            <span className="text-gray-300 dark:text-gray-600">/</span>
+            <span className="font-medium text-gray-400 dark:text-gray-500">
               {commentCount}
             </span>
           </div>
@@ -585,16 +577,16 @@ const LatestStories = () => {
         }
       `}</style>
 
-      <div className="mx-auto w-full max-w-[900px] px-[20px] py-[25px] sm:px-[30px]">
+      <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 py-6 sm:py-10">
         {/* ─── Header ────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6 sm:mb-8">
           <div>
             <p className="uppercase text-red-500 tracking-[3px] text-xs sm:text-sm font-bold">
               Browse &amp; Read
             </p>
             <h2
               id="latest-stories-heading"
-              className="text-2xl xs:text-3xl sm:text-4xl font-bold mt-1 text-black dark:text-white"
+              className="text-2xl sm:text-3xl md:text-4xl font-bold mt-1 text-black dark:text-white"
             >
               Latest Stories
             </h2>
@@ -613,7 +605,7 @@ const LatestStories = () => {
 
         {/* ─── Story List ────────────────────────────────── */}
         {loading && initialLoad ? (
-          <div className="flex flex-col gap-[30px]">
+          <div className="flex flex-col gap-6">
             {Array.from({ length: 5 }).map((_, i) => (
               <SkeletonRow key={i} />
             ))}
@@ -639,7 +631,7 @@ const LatestStories = () => {
           </div>
         ) : (
           <>
-            <ul className="flex flex-col gap-[30px]">
+            <ul className="flex flex-col gap-6 md:gap-8">
               {posts.map((post, index) => (
                 <StoryCard
                   key={post._id}
