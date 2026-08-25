@@ -334,29 +334,30 @@ const stripHtml = (html) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Skeleton Card
+// Skeleton – horizontal list item
 // ─────────────────────────────────────────────────────────────
-const CardSkeleton = () => (
+const SkeletonRow = () => (
   <div
-    className="bg-white dark:bg-zinc-900 overflow-hidden animate-pulse"
+    className="bg-white dark:bg-zinc-900 overflow-hidden animate-pulse flex flex-col sm:flex-row gap-3 sm:gap-4"
     aria-hidden="true"
   >
-    <div className="aspect-[4/3] bg-gray-200 dark:bg-zinc-800 relative">
+    <div className="w-full sm:w-48 md:w-56 lg:w-64 aspect-video sm:aspect-square bg-gray-200 dark:bg-zinc-800 relative flex-shrink-0">
       <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
     </div>
-    <div className="p-2 sm:p-3 md:p-4 space-y-1.5 sm:space-y-2">
-      <div className="h-2.5 sm:h-3 w-12 sm:w-16 bg-gray-200 dark:bg-zinc-800" />
-      <div className="h-3.5 sm:h-4 w-full bg-gray-200 dark:bg-zinc-800" />
-      <div className="h-3.5 sm:h-4 w-2/3 bg-gray-200 dark:bg-zinc-800" />
-      <div className="h-3 sm:h-4 w-full bg-gray-200 dark:bg-zinc-800" />
+    <div className="flex-1 flex flex-col justify-center space-y-2 p-2">
+      <div className="h-2.5 w-16 bg-gray-200 dark:bg-zinc-800" />
+      <div className="h-4 w-full bg-gray-200 dark:bg-zinc-800" />
+      <div className="h-4 w-3/4 bg-gray-200 dark:bg-zinc-800" />
+      <div className="h-3 w-full bg-gray-200 dark:bg-zinc-800" />
+      <div className="h-3 w-1/2 bg-gray-200 dark:bg-zinc-800" />
     </div>
   </div>
 );
 
 // ─────────────────────────────────────────────────────────────
-// Story Card
+// Story Row (long‑form)
 // ─────────────────────────────────────────────────────────────
-const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, index }) {
+const StoryRow = React.memo(function StoryRow({ post, isBroken, onImgError, index }) {
   const src = isBroken
     ? FALLBACK_IMG
     : post.images && post.images.length > 0
@@ -370,13 +371,14 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
       className="list-none opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
       style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
     >
-      <article className="group bg-white dark:bg-zinc-900 overflow-hidden hover:shadow-[0_6px_0_0_rgba(0,0,0,0.06)] dark:hover:shadow-[0_6px_0_0_rgba(255,255,255,0.04)] transition-all duration-300 h-full flex flex-col">
+      <article className="group bg-white dark:bg-zinc-900 overflow-hidden hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_2px_8px_rgba(255,255,255,0.04)] transition-shadow duration-300 flex flex-col sm:flex-row gap-3 sm:gap-4 p-2 sm:p-3 border-b border-gray-100 dark:border-zinc-800 last:border-0">
+        {/* Image */}
         <Link
           to={`/news/${post.slug || post._id}`}
           aria-label={`Read story: ${post.title}`}
-          className="block overflow-hidden relative focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900"
+          className="block overflow-hidden relative flex-shrink-0 w-full sm:w-48 md:w-56 lg:w-64 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900"
         >
-          <div className="aspect-[4/3] relative bg-gray-100 dark:bg-zinc-800 overflow-hidden">
+          <div className="aspect-video sm:aspect-square bg-gray-100 dark:bg-zinc-800 overflow-hidden">
             <img
               src={src}
               alt={post.title}
@@ -384,39 +386,40 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
               onError={() => onImgError(post._id)}
               className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             />
-            <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 flex flex-col gap-1 items-start">
-              {isNew(post.createdAt) && (
-                <span className="text-[7px] sm:text-[9px] font-bold uppercase tracking-wider bg-green-500 text-white px-1.5 sm:px-2 py-0.5">
-                  New
-                </span>
-              )}
-              {post.category && (
-                <span className="text-[7px] sm:text-[9px] font-bold uppercase tracking-wider bg-black/80 text-white px-1.5 sm:px-2 py-0.5">
-                  {post.category}
-                </span>
-              )}
-            </div>
+          </div>
+          <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start">
+            {isNew(post.createdAt) && (
+              <span className="text-[7px] sm:text-[9px] font-bold uppercase tracking-wider bg-green-500 text-white px-1.5 py-0.5">
+                New
+              </span>
+            )}
+            {post.category && (
+              <span className="text-[7px] sm:text-[9px] font-bold uppercase tracking-wider bg-black/80 text-white px-1.5 py-0.5">
+                {post.category}
+              </span>
+            )}
           </div>
         </Link>
 
-        <div className="p-2 sm:p-3 md:p-4 flex-1 flex flex-col">
+        {/* Content */}
+        <div className="flex-1 flex flex-col justify-center py-1">
           <Link
             to={`/news/${post.slug || post._id}`}
             className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
           >
-            <h3 className="text-xs sm:text-base md:text-lg font-bold leading-tight line-clamp-2 text-gray-900 dark:text-white group-hover:text-red-500 transition-colors">
+            <h3 className="text-base sm:text-lg md:text-xl font-bold leading-tight line-clamp-2 text-gray-900 dark:text-white group-hover:text-red-500 transition-colors">
               {post.title}
             </h3>
           </Link>
 
-          <p className="text-[10px] sm:text-sm text-gray-600 dark:text-gray-400 mt-1 sm:mt-1.5 line-clamp-3 flex-1">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-3">
             {cleanExcerpt}
           </p>
 
           <Link
             to={`/news/${post.slug || post._id}`}
             aria-label={`Continue reading: ${post.title}`}
-            className="text-[8px] sm:text-xs font-semibold text-red-500 hover:text-red-600 transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 mt-2 sm:mt-3 inline-block w-fit"
+            className="text-xs font-semibold text-red-500 hover:text-red-600 transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 mt-2 inline-block w-fit"
           >
             Read →
           </Link>
@@ -466,7 +469,6 @@ const LatestStories = () => {
       }
       setError(null);
 
-      // 👇 Changed limit from 12 to 10
       const params = { page: pageNum, limit: 10, sort: "desc" };
 
       const res = await api.get("/api/posts", { params, signal: controller.signal });
@@ -534,12 +536,10 @@ const LatestStories = () => {
     });
   }, []);
 
-  // Memoized derived data
   const showEmptyState = useMemo(
     () => !loading && !error && posts.length === 0,
     [loading, error, posts.length]
   );
-  // ✅ Removed showEndMessage – no "You're all caught up"
 
   return (
     <section
@@ -583,11 +583,11 @@ const LatestStories = () => {
         </Link>
       </div>
 
-      {/* ─── Story Grid — 2 up → 5 up ── */}
+      {/* ─── Story List (long‑form) ────────────────── */}
       {loading && initialLoad ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 md:gap-5 lg:gap-6">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <CardSkeleton key={i} />
+        <div className="flex flex-col gap-4 sm:gap-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonRow key={i} />
           ))}
         </div>
       ) : error ? (
@@ -611,9 +611,9 @@ const LatestStories = () => {
         </div>
       ) : (
         <>
-          <ul className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 md:gap-5 lg:gap-6">
+          <ul className="flex flex-col divide-y divide-gray-100 dark:divide-zinc-800">
             {posts.map((post, index) => (
-              <StoryCard
+              <StoryRow
                 key={post._id}
                 post={post}
                 index={index}
@@ -656,8 +656,6 @@ const LatestStories = () => {
               </span>
             </div>
           )}
-
-          {/* ✅ Removed "You're all caught up" message */}
         </>
       )}
     </section>
