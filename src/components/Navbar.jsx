@@ -493,38 +493,9 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* ─── Mobile Strip (scrollable categories) ── */}
-        <div className="lg:hidden relative border-t border-gray-200">
-          <div className="flex items-center gap-2 py-2.5 overflow-x-auto scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {[
-              { label: "Home", link: "/" },
-              { label: "News", link: "/news" },
-              { label: "Listen", link: "/audio" },
-              ...categories.slice(0, 6).map((cat) => ({
-                label: cat,
-                link: `/news?category=${encodeURIComponent(cat)}`,
-              })),
-              { label: "Advertise", link: "/advertise" },
-            ].map((item) => {
-              const isActive = location.pathname === item.link;
-              return (
-                <Link
-                  key={item.label}
-                  to={item.link}
-                  className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all duration-200 ease-in-out ${
-                    isActive
-                      ? "bg-black text-white border-black"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
-                  }`}
-                  onClick={closeSidebar}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-          <div className="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white to-transparent" />
-        </div>
+        {/* ─── MOBILE CATEGORIES STRIP REMOVED ── */}
+        {/* The mobile scrollable category strip has been removed as per request. */}
+
       </div>
 
       {/* ─── Search Bar ────────────────────────────────────── */}
