@@ -337,25 +337,21 @@ const stripHtml = (html) => {
 // Skeleton – horizontal list item
 // ─────────────────────────────────────────────────────────────
 const SkeletonRow = () => (
-  <div
-    className="bg-white dark:bg-zinc-900 overflow-hidden animate-pulse flex flex-col sm:flex-row gap-3 sm:gap-4"
-    aria-hidden="true"
-  >
+  <div className="animate-pulse flex flex-col sm:flex-row gap-4 sm:gap-6 py-4 border-b border-gray-100 dark:border-zinc-800 last:border-0">
     <div className="w-full sm:w-48 md:w-56 lg:w-64 aspect-video sm:aspect-square bg-gray-200 dark:bg-zinc-800 relative flex-shrink-0">
       <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
     </div>
-    <div className="flex-1 flex flex-col justify-center space-y-2 p-2">
-      <div className="h-2.5 w-16 bg-gray-200 dark:bg-zinc-800" />
+    <div className="flex-1 flex flex-col justify-center space-y-2">
+      <div className="h-5 w-3/4 bg-gray-200 dark:bg-zinc-800" />
       <div className="h-4 w-full bg-gray-200 dark:bg-zinc-800" />
-      <div className="h-4 w-3/4 bg-gray-200 dark:bg-zinc-800" />
-      <div className="h-3 w-full bg-gray-200 dark:bg-zinc-800" />
-      <div className="h-3 w-1/2 bg-gray-200 dark:bg-zinc-800" />
+      <div className="h-4 w-2/3 bg-gray-200 dark:bg-zinc-800" />
+      <div className="h-3 w-1/3 bg-gray-200 dark:bg-zinc-800" />
     </div>
   </div>
 );
 
 // ─────────────────────────────────────────────────────────────
-// Story Row (long‑form)
+// Story Row – matches screenshot design
 // ─────────────────────────────────────────────────────────────
 const StoryRow = React.memo(function StoryRow({ post, isBroken, onImgError, index }) {
   const src = isBroken
@@ -371,7 +367,7 @@ const StoryRow = React.memo(function StoryRow({ post, isBroken, onImgError, inde
       className="list-none opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
       style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
     >
-      <article className="group bg-white dark:bg-zinc-900 overflow-hidden hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_2px_8px_rgba(255,255,255,0.04)] transition-shadow duration-300 flex flex-col sm:flex-row gap-3 sm:gap-4 p-2 sm:p-3 border-b border-gray-100 dark:border-zinc-800 last:border-0">
+      <article className="flex flex-col sm:flex-row gap-4 sm:gap-6 py-4 border-b border-gray-100 dark:border-zinc-800 last:border-0 group">
         {/* Image */}
         <Link
           to={`/news/${post.slug || post._id}`}
@@ -387,14 +383,15 @@ const StoryRow = React.memo(function StoryRow({ post, isBroken, onImgError, inde
               className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             />
           </div>
-          <div className="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start">
+          {/* Optional badges – minimal, like the screenshot */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
             {isNew(post.createdAt) && (
-              <span className="text-[7px] sm:text-[9px] font-bold uppercase tracking-wider bg-green-500 text-white px-1.5 py-0.5">
+              <span className="text-[8px] font-bold uppercase tracking-wider bg-green-500 text-white px-1.5 py-0.5">
                 New
               </span>
             )}
             {post.category && (
-              <span className="text-[7px] sm:text-[9px] font-bold uppercase tracking-wider bg-black/80 text-white px-1.5 py-0.5">
+              <span className="text-[8px] font-bold uppercase tracking-wider bg-black/80 text-white px-1.5 py-0.5">
                 {post.category}
               </span>
             )}
@@ -402,12 +399,12 @@ const StoryRow = React.memo(function StoryRow({ post, isBroken, onImgError, inde
         </Link>
 
         {/* Content */}
-        <div className="flex-1 flex flex-col justify-center py-1">
+        <div className="flex-1 flex flex-col justify-center">
           <Link
             to={`/news/${post.slug || post._id}`}
             className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
           >
-            <h3 className="text-base sm:text-lg md:text-xl font-bold leading-tight line-clamp-2 text-gray-900 dark:text-white group-hover:text-red-500 transition-colors">
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold leading-tight text-gray-900 dark:text-white group-hover:text-red-500 transition-colors">
               {post.title}
             </h3>
           </Link>
@@ -419,9 +416,9 @@ const StoryRow = React.memo(function StoryRow({ post, isBroken, onImgError, inde
           <Link
             to={`/news/${post.slug || post._id}`}
             aria-label={`Continue reading: ${post.title}`}
-            className="text-xs font-semibold text-red-500 hover:text-red-600 transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 mt-2 inline-block w-fit"
+            className="text-xs font-bold uppercase tracking-wider text-red-500 hover:text-red-600 transition-colors mt-3 inline-block w-fit focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
           >
-            Read →
+            READ MORE
           </Link>
         </div>
       </article>
@@ -558,7 +555,7 @@ const LatestStories = () => {
       `}</style>
 
       {/* ─── Header ────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-5 sm:mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6 sm:mb-8">
         <div>
           <p className="uppercase text-red-500 tracking-[3px] sm:tracking-[4px] text-xs sm:text-sm font-bold">
             Browse &amp; Read
@@ -585,7 +582,7 @@ const LatestStories = () => {
 
       {/* ─── Story List (long‑form) ────────────────── */}
       {loading && initialLoad ? (
-        <div className="flex flex-col gap-4 sm:gap-5">
+        <div className="flex flex-col divide-y divide-gray-100 dark:divide-zinc-800">
           {Array.from({ length: 5 }).map((_, i) => (
             <SkeletonRow key={i} />
           ))}
@@ -611,7 +608,7 @@ const LatestStories = () => {
         </div>
       ) : (
         <>
-          <ul className="flex flex-col divide-y divide-gray-100 dark:divide-zinc-800">
+          <ul className="flex flex-col">
             {posts.map((post, index) => (
               <StoryRow
                 key={post._id}
