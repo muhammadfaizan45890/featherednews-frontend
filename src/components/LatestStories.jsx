@@ -140,25 +140,28 @@ const AdCard = () => {
       <span className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold mb-2">
         Sponsored
       </span>
-      <img
-        src="https://via.placeholder.com/300x250/cccccc/666666?text=Advertisement"
-        alt="Advertisement"
-        className="w-full h-auto rounded-md"
-        loading="lazy"
-      />
+      <div className="relative w-full aspect-[4/3] bg-gray-100 dark:bg-zinc-800 rounded-md overflow-hidden flex items-center justify-center">
+        <img
+          src="https://via.placeholder.com/400x300/cccccc/666666?text=Your+Ad+Here"
+          alt="Advertisement"
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
       <p className="text-sm text-gray-600 dark:text-gray-300 mt-3 text-center">
-        Your ad could be here
+        Reach thousands of readers – advertise with us!
       </p>
       <button
         type="button"
         onClick={() => navigate("/advertise")}
         className="mt-3 text-xs font-semibold bg-black text-white dark:bg-white dark:text-black px-5 py-1.5 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
       >
-        Learn More
+        Advertise Now
       </button>
     </div>
   );
 };
+
 
 // ─────────────────────────────────────────────────────────────
 // Story Card – no transitions, extra‑tight spacing on mobile
