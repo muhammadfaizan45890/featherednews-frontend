@@ -143,21 +143,21 @@ const Footer = () => {
     <footer className="bg-[#0a0a0a] text-gray-300 border-t border-white/5">
       {/* ─── Top Bar ──────────────────────────────────────── */}
       <div className="border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <FiFeather className="text-2xl sm:text-3xl text-white" />
-              <span className="text-2xl sm:text-3xl font-black tracking-tight">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 md:py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <FiFeather className="text-xl sm:text-2xl md:text-3xl text-white" />
+              <span className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight">
                 <span className="font-light text-white">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span>
                 <span className="font-extrabold text-white">NEWS</span>
               </span>
               <span className="hidden sm:inline text-white/30">|</span>
-              <span className="text-xs sm:text-sm text-white/50 hidden sm:inline">
+              <span className="text-[10px] sm:text-xs md:text-sm text-white/50 hidden sm:inline">
                 Stories That Soar
               </span>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-white/40">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <span className="text-[10px] sm:text-xs text-white/40">
                 © {new Date().getFullYear()} All Rights Reserved
               </span>
             </div>
@@ -166,19 +166,19 @@ const Footer = () => {
       </div>
 
       {/* ─── Main Footer Content ──────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 md:py-14">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 lg:gap-10">
           {/* ── About / Brand ── */}
-          <div className="lg:col-span-3 space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+          <div className="lg:col-span-3 space-y-3 sm:space-y-4">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white">
               Summary
             </h2>
-            <p className="text-sm text-gray-400 leading-relaxed max-w-sm">
+            <p className="text-xs sm:text-sm text-gray-400 leading-relaxed max-w-sm">
               A magazine and blog for storytellers, writers, and dreamers.
               We believe in the power of words to inspire, inform, and transform.
               Join us on a journey of discovery.
             </p>
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 sm:gap-3 pt-1 sm:pt-2">
               {[
                 { icon: FaFacebookF, href: "#", color: "hover:bg-[#1877F2]" },
                 { icon: FaXTwitter, href: "https://x.com/feathered_pen", color: "hover:bg-[#000000]" },
@@ -191,10 +191,10 @@ const Footer = () => {
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center ${color} hover:text-white transition-all duration-300 hover:scale-110`}
+                  className={`w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-white/5 border border-white/10 flex items-center justify-center ${color} hover:text-white transition-all duration-300 hover:scale-110`}
                   aria-label="Social link"
                 >
-                  <Icon className="text-sm text-gray-400 hover:text-white transition" />
+                  <Icon className="text-xs sm:text-sm text-gray-400 hover:text-white transition" />
                 </a>
               ))}
             </div>
@@ -202,16 +202,16 @@ const Footer = () => {
 
           {/* ── Quick Links & Categories (Desktop) ── */}
           <div className="hidden lg:block lg:col-span-2">
-            <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">
+            <h3 className="text-white font-bold text-xs sm:text-sm uppercase tracking-wider mb-3 sm:mb-4">
               Quick Links
             </h3>
-            <ul className="space-y-2.5">
+            <ul className="space-y-2 sm:space-y-2.5">
               {quickLinks.map((link, idx) => (
                 <li key={idx}>
                   <Link
                     to={link.link}
                     onClick={handleLinkClick}
-                    className="text-sm text-gray-400 hover:text-white transition flex items-center gap-2 group"
+                    className="text-xs sm:text-sm text-gray-400 hover:text-white transition flex items-center gap-2 group"
                   >
                     <span className="text-white/20 group-hover:text-white/50 transition">›</span>
                     {link.label}
@@ -222,22 +222,22 @@ const Footer = () => {
           </div>
 
           <div className="hidden lg:block lg:col-span-2">
-            <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">
+            <h3 className="text-white font-bold text-xs sm:text-sm uppercase tracking-wider mb-3 sm:mb-4">
               Categories
             </h3>
-            <ul className="space-y-2.5">
+            <ul className="space-y-2 sm:space-y-2.5">
               {categories.map((cat, idx) => (
                 <li key={idx}>
                   <Link
                     to={`/news?category=${encodeURIComponent(cat.label)}`}
                     onClick={handleLinkClick}
-                    className="text-sm text-gray-400 hover:text-white transition flex items-center justify-between group"
+                    className="text-xs sm:text-sm text-gray-400 hover:text-white transition flex items-center justify-between group"
                   >
                     <span className="flex items-center gap-2">
                       <span className="text-white/20 group-hover:text-white/50 transition">›</span>
                       {cat.label}
                     </span>
-                    <span className="text-xs text-white/20 bg-white/5 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] text-white/20 bg-white/5 px-2 py-0.5">
                       {cat.count}
                     </span>
                   </Link>
@@ -247,14 +247,14 @@ const Footer = () => {
           </div>
 
           {/* ── Mobile Accordion (Quick Links + Categories) ── */}
-          <div className="lg:hidden col-span-1 space-y-3">
+          <div className="lg:hidden col-span-1 space-y-2 sm:space-y-3">
             {accordionData.map((section) => {
               const isOpen = activeAccordion === section.id;
               return (
-                <div key={section.id} className="border-b border-white/10 pb-3">
+                <div key={section.id} className="border-b border-white/10 pb-2 sm:pb-3">
                   <button
                     onClick={() => toggleAccordion(section.id)}
-                    className="flex items-center justify-between w-full text-left text-white font-semibold text-sm uppercase tracking-wider py-2"
+                    className="flex items-center justify-between w-full text-left text-white font-semibold text-xs sm:text-sm uppercase tracking-wider py-1.5 sm:py-2"
                   >
                     {section.title}
                     {isOpen ? <FaChevronUp className="text-white/40" /> : <FaChevronDown className="text-white/40" />}
@@ -264,14 +264,14 @@ const Footer = () => {
                       isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
                     }`}
                   >
-                    <ul className="space-y-2.5 pt-2">
+                    <ul className="space-y-2 sm:space-y-2.5 pt-1.5 sm:pt-2">
                       {section.items.map((item, idx) => (
                         <li key={idx}>
                           {section.id === "quickLinks" ? (
                             <Link
                               to={item.link}
                               onClick={() => { handleLinkClick(); toggleAccordion(section.id); }}
-                              className="text-sm text-gray-400 hover:text-white transition flex items-center gap-2 group"
+                              className="text-xs sm:text-sm text-gray-400 hover:text-white transition flex items-center gap-2 group"
                             >
                               <span className="text-white/20 group-hover:text-white/50 transition">›</span>
                               {item.label}
@@ -280,13 +280,13 @@ const Footer = () => {
                             <Link
                               to={`/news?category=${encodeURIComponent(item.label)}`}
                               onClick={() => { handleLinkClick(); toggleAccordion(section.id); }}
-                              className="text-sm text-gray-400 hover:text-white transition flex items-center justify-between group"
+                              className="text-xs sm:text-sm text-gray-400 hover:text-white transition flex items-center justify-between group"
                             >
                               <span className="flex items-center gap-2">
                                 <span className="text-white/20 group-hover:text-white/50 transition">›</span>
                                 {item.label}
                               </span>
-                              <span className="text-xs text-white/20 bg-white/5 px-2 py-0.5 rounded-full">
+                              <span className="text-[10px] text-white/20 bg-white/5 px-2 py-0.5">
                                 {item.count}
                               </span>
                             </Link>
@@ -302,15 +302,15 @@ const Footer = () => {
 
           {/* ── Recent Posts ── */}
           <div className="lg:col-span-5">
-            <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">
+            <h3 className="text-white font-bold text-xs sm:text-sm uppercase tracking-wider mb-3 sm:mb-4">
               Recent Stories
             </h3>
 
             {postsLoading ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {[1, 2, 3].map((_, idx) => (
                   <div key={idx} className="flex gap-3 items-start animate-pulse">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-white/5" />
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 flex-shrink-0 bg-white/5" />
                     <div className="flex-1 space-y-2">
                       <div className="h-3 w-20 bg-white/5" />
                       <div className="h-4 w-3/4 bg-white/5" />
@@ -324,15 +324,16 @@ const Footer = () => {
             ) : recentPosts.length === 0 ? (
               <p className="text-sm text-gray-500">No stories yet.</p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {recentPosts.map((post) => (
                   <Link
                     key={post._id}
                     to={`/news/${post.slug || post._id}`}
                     onClick={handleLinkClick}
-                    className="group flex gap-3 items-start hover:bg-white/5 p-2 transition-all duration-200 -mx-2 rounded"
+                    className="group flex gap-3 items-start hover:bg-white/5 p-2 transition-all duration-200 -mx-2"
                   >
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 overflow-hidden bg-white/5 rounded">
+                    {/* Thumbnail – no rounded corners */}
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 flex-shrink-0 overflow-hidden bg-white/5">
                       {post.images && post.images.length > 0 ? (
                         <img
                           src={post.images[0]}
@@ -341,7 +342,7 @@ const Footer = () => {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white/20">
-                          <FiFeather size={24} />
+                          <FiFeather size={20} className="sm:size-24" />
                         </div>
                       )}
                     </div>
@@ -349,7 +350,7 @@ const Footer = () => {
                       <p className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
                         {post.category || 'Uncategorized'}
                       </p>
-                      <h4 className="text-sm font-semibold text-gray-200 group-hover:text-white transition line-clamp-2">
+                      <h4 className="text-xs sm:text-sm font-semibold text-gray-200 group-hover:text-white transition line-clamp-2">
                         {post.title}
                       </h4>
                       <div className="flex items-center gap-3 mt-1 text-[10px] text-white/30">
@@ -369,13 +370,13 @@ const Footer = () => {
 
       {/* ─── Bottom Bar ────────────────────────────────────── */}
       <div className="border-t border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-4 text-xs text-white/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 md:py-5">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-white/30">
               <span>© {new Date().getFullYear()} Feathered News. All rights reserved.</span>
               <span className="hidden sm:inline">•</span>
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-xs">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[10px] sm:text-xs">
               <Link to="/privacy" onClick={handleLinkClick} className="text-white/30 hover:text-white/60 transition">
                 Privacy
               </Link>
@@ -390,7 +391,7 @@ const Footer = () => {
                 className="flex items-center gap-1.5 text-white/30 hover:text-white/60 transition"
               >
                 <FaArrowUp className="text-[10px]" />
-                <span>Back to Top</span>
+                <span className="hidden xs:inline">Back to Top</span>
               </button>
             </div>
           </div>
@@ -401,11 +402,11 @@ const Footer = () => {
       <button
         onClick={scrollToTop}
         aria-label="Back to top"
-        className={`fixed bottom-5 right-4 sm:bottom-8 sm:right-8 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black text-white flex items-center justify-center shadow-lg hover:bg-gray-800 transition-all duration-300 ${
+        className={`fixed bottom-5 right-4 sm:bottom-8 sm:right-8 z-40 w-10 h-10 sm:w-11 sm:h-11 bg-black text-white flex items-center justify-center shadow-lg hover:bg-gray-800 transition-all duration-300 ${
           showBackToTop ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-3 pointer-events-none'
         }`}
       >
-        <FaArrowUp size={18} />
+        <FaArrowUp size={16} className="sm:size-18" />
       </button>
     </footer>
   );
