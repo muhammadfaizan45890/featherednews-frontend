@@ -388,6 +388,7 @@ const LatestStories = () => {
           >
             View All →
           </Link>
+          <h1>Hello</h1>
         </div>
 
         {/* ─── Story List – reduced gap on mobile ─── */}
