@@ -233,7 +233,7 @@ const HNews = () => {
   // ─── Error state ────────────────────────────────────
   if (error) {
     return (
-      <section className="max-w-6xl mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
+      <section className="max-w-7xl mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
         <Heading label="Latest Stories" />
         <div className="text-center py-16 border border-dashed border-red-200 bg-red-50">
           <p className="text-red-500 text-lg mb-5">{error}</p>
@@ -252,7 +252,7 @@ const HNews = () => {
   // ─── No posts ──────────────────────────────────────
   if (!loading && posts.length === 0) {
     return (
-      <section className="max-w-6xl mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
+      <section className="max-w-7xl mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
         <Heading label="Latest Stories" />
         <div className="text-center py-16 border border-dashed border-gray-200">
           <p className="text-gray-500 text-lg">
@@ -264,7 +264,7 @@ const HNews = () => {
   }
 
   return (
-    <section className="max-w-6xl mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
+    <section className="max-w-7xl mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
       <Heading label="News" />
 
       {/* ═══ Primary grid ═══ */}
