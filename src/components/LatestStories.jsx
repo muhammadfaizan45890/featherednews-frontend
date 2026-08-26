@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import axios from "axios";
 import { Clock, MessageCircle, RefreshCw } from "lucide-react";
@@ -161,7 +161,6 @@ const AdCard = () => {
     </div>
   );
 };
-
 
 // ─────────────────────────────────────────────────────────────
 // Story Card – no transitions, extra‑tight spacing on mobile
@@ -407,7 +406,7 @@ const LatestStories = () => {
           </Link>
         </div>
 
-        {/* ─── Two‑column layout: stories + ad ─── */}
+        {/* ─── Two‑column layout: stories + ad (ad always visible) ─── */}
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Left column – stories */}
           <div className="flex-1 min-w-0">
@@ -464,12 +463,10 @@ const LatestStories = () => {
             )}
           </div>
 
-          {/* Right column – ad card (appears at bottom on mobile) */}
-          {!loading && !error && posts.length > 0 && (
-            <div className="w-full lg:w-[280px] xl:w-[320px] shrink-0 order-2 lg:order-1">
-              <AdCard />
-            </div>
-          )}
+          {/* Right column – ad card (always visible, bottom on mobile) */}
+          <div className="w-full lg:w-[280px] xl:w-[320px] shrink-0 order-2 lg:order-1">
+            <AdCard />
+          </div>
         </div>
       </div>
     </section>
