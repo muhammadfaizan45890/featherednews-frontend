@@ -24,6 +24,7 @@ import {
   FiList,
 } from 'react-icons/fi';
 import API from '../utils/api';
+import FeaturedStories from '../components/FeaturedStories';
 
 // ─── Design tokens ─────────────────────────────────────
 const TOKENS = {
@@ -782,7 +783,7 @@ const PostDetail = () => {
           </button>
         </div>
 
-        {/* ─── Top Ad Slot (Google Ads style, centered) ────────────────────── */}
+        {/* ─── Top Ad Slot ────────────────────────────────── */}
         <div className="mb-6 w-full max-w-2xl mx-auto">
           {renderTopAdCard(adTop)}
         </div>
@@ -912,7 +913,7 @@ const PostDetail = () => {
                 }
               `}</style>
 
-              {/* ─── Middle Ad Slot (Google Ads style) ────────────── */}
+              {/* ─── Middle Ad Slot ────────────────────────── */}
               <div className="mt-8 w-full max-w-2xl mx-auto">
                 {renderTopAdCard(adMiddle)}
               </div>
@@ -1091,9 +1092,14 @@ const PostDetail = () => {
                 </div>
               )}
 
-              {/* ─── Bottom Ad Slot (Google Ads style) after related posts ── */}
+              {/* ─── Bottom Ad Slot ────────────────────────── */}
               <div className="mt-4 w-full">
                 {renderTopAdCard(adBottom)}
+              </div>
+
+              {/* ─── Featured Stories (shown after Bottom Ad, like Related Posts) ── */}
+              <div className="mt-6">
+                <FeaturedStories />
               </div>
             </div>
           </div>
@@ -1104,7 +1110,6 @@ const PostDetail = () => {
 };
 
 export default PostDetail;
-
 
 
 
