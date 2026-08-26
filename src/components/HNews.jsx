@@ -1,19 +1,45 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { Eye, ArrowRight, Clock } from "lucide-react";
+import { Eye, ArrowRight, Clock, TrendingUp, RefreshCw } from "lucide-react";
 import API from "../utils/api";
 
-// ─── Constants ──────────────────────────────────────────
-const MAX_POSTS = 20;
 const FEATURED_COUNT = 2;
 const SMALL_COUNT = 4;
+const PAGE_SIZE = 12;
 const FALLBACK_SQUARE =
-  "https://via.placeholder.com/600x600/111111/FFFFFF?text=No+Image";
+  "https://via.placeholder.com/900x900/111111/FFFFFF?text=No+Image";
 const FALLBACK_WIDE =
-  "https://via.placeholder.com/1200x600/111111/FFFFFF?text=No+Image";
+  "https://via.placeholder.com/1600x900/111111/FFFFFF?text=No+Image";
 
-// ─── Helpers ────────────────────────────────────────────
+// Editorial "beat" palette — each category gets a stable, distinct color
+// derived from its name rather than randomly assigned, so the same
+// category always reads the same way across the whole site.
+const BEAT_PALETTE = [
+  { fg: "#B91C1C", bg: "#FEF2F2" }, // crimson
+  { fg: "#1D4ED8", bg: "#EFF6FF" }, // cobalt
+  { fg: "#B45309", bg: "#FFFBEB" }, // amber
+  { fg: "#047857", bg: "#ECFDF5" }, // emerald
+  { fg: "#6D28D9", bg: "#F5F3FF" }, // violet
+  { fg: "#0E7490", bg: "#ECFEFF" }, // teal
+];
+
+const beatColor = (label = "") => {
+  let hash = 0;
+  for (let i = 0; i < label.length; i++) {
+    hash = (hash << 5) - hash + label.charCodeAt(i);
+    hash |= 0;
+  }
+  return BEAT_PALETTE[Math.abs(hash) % BEAT_PALETTE.length];
+};
+
+// ─── Helper: strip HTML tags ──────────────────────────
 const stripHtml = (html) => {
   if (!html) return "";
   const temp = document.createElement("div");
@@ -21,6 +47,14 @@ const stripHtml = (html) => {
   return temp.textContent || "";
 };
 
+// ─── Helper: reading time from description length ────
+const readingTime = (html) => {
+  const words = stripHtml(html).trim().split(/\s+/).filter(Boolean).length;
+  const minutes = Math.max(1, Math.round(words / 200));
+  return `${minutes} min read`;
+};
+
+// ─── Helper: reliable API instance ──────────────────
 const getApiInstance = () => {
   let instance;
   if (API && typeof API.get === "function") {
@@ -46,143 +80,249 @@ const getApiInstance = () => {
 
 const api = getApiInstance();
 
-const formatDate = (dateStr) => {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
+const formatDate = (dateStr) =>
+  new Date(dateStr).toLocaleDateString("en-US", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   });
-};
 
-const formatTime = (dateStr) => {
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString("en-US", {
+const formatTime = (dateStr) =>
+  new Date(dateStr).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   });
+
+// ─── Hook: reveal-on-scroll (respects reduced motion) ─
+const useInView = (options = {}) => {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+
+    const prefersReduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    if (prefersReduced) {
+      setInView(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setInView(true);
+        observer.disconnect();
+      }
+    }, { threshold: 0.1, rootMargin: "80px", ...options });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, inView];
 };
 
-const isNew = (dateStr) => {
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return false;
-  const diff = Date.now() - date.getTime();
-  return diff < 24 * 60 * 60 * 1000;
+// ─── Blur-up, HD-aware image ──────────────────────────
+const Frame = ({ src, alt, className, imgClassName, onError, eager }) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className={`relative overflow-hidden bg-gray-100 ${className || ""}`}>
+      {!loaded && (
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 bg-[length:200%_200%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        loading={eager ? "eager" : "lazy"}
+        decoding="async"
+        sizes="(min-width: 1536px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+        onLoad={() => setLoaded(true)}
+        onError={onError}
+        className={`w-full h-full object-cover transition-all duration-700 ease-out ${
+          loaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-md"
+        } ${imgClassName || ""}`}
+      />
+    </div>
+  );
 };
 
-// ─── Skeletons (matching layout) ──────────────────────
+// ─── Skeletons ───────────────────────────────────────
 const SmallCardSkeleton = () => (
   <div className="animate-pulse">
-    <div className="w-full aspect-[4/3] bg-gray-200 dark:bg-zinc-800" />
-    <div className="h-3 w-16 bg-gray-200 dark:bg-zinc-800 rounded mt-4" />
-    <div className="h-5 w-full bg-gray-200 dark:bg-zinc-800 rounded mt-2" />
-    <div className="h-5 w-2/3 bg-gray-200 dark:bg-zinc-800 rounded mt-1.5" />
+    <div className="w-full aspect-[4/3] bg-gray-200 rounded-sm" />
+    <div className="h-2.5 w-16 bg-gray-200 rounded mt-4" />
+    <div className="h-4 w-full bg-gray-200 rounded mt-2" />
+    <div className="h-4 w-2/3 bg-gray-200 rounded mt-1.5" />
   </div>
 );
 
-const FeaturedSkeleton = () => (
-  <div className="w-full aspect-[16/9] bg-gray-200 dark:bg-zinc-800 animate-pulse" />
+const FeaturedSkeleton = ({ tall }) => (
+  <div
+    className={`w-full ${
+      tall
+        ? "h-[280px] sm:h-[340px] md:h-[380px] lg:h-[420px] 2xl:h-[460px]"
+        : "h-[220px] sm:h-[260px] md:h-[280px] lg:h-[300px] 2xl:h-[320px]"
+    } bg-gray-200 animate-pulse rounded-sm`}
+  />
 );
 
 const MoreStorySkeleton = () => (
-  <div className="animate-pulse py-6 border-b border-gray-100 dark:border-zinc-800 last:border-0">
-    <div className="h-6 w-3/4 bg-gray-200 dark:bg-zinc-800 rounded" />
-    <div className="h-4 w-full bg-gray-200 dark:bg-zinc-800 rounded mt-3" />
-    <div className="h-4 w-2/3 bg-gray-200 dark:bg-zinc-800 rounded mt-1.5" />
+  <div className="animate-pulse py-6 sm:py-8 border-b border-gray-100 last:border-0">
+    <div className="h-5 w-3/4 bg-gray-200 rounded" />
+    <div className="h-4 w-full bg-gray-200 rounded mt-3" />
+    <div className="h-4 w-2/3 bg-gray-200 rounded mt-1.5" />
     <div className="flex items-center gap-4 mt-4">
-      <div className="h-3 w-16 bg-gray-200 dark:bg-zinc-800 rounded" />
-      <div className="h-3 w-24 bg-gray-200 dark:bg-zinc-800 rounded" />
+      <div className="h-3 w-16 bg-gray-200 rounded" />
+      <div className="h-3 w-24 bg-gray-200 rounded" />
     </div>
   </div>
 );
 
-// ─── Main Component ──────────────────────────────────
+// ─── Reveal wrapper for staggered entrance ────────────
+const Reveal = ({ children, delay = 0 }) => {
+  const [ref, inView] = useInView();
+  return (
+    <div
+      ref={ref}
+      style={{ transitionDelay: inView ? `${delay}ms` : "0ms" }}
+      className={`transition-all duration-700 ease-out will-change-transform ${
+        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+      }`}
+    >
+      {children}
+    </div>
+  );
+};
+
 const HNews = () => {
   const [posts, setPosts] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [brokenImages, setBrokenImages] = useState(() => new Set());
 
   const abortRef = useRef(null);
+  const sentinelRef = useRef(null);
 
-  const fetchPosts = useCallback(async () => {
+  const fetchPosts = useCallback(async (pageNum, { append = false } = {}) => {
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
     try {
-      setLoading(true);
+      append ? setLoadingMore(true) : setLoading(true);
       setError(null);
       const res = await api.get("/api/posts", {
-        params: { page: 1, limit: MAX_POSTS, sort: "desc" },
+        params: { page: pageNum, limit: PAGE_SIZE, sort: "desc" },
         signal: controller.signal,
       });
-      setPosts((res.data.data || []).slice(0, MAX_POSTS));
+      const incoming = res.data.data || [];
+      setPosts((prev) => (append ? [...prev, ...incoming] : incoming));
+      setHasMore(incoming.length >= PAGE_SIZE);
     } catch (err) {
-      if (axios.isCancel(err) || err.name === "CanceledError") {
+      if (
+        axios.isCancel(err) ||
+        err.name === "CanceledError" ||
+        err.code === "ERR_CANCELED"
+      ) {
         return;
       }
-      console.error("Fetch error:", err);
+      console.error("Error fetching posts:", err);
       setError(err.response?.data?.message || "Failed to load stories");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchPosts();
+    fetchPosts(1);
     return () => {
       if (abortRef.current) abortRef.current.abort();
     };
   }, [fetchPosts]);
 
+  // Infinite scroll sentinel
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || loading || error) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !loadingMore) {
+          const next = page + 1;
+          setPage(next);
+          fetchPosts(next, { append: true });
+        }
+      },
+      { rootMargin: "400px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [page, hasMore, loadingMore, loading, error, fetchPosts]);
+
   const handleImgError = (id) => {
-    setBrokenImages((prev) => new Set(prev).add(id));
+    setBrokenImages((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
   };
 
   const getImageSrc = (post, fallback) => {
     if (brokenImages.has(post._id)) return fallback;
-    return post.images?.length > 0 ? post.images[0] : fallback;
+    return post.images && post.images.length > 0 ? post.images[0] : fallback;
   };
 
-  // Memoized splits
+  // Split posts
   const featuredPosts = useMemo(() => posts.slice(0, FEATURED_COUNT), [posts]);
   const smallPosts = useMemo(
     () => posts.slice(FEATURED_COUNT, FEATURED_COUNT + SMALL_COUNT),
     [posts]
   );
-  const morePosts = useMemo(() => posts.slice(FEATURED_COUNT + SMALL_COUNT), [posts]);
+  const morePosts = useMemo(
+    () => posts.slice(FEATURED_COUNT + SMALL_COUNT),
+    [posts]
+  );
 
-  // ─── Heading component ─────────────────────────────
   const Heading = ({ label = "News" }) => (
-    <div className="flex items-center justify-between mb-8 sm:mb-10 md:mb-12">
-      <div className="flex items-center gap-3">
-        <div className="w-4 h-4 bg-red-500 flex-shrink-0" />
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-          {label}
-        </h2>
-      </div>
-      <Link
-        to="/news"
-        className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-      >
-        View All →
-      </Link>
+    <div className="flex items-center gap-3 mb-8 sm:mb-10 md:mb-12">
+      <div className="w-4 h-4 bg-red-500 flex-shrink-0" />
+      <h2 className="text-3xl sm:text-4xl md:text-5xl 2xl:text-6xl font-black tracking-tight">
+        {label}
+      </h2>
     </div>
   );
+
+  const Beat = ({ label }) => {
+    const c = beatColor(label);
+    return (
+      <span
+        className="inline-flex items-center uppercase text-[10px] sm:text-xs tracking-[3px] font-bold px-2 py-1"
+        style={{ color: c.fg, backgroundColor: c.bg }}
+      >
+        ■ {label}
+      </span>
+    );
+  };
 
   // ─── Error state ────────────────────────────────────
   if (error) {
     return (
-      <section className="max-w-7xl mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
+      <section className="max-w-7xl 2xl:max-w-[1600px] mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
         <Heading label="Latest Stories" />
-        <div className="text-center py-12 border border-dashed border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20">
-          <p className="text-red-500 text-lg mb-4">{error}</p>
+        <div className="text-center py-16 border border-dashed border-red-200 bg-red-50">
+          <p className="text-red-500 text-lg mb-5">{error}</p>
           <button
-            onClick={fetchPosts}
-            className="px-6 py-2 border-2 border-black dark:border-white bg-black dark:bg-white text-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-transparent dark:hover:text-white transition-colors font-semibold uppercase tracking-wider text-sm"
+            onClick={() => fetchPosts(1)}
+            className="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-black bg-black text-white hover:bg-white hover:text-black transition-colors font-semibold uppercase tracking-wider text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
           >
+            <RefreshCw className="w-4 h-4" />
             Retry
           </button>
         </div>
@@ -190,13 +330,13 @@ const HNews = () => {
     );
   }
 
-  // ─── Empty state ──────────────────────────────────
+  // ─── No posts ──────────────────────────────────────
   if (!loading && posts.length === 0) {
     return (
-      <section className="max-w-7xl mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
+      <section className="max-w-7xl 2xl:max-w-[1600px] mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
         <Heading label="Latest Stories" />
-        <div className="text-center py-12 border border-dashed border-gray-200 dark:border-zinc-700">
-          <p className="text-gray-500 dark:text-gray-400 text-lg">
+        <div className="text-center py-16 border border-dashed border-gray-200">
+          <p className="text-gray-500 text-lg">
             No stories available at the moment.
           </p>
         </div>
@@ -205,191 +345,208 @@ const HNews = () => {
   }
 
   return (
-    <section className="max-w-7xl mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
+    <section className="max-w-7xl 2xl:max-w-[1600px] mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
       <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.5s ease-out forwards;
-        }
-        .img-loading {
-          background: #f0f0f0;
-          background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
-          background-size: 200% 100%;
-          animation: shimmer 1.5s linear infinite;
-        }
         @keyframes shimmer {
-          to { background-position: -200% 0; }
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.001ms !important;
+            transition-duration: 0.001ms !important;
+          }
         }
       `}</style>
 
       <Heading label="News" />
 
-      {/* ═══ Primary Grid ═══ */}
-      <div className="grid lg:grid-cols-2 gap-8 md:gap-10 lg:gap-12">
-        {/* Left – Small Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+      {/* ═══ Primary grid: small cards + featured hero ═══ */}
+      <div className="grid lg:grid-cols-2 gap-8 md:gap-10 lg:gap-12 2xl:gap-16">
+        {/* Left Side – small news cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 2xl:gap-10">
           {loading
             ? Array.from({ length: SMALL_COUNT }).map((_, i) => (
                 <SmallCardSkeleton key={i} />
               ))
-            : smallPosts.map((item) => (
-                <Link
-                  key={item._id}
-                  to={`/news/${item.slug || item._id}`}
-                  className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                >
-                  <div className="relative overflow-hidden bg-gray-100 dark:bg-zinc-800 aspect-[4/3]">
-                    <img
+            : smallPosts.map((item, i) => (
+                <Reveal key={item._id} delay={i * 80}>
+                  <Link
+                    to={`/news/${item.slug || item._id}`}
+                    className="group cursor-pointer block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                  >
+                    <Frame
                       src={getImageSrc(item, FALLBACK_SQUARE)}
                       alt={item.title}
-                      loading="lazy"
                       onError={() => handleImgError(item._id)}
-                      className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                      className="aspect-[4/3] rounded-sm"
+                      imgClassName="transition-transform duration-500 ease-out group-hover:scale-[1.06]"
                     />
-                    {isNew(item.createdAt) && (
-                      <span className="absolute top-2 left-2 text-[8px] font-bold uppercase tracking-wider bg-green-500 text-white px-1.5 py-0.5">
-                        New
+                    <div className="mt-4 flex items-center gap-2 flex-wrap">
+                      {item.category && <Beat label={item.category} />}
+                      {typeof item.views === "number" && item.views > 500 && (
+                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-orange-600">
+                          <TrendingUp className="w-3 h-3" /> Trending
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg sm:text-xl md:text-2xl 2xl:text-[1.7rem] font-bold mt-2 group-hover:text-red-500 transition-colors duration-300 leading-tight line-clamp-2">
+                      {item.title}
+                    </h3>
+                    <p className="text-gray-600 mt-2 sm:mt-3 text-sm sm:text-base leading-relaxed line-clamp-3">
+                      {stripHtml(item.description)}
+                    </p>
+                    <div className="flex items-center gap-3 text-gray-400 text-xs sm:text-sm mt-3 sm:mt-4">
+                      <span>{formatDate(item.createdAt)}</span>
+                      <span className="w-1 h-1 rounded-full bg-gray-300" />
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {readingTime(item.description)}
                       </span>
-                    )}
-                  </div>
-                  <span className="inline-block uppercase text-[10px] sm:text-xs tracking-[3px] text-red-500 mt-4 font-semibold">
-                    ■ {item.category || "Uncategorized"}
-                  </span>
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold mt-2 group-hover:text-red-500 transition-colors duration-300 leading-tight line-clamp-2">
-                    {item.title}
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mt-2 sm:mt-3 text-sm sm:text-base leading-relaxed line-clamp-3">
-                    {stripHtml(item.description)}
-                  </p>
-                  <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm mt-3 sm:mt-4">
-                    {formatDate(item.createdAt)}
-                  </p>
-                </Link>
+                    </div>
+                  </Link>
+                </Reveal>
               ))}
         </div>
 
-        {/* Right – Featured (Stacked) */}
-        <div className="space-y-6 md:space-y-8">
+        {/* Right Side – featured news (stacked vertically) */}
+        <div className="space-y-6 md:space-y-8 2xl:space-y-10">
           {loading
             ? Array.from({ length: FEATURED_COUNT }).map((_, i) => (
-                <FeaturedSkeleton key={i} />
+                <FeaturedSkeleton key={i} tall={i === 0} />
               ))
-            : featuredPosts.map((item) => (
-                <Link
-                  key={item._id}
-                  to={`/news/${item.slug || item._id}`}
-                  className="relative group overflow-hidden block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                >
-                  <div className="aspect-[16/9] bg-gray-100 dark:bg-zinc-800">
-                    <img
+            : featuredPosts.map((item, i) => (
+                <Reveal key={item._id} delay={i * 120}>
+                  <Link
+                    to={`/news/${item.slug || item._id}`}
+                    className="relative group block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                  >
+                    <Frame
                       src={getImageSrc(item, FALLBACK_WIDE)}
                       alt={item.title}
-                      loading="lazy"
+                      eager={i === 0}
                       onError={() => handleImgError(item._id)}
-                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      className={`rounded-sm ${
+                        i === 0
+                          ? "h-[280px] sm:h-[340px] md:h-[380px] lg:h-[420px] 2xl:h-[460px]"
+                          : "h-[220px] sm:h-[260px] md:h-[280px] lg:h-[300px] 2xl:h-[320px]"
+                      }`}
+                      imgClassName="transition-transform duration-700 ease-out group-hover:scale-[1.05]"
                     />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 md:p-8 text-white">
-                    <p className="uppercase text-[10px] sm:text-xs tracking-[3px] sm:tracking-[4px] text-red-400 mb-2 sm:mb-3 font-semibold">
-                      ■ {item.category || "Featured"}
-                    </p>
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight mb-2 sm:mb-3 line-clamp-2">
-                      {item.title}
-                    </h2>
-                    <p className="text-gray-200 text-sm sm:text-base leading-relaxed line-clamp-2 sm:line-clamp-3">
-                      {stripHtml(item.description)}
-                    </p>
-                    <p className="text-gray-300 text-xs sm:text-sm mt-3 sm:mt-4">
-                      {formatDate(item.createdAt)}
-                    </p>
-                  </div>
-                  {isNew(item.createdAt) && (
-                    <span className="absolute top-3 left-3 text-[8px] font-bold uppercase tracking-wider bg-green-500 text-white px-2 py-0.5">
-                      New
-                    </span>
-                  )}
-                </Link>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 md:p-8 text-white">
+                      {item.category && (
+                        <p className="uppercase text-[10px] sm:text-xs tracking-[3px] sm:tracking-[4px] text-red-400 mb-2 sm:mb-3 font-bold">
+                          ■ {item.category}
+                        </p>
+                      )}
+                      <h2
+                        className={`font-black leading-tight mb-2 sm:mb-3 line-clamp-2 ${
+                          i === 0
+                            ? "text-xl sm:text-2xl md:text-3xl 2xl:text-4xl"
+                            : "text-lg sm:text-xl md:text-2xl 2xl:text-3xl"
+                        }`}
+                      >
+                        {item.title}
+                      </h2>
+                      <p className="text-gray-200 text-sm sm:text-base leading-relaxed line-clamp-2 sm:line-clamp-3">
+                        {stripHtml(item.description)}
+                      </p>
+                      <div className="flex items-center gap-3 text-gray-300 text-xs sm:text-sm mt-3 sm:mt-4">
+                        <span>{formatDate(item.createdAt)}</span>
+                        <span className="w-1 h-1 rounded-full bg-gray-400" />
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {readingTime(item.description)}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                </Reveal>
               ))}
         </div>
       </div>
 
-      {/* ═══ More Stories ═══ */}
+      {/* ═══ More Stories – text‑only editorial list ═══ */}
       {(loading || morePosts.length > 0) && (
         <div className="mt-12 sm:mt-16 md:mt-20">
           <div className="flex items-center gap-3 mb-6 sm:mb-8">
-            <div className="h-px flex-1 bg-gray-200 dark:bg-zinc-800" />
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[3px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
+            <div className="h-px flex-1 bg-gray-200" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[3px] text-gray-500 whitespace-nowrap">
               More Stories
             </span>
-            <div className="h-px flex-1 bg-gray-200 dark:bg-zinc-800" />
+            <div className="h-px flex-1 bg-gray-200" />
           </div>
 
-          <div className="flex flex-col">
+          <div className="grid grid-cols-1 2xl:grid-cols-2 2xl:gap-x-16">
             {loading
-              ? Array.from({ length: 5 }).map((_, i) => (
+              ? Array.from({ length: 6 }).map((_, i) => (
                   <MoreStorySkeleton key={i} />
                 ))
               : morePosts.map((item, idx) => (
-                  <div
-                    key={item._id}
-                    className={`py-6 sm:py-8 ${
-                      idx < morePosts.length - 1
-                        ? "border-b border-gray-100 dark:border-zinc-800"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      to={`/news/${item.slug || item._id}`}
-                      className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                  <Reveal key={item._id} delay={(idx % 6) * 60}>
+                    <div
+                      className={`py-6 sm:py-8 ${
+                        idx < morePosts.length - 1
+                          ? "border-b border-gray-100"
+                          : ""
+                      }`}
                     >
-                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold leading-snug text-gray-900 dark:text-white transition-colors duration-300 group-hover:text-red-500">
-                        {item.title}
-                      </h3>
-                      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed mt-3 line-clamp-3">
-                        {stripHtml(item.description)}
-                      </p>
+                      <Link
+                        to={`/news/${item.slug || item._id}`}
+                        className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                      >
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold leading-snug text-gray-900 transition-colors duration-300 group-hover:text-red-500">
+                          {item.title}
+                        </h3>
+                        <p className="text-sm sm:text-base text-gray-600 leading-relaxed mt-3 line-clamp-3">
+                          {stripHtml(item.description)}
+                        </p>
 
-                      <hr className="my-4 sm:my-5 border-gray-200 dark:border-zinc-800" />
+                        <hr className="my-4 sm:my-5 border-gray-200" />
 
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="inline-flex items-center text-xs sm:text-sm font-medium text-red-500 transition-colors duration-300 group-hover:text-red-700 dark:group-hover:text-red-400">
-                          READ MORE
-                          <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 transition-transform duration-300 group-hover:translate-x-1" />
-                        </span>
-                        <span className="flex items-center gap-1 text-xs sm:text-sm text-gray-400 dark:text-gray-500">
-                          <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                          {formatTime(item.createdAt)}
-                          <span className="mx-1">·</span>
-                          {formatDate(item.createdAt)}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[10px] sm:text-xs text-gray-400 dark:text-gray-500">
-                        {item.category && (
-                          <span className="uppercase tracking-wider bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
-                            {item.category}
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="inline-flex items-center text-xs sm:text-sm font-medium text-red-500 transition-colors duration-300 group-hover:text-red-700">
+                            READ MORE
+                            <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 transition-transform duration-300 group-hover:translate-x-1" />
                           </span>
-                        )}
-                        {typeof item.views === "number" && (
+                          <span className="text-xs sm:text-sm text-gray-400">
+                            {formatDate(item.createdAt)} |{" "}
+                            {formatTime(item.createdAt)}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[10px] sm:text-xs text-gray-400">
+                          {item.category && <Beat label={item.category} />}
                           <span className="inline-flex items-center gap-1">
-                            <Eye className="w-3 h-3" />
-                            {item.views}
+                            <Clock className="w-3 h-3" />
+                            {readingTime(item.description)}
                           </span>
-                        )}
-                        {isNew(item.createdAt) && (
-                          <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
-                            ● New
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  </div>
+                          {typeof item.views === "number" && (
+                            <span className="inline-flex items-center gap-1">
+                              <Eye className="w-3 h-3" />
+                              {item.views}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    </div>
+                  </Reveal>
                 ))}
           </div>
+        </div>
+      )}
+
+      {/* ═══ Infinite scroll sentinel + loading-more state ═══ */}
+      {!loading && hasMore && (
+        <div ref={sentinelRef} className="mt-10 flex justify-center">
+          {loadingMore && (
+            <div className="flex items-center gap-2 text-gray-400 text-sm">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Loading more stories…
+            </div>
+          )}
         </div>
       )}
     </section>
