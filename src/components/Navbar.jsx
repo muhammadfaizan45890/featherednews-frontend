@@ -414,7 +414,7 @@ const Navbar = () => {
               aria-expanded={searchOpen}
               title="Search (press /)"
             >
-              <FiSearch size={18} className="sm:size-5" />
+              <FiSearch size={18} className="sm:size-5 mb-1" />
             </button>
           </div>
 
