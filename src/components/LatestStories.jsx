@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import axios from "axios";
+import { Clock, MessageCircle, RefreshCw } from "lucide-react";
 import API from "../utils/api";
 
 // ─────────────────────────────────────────────────────────────
@@ -34,7 +35,36 @@ const getApiInstance = () => {
 
 const api = getApiInstance();
 
-const FALLBACK_IMG = "https://via.placeholder.com/500x500/111111/FFFFFF?text=No+Image";
+const FALLBACK_IMG =
+  "https://via.placeholder.com/900x700/111111/FFFFFF?text=No+Image";
+
+// Same fluid scale used everywhere a card renders: it shrinks smoothly
+// with viewport width instead of jumping between a mobile and a desktop
+// layout, so the side-by-side design looks identical (just smaller) on
+// a phone as it does on a monitor.
+const IMG_W = "clamp(88px, 30vw, 215px)";
+const IMG_H = "clamp(70px, 23.7vw, 170px)"; // keeps the ~215:170 ratio
+const CARD_GAP = "clamp(12px, 6vw, 24px)";
+const OVERLAP = "clamp(18px, 8.7vw, 62px)";
+
+// Editorial "beat" palette — stable per-category color, same idea used
+// across the site so a category reads the same way everywhere.
+const BEAT_PALETTE = [
+  { fg: "#B91C1C", bg: "#FEF2F2" },
+  { fg: "#1D4ED8", bg: "#EFF6FF" },
+  { fg: "#B45309", bg: "#FFFBEB" },
+  { fg: "#047857", bg: "#ECFDF5" },
+  { fg: "#6D28D9", bg: "#F5F3FF" },
+  { fg: "#0E7490", bg: "#ECFEFF" },
+];
+const beatColor = (label = "") => {
+  let hash = 0;
+  for (let i = 0; i < label.length; i++) {
+    hash = (hash << 5) - hash + label.charCodeAt(i);
+    hash |= 0;
+  }
+  return BEAT_PALETTE[Math.abs(hash) % BEAT_PALETTE.length];
+};
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -54,40 +84,76 @@ const stripHtml = (html) => {
 const formatDate = (dateStr) => {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-US", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).toUpperCase();
+  return date
+    .toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })
+    .toUpperCase();
+};
+
+const readingTime = (text) => {
+  const words = stripHtml(text).trim().split(/\s+/).filter(Boolean).length;
+  return `${Math.max(1, Math.round(words / 200))} min read`;
 };
 
 // ─────────────────────────────────────────────────────────────
-// Skeleton – matching the new design (responsive: stacks on mobile)
+// Blur-up image — crisp on load, shimmering placeholder before it
+// ─────────────────────────────────────────────────────────────
+const Thumb = ({ src, alt, onError, badge }) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div
+      className="relative shrink-0 overflow-hidden bg-gray-100 dark:bg-zinc-800"
+      style={{ width: IMG_W, height: IMG_H }}
+    >
+      {!loaded && (
+        <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        sizes="(min-width: 1024px) 215px, 30vw"
+        onLoad={() => setLoaded(true)}
+        onError={onError}
+        className={`h-full w-full object-cover transition-all duration-500 ease-out group-hover:scale-105 ${
+          loaded ? "opacity-100 blur-0 scale-100" : "opacity-0 blur-md scale-105"
+        }`}
+      />
+      {badge}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
+// Skeleton – mirrors the fluid card layout at every width
 // ─────────────────────────────────────────────────────────────
 const SkeletonRow = () => (
-  <div className="flex w-full flex-col sm:flex-row items-start gap-[16px] sm:gap-[24px] animate-pulse">
-    <div className="relative h-[200px] w-full sm:h-[170px] sm:w-[215px] shrink-0 overflow-hidden bg-gray-200 dark:bg-zinc-800">
+  <div className="flex w-full items-start animate-pulse" style={{ gap: CARD_GAP }}>
+    <div
+      className="relative shrink-0 overflow-hidden bg-gray-200 dark:bg-zinc-800"
+      style={{ width: IMG_W, height: IMG_H }}
+    >
       <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
     </div>
-    <div className="relative min-w-0 w-full flex-1 sm:pt-[14px]">
-      <div className="mb-[12px] bg-white dark:bg-zinc-900 px-[20px] py-[8px] -mx-[20px] sm:mx-0 sm:-ml-[62px]">
-        <div className="h-6 w-3/4 bg-gray-200 dark:bg-zinc-800" />
+    <div className="relative min-w-0 w-full flex-1" style={{ paddingTop: "clamp(4px, 1.5vw, 14px)" }}>
+      <div className="mb-3 bg-white dark:bg-zinc-900 px-[20px] py-[8px]" style={{ marginLeft: `calc(-1 * ${OVERLAP})` }}>
+        <div className="h-5 w-3/4 bg-gray-200 dark:bg-zinc-800" />
       </div>
       <div className="space-y-2">
-        <div className="h-4 w-full bg-gray-200 dark:bg-zinc-800" />
-        <div className="h-4 w-2/3 bg-gray-200 dark:bg-zinc-800" />
+        <div className="h-3 w-full bg-gray-200 dark:bg-zinc-800" />
+        <div className="h-3 w-2/3 bg-gray-200 dark:bg-zinc-800" />
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-[9px] gap-y-[4px]">
-        <div className="h-[17px] w-16 bg-gray-200 dark:bg-zinc-800" />
-        <div className="h-3 w-20 bg-gray-200 dark:bg-zinc-800" />
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="h-[17px] w-14 bg-gray-200 dark:bg-zinc-800" />
         <div className="h-3 w-16 bg-gray-200 dark:bg-zinc-800" />
+        <div className="h-3 w-14 bg-gray-200 dark:bg-zinc-800" />
       </div>
     </div>
   </div>
 );
 
 // ─────────────────────────────────────────────────────────────
-// Story Card – same visual design, responsive across breakpoints
+// Story Card – one fluid layout, identical proportions mobile → HD
 // ─────────────────────────────────────────────────────────────
 const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, index }) {
   const src = isBroken
@@ -100,73 +166,95 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
   const formattedDate = formatDate(post.createdAt);
   const authorName = post.author?.fullname || post.author?.username || "Admin";
   const commentCount = post.comments?.length || 0;
+  const beat = post.category ? beatColor(post.category) : null;
 
   return (
     <li
       className="list-none opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
       style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
     >
-      <article className="group flex w-full flex-col sm:flex-row items-start gap-[16px] sm:gap-[24px]">
+      <article className="group flex w-full items-start" style={{ gap: CARD_GAP }}>
         {/* Image */}
         <Link
           to={`/news/${post.slug || post._id}`}
           aria-label={`Read story: ${post.title}`}
-          className="relative h-[200px] w-full sm:h-[170px] sm:w-[215px] shrink-0 overflow-hidden bg-gray-100 dark:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          className="focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
         >
-          <img
+          <Thumb
             src={src}
             alt={post.title}
-            loading="lazy"
             onError={() => onImgError(post._id)}
-            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+            badge={
+              isNew(post.createdAt) && (
+                <span className="absolute top-1.5 left-1.5 text-[7px] sm:text-[8px] font-bold uppercase tracking-wider bg-green-500 text-white px-1.5 py-0.5">
+                  New
+                </span>
+              )
+            }
           />
-          {/* Optional "New" badge (small) */}
-          {isNew(post.createdAt) && (
-            <span className="absolute top-2 left-2 text-[7px] font-bold uppercase tracking-wider bg-green-500 text-white px-1.5 py-0.5">
-              New
-            </span>
-          )}
         </Link>
 
         {/* Content */}
-        <div className="relative min-w-0 w-full flex-1 sm:pt-[14px]">
-          {/* Overlapping white title box (overlap only applies on sm+, where the image sits beside it) */}
-          <div className="-mx-[20px] sm:mx-0 sm:-ml-[62px] mb-[12px] bg-white dark:bg-zinc-900 px-[20px] py-[8px]">
+        <div
+          className="relative min-w-0 w-full flex-1"
+          style={{ paddingTop: "clamp(4px, 1.5vw, 14px)" }}
+        >
+          {/* Overlapping white title box — overlap scales fluidly instead
+              of switching between a "full bleed" mobile treatment and a
+              "partial overlap" desktop one, so it looks the same shape
+              at every width. */}
+          <div
+            className="mb-3 bg-white dark:bg-zinc-900 px-[20px] py-[8px]"
+            style={{ marginLeft: `calc(-1 * ${OVERLAP})` }}
+          >
             <Link
               to={`/news/${post.slug || post._id}`}
               className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             >
-              <h2 className="m-0 max-w-[590px] text-[20px] font-[800] leading-[1.12] tracking-[-0.45px] text-[#151515] dark:text-white sm:text-[21px] group-hover:text-red-500 transition-colors">
+              <h2
+                className="m-0 max-w-[590px] font-[800] leading-[1.14] tracking-[-0.4px] text-[#151515] dark:text-white group-hover:text-red-500 transition-colors line-clamp-2"
+                style={{ fontSize: "clamp(14px, 4vw, 21px)" }}
+              >
                 {post.title}
               </h2>
             </Link>
           </div>
 
-          <p className="mb-[13px] max-w-[515px] text-[11px] font-normal leading-[1.55] text-[#999] dark:text-gray-400 sm:text-[12px] line-clamp-3">
+          <p
+            className="mb-3 max-w-[515px] font-normal leading-[1.55] text-[#999] dark:text-gray-400 line-clamp-2 sm:line-clamp-3"
+            style={{ fontSize: "clamp(10.5px, 2.6vw, 12px)" }}
+          >
             {cleanExcerpt}
           </p>
 
           {/* Post meta */}
-          <div className="flex flex-wrap items-center gap-x-[9px] gap-y-[4px]">
+          <div
+            className="flex flex-wrap items-center gap-x-[9px] gap-y-[4px]"
+            style={{ fontSize: "clamp(7px, 1.8vw, 8px)" }}
+          >
             {post.category && (
-              <span className="inline-flex h-[17px] items-center bg-[#ff4b35] px-[9px] text-[7px] font-bold uppercase tracking-[0.2px] text-white">
+              <span
+                className="inline-flex h-[17px] items-center px-[9px] font-bold uppercase tracking-[0.2px]"
+                style={{ color: beat.fg, backgroundColor: beat.bg }}
+              >
                 {post.category}
               </span>
             )}
-
-            <span className="text-[8px] font-medium uppercase text-[#aaa] dark:text-gray-500">
+            <span className="font-medium uppercase text-[#aaa] dark:text-gray-500">
               {formattedDate}
             </span>
-
-            <span className="text-[8px] text-[#aaa] dark:text-gray-500">/</span>
-
-            <span className="text-[8px] font-medium uppercase text-[#aaa] dark:text-gray-500">
+            <span className="text-[#aaa] dark:text-gray-500">/</span>
+            <span className="font-medium uppercase text-[#aaa] dark:text-gray-500">
               BY {authorName}
             </span>
-
-            <span className="text-[8px] text-[#aaa] dark:text-gray-500">/</span>
-
-            <span className="text-[8px] font-medium text-[#aaa] dark:text-gray-500">
+            <span className="text-[#aaa] dark:text-gray-500">/</span>
+            <span className="inline-flex items-center gap-1 font-medium text-[#aaa] dark:text-gray-500">
+              <Clock className="w-2.5 h-2.5" />
+              {readingTime(cleanExcerpt)}
+            </span>
+            <span className="text-[#aaa] dark:text-gray-500">/</span>
+            <span className="inline-flex items-center gap-1 font-medium text-[#aaa] dark:text-gray-500">
+              <MessageCircle className="w-2.5 h-2.5" />
               {commentCount}
             </span>
           </div>
@@ -289,10 +377,7 @@ const LatestStories = () => {
   );
 
   return (
-    <section
-      aria-labelledby="latest-stories-heading"
-      className="w-full bg-white dark:bg-zinc-900"
-    >
+    <section aria-labelledby="latest-stories-heading" className="w-full bg-white dark:bg-zinc-900">
       <style>{`
         @keyframes shimmer {
           0% { background-position: 200% 0; }
@@ -302,14 +387,15 @@ const LatestStories = () => {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.001ms !important;
+            transition-duration: 0.001ms !important;
+          }
+        }
       `}</style>
 
-      {/*
-        ─── The change is here ──────────────────────────
-        Replaced max-w-[900px] with max-w-7xl for wider desktop.
-        You can also use e.g. max-w-[1200px] if you prefer.
-      */}
-      <div className="mx-auto w-full max-w-7xl px-[20px] py-[25px] sm:px-[30px]">
+      <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] px-[20px] py-[25px] sm:px-[30px]">
         {/* ─── Header ────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
           <div>
@@ -318,7 +404,7 @@ const LatestStories = () => {
             </p>
             <h2
               id="latest-stories-heading"
-              className="text-2xl sm:text-3xl md:text-4xl font-bold mt-1 text-black dark:text-white"
+              className="text-2xl sm:text-3xl md:text-4xl 2xl:text-5xl font-bold mt-1 text-black dark:text-white"
             >
               Latest Stories
             </h2>
@@ -352,8 +438,9 @@ const LatestStories = () => {
               type="button"
               onClick={() => fetchPosts(1, false)}
               aria-label="Retry loading stories"
-              className="border-2 border-black dark:border-white bg-black dark:bg-white text-white dark:text-black px-4 py-1.5 text-xs sm:text-sm font-semibold uppercase tracking-wider hover:bg-white hover:text-black dark:hover:bg-transparent dark:hover:text-white transition-colors"
+              className="inline-flex items-center gap-2 border-2 border-black dark:border-white bg-black dark:bg-white text-white dark:text-black px-4 py-1.5 text-xs sm:text-sm font-semibold uppercase tracking-wider hover:bg-white hover:text-black dark:hover:bg-transparent dark:hover:text-white transition-colors"
             >
+              <RefreshCw className="w-3.5 h-3.5" />
               Try Again
             </button>
           </div>
@@ -376,34 +463,12 @@ const LatestStories = () => {
             </ul>
 
             {/* Infinite-scroll sentinel */}
-            {hasMore && (
-              <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />
-            )}
+            {hasMore && <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />}
 
             {isLoadingMore && (
               <div className="text-center mt-6" role="status" aria-live="polite">
                 <span className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                  <svg
-                    className="animate-spin h-4 w-4 text-black dark:text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
                   Loading more...
                 </span>
               </div>
