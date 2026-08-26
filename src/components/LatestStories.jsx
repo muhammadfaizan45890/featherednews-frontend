@@ -369,8 +369,8 @@ const LatestStories = () => {
         }
       `}</style>
 
-      {/* ─── Container – width reduced to max-w-6xl ─── */}
-      <div className="mx-auto w-full max-w-6xl px-[20px] py-[25px] sm:px-[30px]">
+      {/* ─── Container – width increased to max-w-7xl ─── */}
+      <div className="mx-auto w-full max-w-7xl px-[20px] py-[25px] sm:px-[30px]">
         {/* ─── Header ────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
           <div>
