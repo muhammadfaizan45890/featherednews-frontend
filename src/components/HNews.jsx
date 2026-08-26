@@ -18,27 +18,6 @@ const FALLBACK_SQUARE =
 const FALLBACK_WIDE =
   "https://via.placeholder.com/1600x900/111111/FFFFFF?text=No+Image";
 
-// Editorial "beat" palette — each category gets a stable, distinct color
-// derived from its name rather than randomly assigned, so the same
-// category always reads the same way across the whole site.
-const BEAT_PALETTE = [
-  { fg: "#B91C1C", bg: "#FEF2F2" }, // crimson
-  { fg: "#1D4ED8", bg: "#EFF6FF" }, // cobalt
-  { fg: "#B45309", bg: "#FFFBEB" }, // amber
-  { fg: "#047857", bg: "#ECFDF5" }, // emerald
-  { fg: "#6D28D9", bg: "#F5F3FF" }, // violet
-  { fg: "#0E7490", bg: "#ECFEFF" }, // teal
-];
-
-const beatColor = (label = "") => {
-  let hash = 0;
-  for (let i = 0; i < label.length; i++) {
-    hash = (hash << 5) - hash + label.charCodeAt(i);
-    hash |= 0;
-  }
-  return BEAT_PALETTE[Math.abs(hash) % BEAT_PALETTE.length];
-};
-
 // ─── Helper: strip HTML tags ──────────────────────────
 const stripHtml = (html) => {
   if (!html) return "";
@@ -94,68 +73,28 @@ const formatTime = (dateStr) =>
     hour12: true,
   });
 
-// ─── Hook: reveal-on-scroll (respects reduced motion) ─
-const useInView = (options = {}) => {
-  const ref = useRef(null);
-  const [inView, setInView] = useState(false);
+// ─── Simple image component – no transitions, no blur ──
+const Image = ({ src, alt, className, onError }) => (
+  <div className={`relative overflow-hidden bg-gray-100 ${className || ""}`}>
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      sizes="(min-width: 1536px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+      onError={onError}
+      className="w-full h-full object-cover"
+    />
+  </div>
+);
 
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-
-    const prefersReduced = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-    if (prefersReduced) {
-      setInView(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setInView(true);
-        observer.disconnect();
-      }
-    }, { threshold: 0.1, rootMargin: "80px", ...options });
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  return [ref, inView];
-};
-
-// ─── Blur-up, HD-aware image ──────────────────────────
-const Frame = ({ src, alt, className, imgClassName, onError, eager }) => {
-  const [loaded, setLoaded] = useState(false);
-  return (
-    <div className={`relative overflow-hidden bg-gray-100 ${className || ""}`}>
-      {!loaded && (
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 bg-[length:200%_200%] animate-[shimmer_1.8s_ease-in-out_infinite]" />
-      )}
-      <img
-        src={src}
-        alt={alt}
-        loading={eager ? "eager" : "lazy"}
-        decoding="async"
-        sizes="(min-width: 1536px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-        onLoad={() => setLoaded(true)}
-        onError={onError}
-        className={`w-full h-full object-cover transition-all duration-700 ease-out ${
-          loaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-md"
-        } ${imgClassName || ""}`}
-      />
-    </div>
-  );
-};
-
-// ─── Skeletons ───────────────────────────────────────
+// ─── Skeletons (no rounded corners) ──────────────────
 const SmallCardSkeleton = () => (
   <div className="animate-pulse">
-    <div className="w-full aspect-[4/3] bg-gray-200 rounded-sm" />
-    <div className="h-2.5 w-16 bg-gray-200 rounded mt-4" />
-    <div className="h-4 w-full bg-gray-200 rounded mt-2" />
-    <div className="h-4 w-2/3 bg-gray-200 rounded mt-1.5" />
+    <div className="w-full aspect-[4/3] bg-gray-200" />
+    <div className="h-2.5 w-16 bg-gray-200 mt-4" />
+    <div className="h-4 w-full bg-gray-200 mt-2" />
+    <div className="h-4 w-2/3 bg-gray-200 mt-1.5" />
   </div>
 );
 
@@ -165,38 +104,30 @@ const FeaturedSkeleton = ({ tall }) => (
       tall
         ? "h-[280px] sm:h-[340px] md:h-[380px] lg:h-[420px] 2xl:h-[460px]"
         : "h-[220px] sm:h-[260px] md:h-[280px] lg:h-[300px] 2xl:h-[320px]"
-    } bg-gray-200 animate-pulse rounded-sm`}
+    } bg-gray-200 animate-pulse`}
   />
 );
 
 const MoreStorySkeleton = () => (
   <div className="animate-pulse py-6 sm:py-8 border-b border-gray-100 last:border-0">
-    <div className="h-5 w-3/4 bg-gray-200 rounded" />
-    <div className="h-4 w-full bg-gray-200 rounded mt-3" />
-    <div className="h-4 w-2/3 bg-gray-200 rounded mt-1.5" />
+    <div className="h-5 w-3/4 bg-gray-200" />
+    <div className="h-4 w-full bg-gray-200 mt-3" />
+    <div className="h-4 w-2/3 bg-gray-200 mt-1.5" />
     <div className="flex items-center gap-4 mt-4">
-      <div className="h-3 w-16 bg-gray-200 rounded" />
-      <div className="h-3 w-24 bg-gray-200 rounded" />
+      <div className="h-3 w-16 bg-gray-200" />
+      <div className="h-3 w-24 bg-gray-200" />
     </div>
   </div>
 );
 
-// ─── Reveal wrapper for staggered entrance ────────────
-const Reveal = ({ children, delay = 0 }) => {
-  const [ref, inView] = useInView();
-  return (
-    <div
-      ref={ref}
-      style={{ transitionDelay: inView ? `${delay}ms` : "0ms" }}
-      className={`transition-all duration-700 ease-out will-change-transform ${
-        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-      }`}
-    >
-      {children}
-    </div>
-  );
-};
+// ─── Uniform category badge (light red bg + red text) ──
+const CategoryBadge = ({ label }) => (
+  <span className="inline-flex items-center uppercase text-[10px] sm:text-xs tracking-[3px] font-bold px-2 py-1 bg-red-100 text-red-600">
+    ■ {label}
+  </span>
+);
 
+// ─── Main Component ──────────────────────────────────
 const HNews = () => {
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(1);
@@ -299,18 +230,6 @@ const HNews = () => {
     </div>
   );
 
-  const Beat = ({ label }) => {
-    const c = beatColor(label);
-    return (
-      <span
-        className="inline-flex items-center uppercase text-[10px] sm:text-xs tracking-[3px] font-bold px-2 py-1"
-        style={{ color: c.fg, backgroundColor: c.bg }}
-      >
-        ■ {label}
-      </span>
-    );
-  };
-
   // ─── Error state ────────────────────────────────────
   if (error) {
     return (
@@ -320,7 +239,7 @@ const HNews = () => {
           <p className="text-red-500 text-lg mb-5">{error}</p>
           <button
             onClick={() => fetchPosts(1)}
-            className="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-black bg-black text-white hover:bg-white hover:text-black transition-colors font-semibold uppercase tracking-wider text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-black bg-black text-white hover:bg-white hover:text-black font-semibold uppercase tracking-wider text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
           >
             <RefreshCw className="w-4 h-4" />
             Retry
@@ -346,129 +265,110 @@ const HNews = () => {
 
   return (
     <section className="max-w-7xl 2xl:max-w-[1600px] mx-auto py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
-      <style>{`
-        @keyframes shimmer {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          *, *::before, *::after {
-            animation-duration: 0.001ms !important;
-            transition-duration: 0.001ms !important;
-          }
-        }
-      `}</style>
-
       <Heading label="News" />
 
-      {/* ═══ Primary grid: small cards + featured hero ═══ */}
+      {/* ═══ Primary grid ═══ */}
       <div className="grid lg:grid-cols-2 gap-8 md:gap-10 lg:gap-12 2xl:gap-16">
-        {/* Left Side – small news cards */}
+        {/* Left – Small Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 2xl:gap-10">
           {loading
             ? Array.from({ length: SMALL_COUNT }).map((_, i) => (
                 <SmallCardSkeleton key={i} />
               ))
-            : smallPosts.map((item, i) => (
-                <Reveal key={item._id} delay={i * 80}>
-                  <Link
-                    to={`/news/${item.slug || item._id}`}
-                    className="group cursor-pointer block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                  >
-                    <Frame
-                      src={getImageSrc(item, FALLBACK_SQUARE)}
-                      alt={item.title}
-                      onError={() => handleImgError(item._id)}
-                      className="aspect-[4/3] rounded-sm"
-                      imgClassName="transition-transform duration-500 ease-out group-hover:scale-[1.06]"
-                    />
-                    <div className="mt-4 flex items-center gap-2 flex-wrap">
-                      {item.category && <Beat label={item.category} />}
-                      {typeof item.views === "number" && item.views > 500 && (
-                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-orange-600">
-                          <TrendingUp className="w-3 h-3" /> Trending
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-lg sm:text-xl md:text-2xl 2xl:text-[1.7rem] font-bold mt-2 group-hover:text-red-500 transition-colors duration-300 leading-tight line-clamp-2">
-                      {item.title}
-                    </h3>
-                    <p className="text-gray-600 mt-2 sm:mt-3 text-sm sm:text-base leading-relaxed line-clamp-3">
-                      {stripHtml(item.description)}
-                    </p>
-                    <div className="flex items-center gap-3 text-gray-400 text-xs sm:text-sm mt-3 sm:mt-4">
-                      <span>{formatDate(item.createdAt)}</span>
-                      <span className="w-1 h-1 rounded-full bg-gray-300" />
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {readingTime(item.description)}
+            : smallPosts.map((item) => (
+                <Link
+                  key={item._id}
+                  to={`/news/${item.slug || item._id}`}
+                  className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                >
+                  <Image
+                    src={getImageSrc(item, FALLBACK_SQUARE)}
+                    alt={item.title}
+                    onError={() => handleImgError(item._id)}
+                    className="aspect-[4/3]"
+                  />
+                  <div className="mt-4 flex items-center gap-2 flex-wrap">
+                    {item.category && <CategoryBadge label={item.category} />}
+                    {typeof item.views === "number" && item.views > 500 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-orange-600">
+                        <TrendingUp className="w-3 h-3" /> Trending
                       </span>
-                    </div>
-                  </Link>
-                </Reveal>
+                    )}
+                  </div>
+                  <h3 className="text-lg sm:text-xl md:text-2xl 2xl:text-[1.7rem] font-bold mt-2 group-hover:text-red-500 leading-tight line-clamp-2">
+                    {item.title}
+                  </h3>
+                  <p className="text-gray-600 mt-2 sm:mt-3 text-sm sm:text-base leading-relaxed line-clamp-3">
+                    {stripHtml(item.description)}
+                  </p>
+                  <div className="flex items-center gap-3 text-gray-400 text-xs sm:text-sm mt-3 sm:mt-4">
+                    <span>{formatDate(item.createdAt)}</span>
+                    <span className="w-1 h-1 rounded-full bg-gray-300" />
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {readingTime(item.description)}
+                    </span>
+                  </div>
+                </Link>
               ))}
         </div>
 
-        {/* Right Side – featured news (stacked vertically) */}
+        {/* Right – Featured (stacked) */}
         <div className="space-y-6 md:space-y-8 2xl:space-y-10">
           {loading
             ? Array.from({ length: FEATURED_COUNT }).map((_, i) => (
                 <FeaturedSkeleton key={i} tall={i === 0} />
               ))
             : featuredPosts.map((item, i) => (
-                <Reveal key={item._id} delay={i * 120}>
-                  <Link
-                    to={`/news/${item.slug || item._id}`}
-                    className="relative group block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                  >
-                    <Frame
-                      src={getImageSrc(item, FALLBACK_WIDE)}
-                      alt={item.title}
-                      eager={i === 0}
-                      onError={() => handleImgError(item._id)}
-                      className={`rounded-sm ${
-                        i === 0
-                          ? "h-[280px] sm:h-[340px] md:h-[380px] lg:h-[420px] 2xl:h-[460px]"
-                          : "h-[220px] sm:h-[260px] md:h-[280px] lg:h-[300px] 2xl:h-[320px]"
-                      }`}
-                      imgClassName="transition-transform duration-700 ease-out group-hover:scale-[1.05]"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent pointer-events-none" />
-                    <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 md:p-8 text-white">
-                      {item.category && (
-                        <p className="uppercase text-[10px] sm:text-xs tracking-[3px] sm:tracking-[4px] text-red-400 mb-2 sm:mb-3 font-bold">
-                          ■ {item.category}
-                        </p>
-                      )}
-                      <h2
-                        className={`font-black leading-tight mb-2 sm:mb-3 line-clamp-2 ${
-                          i === 0
-                            ? "text-xl sm:text-2xl md:text-3xl 2xl:text-4xl"
-                            : "text-lg sm:text-xl md:text-2xl 2xl:text-3xl"
-                        }`}
-                      >
-                        {item.title}
-                      </h2>
-                      <p className="text-gray-200 text-sm sm:text-base leading-relaxed line-clamp-2 sm:line-clamp-3">
-                        {stripHtml(item.description)}
+                <Link
+                  key={item._id}
+                  to={`/news/${item.slug || item._id}`}
+                  className="relative group block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                >
+                  <Image
+                    src={getImageSrc(item, FALLBACK_WIDE)}
+                    alt={item.title}
+                    onError={() => handleImgError(item._id)}
+                    className={`${
+                      i === 0
+                        ? "h-[280px] sm:h-[340px] md:h-[380px] lg:h-[420px] 2xl:h-[460px]"
+                        : "h-[220px] sm:h-[260px] md:h-[280px] lg:h-[300px] 2xl:h-[320px]"
+                    }`}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 md:p-8 text-white">
+                    {item.category && (
+                      <p className="uppercase text-[10px] sm:text-xs tracking-[3px] sm:tracking-[4px] text-red-400 mb-2 sm:mb-3 font-bold">
+                        ■ {item.category}
                       </p>
-                      <div className="flex items-center gap-3 text-gray-300 text-xs sm:text-sm mt-3 sm:mt-4">
-                        <span>{formatDate(item.createdAt)}</span>
-                        <span className="w-1 h-1 rounded-full bg-gray-400" />
-                        <span className="inline-flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {readingTime(item.description)}
-                        </span>
-                      </div>
+                    )}
+                    <h2
+                      className={`font-black leading-tight mb-2 sm:mb-3 line-clamp-2 ${
+                        i === 0
+                          ? "text-xl sm:text-2xl md:text-3xl 2xl:text-4xl"
+                          : "text-lg sm:text-xl md:text-2xl 2xl:text-3xl"
+                      }`}
+                    >
+                      {item.title}
+                    </h2>
+                    <p className="text-gray-200 text-sm sm:text-base leading-relaxed line-clamp-2 sm:line-clamp-3">
+                      {stripHtml(item.description)}
+                    </p>
+                    <div className="flex items-center gap-3 text-gray-300 text-xs sm:text-sm mt-3 sm:mt-4">
+                      <span>{formatDate(item.createdAt)}</span>
+                      <span className="w-1 h-1 rounded-full bg-gray-400" />
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {readingTime(item.description)}
+                      </span>
                     </div>
-                  </Link>
-                </Reveal>
+                  </div>
+                </Link>
               ))}
         </div>
       </div>
 
-      {/* ═══ More Stories – text‑only editorial list ═══ */}
+      {/* ═══ More Stories ═══ */}
       {(loading || morePosts.length > 0) && (
         <div className="mt-12 sm:mt-16 md:mt-20">
           <div className="flex items-center gap-3 mb-6 sm:mb-8">
@@ -485,60 +385,61 @@ const HNews = () => {
                   <MoreStorySkeleton key={i} />
                 ))
               : morePosts.map((item, idx) => (
-                  <Reveal key={item._id} delay={(idx % 6) * 60}>
-                    <div
-                      className={`py-6 sm:py-8 ${
-                        idx < morePosts.length - 1
-                          ? "border-b border-gray-100"
-                          : ""
-                      }`}
+                  <div
+                    key={item._id}
+                    className={`py-6 sm:py-8 ${
+                      idx < morePosts.length - 1
+                        ? "border-b border-gray-100"
+                        : ""
+                    }`}
+                  >
+                    <Link
+                      to={`/news/${item.slug || item._id}`}
+                      className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
                     >
-                      <Link
-                        to={`/news/${item.slug || item._id}`}
-                        className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                      >
-                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold leading-snug text-gray-900 transition-colors duration-300 group-hover:text-red-500">
-                          {item.title}
-                        </h3>
-                        <p className="text-sm sm:text-base text-gray-600 leading-relaxed mt-3 line-clamp-3">
-                          {stripHtml(item.description)}
-                        </p>
+                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold leading-snug text-gray-900 group-hover:text-red-500">
+                        {item.title}
+                      </h3>
+                      <p className="text-sm sm:text-base text-gray-600 leading-relaxed mt-3 line-clamp-3">
+                        {stripHtml(item.description)}
+                      </p>
 
-                        <hr className="my-4 sm:my-5 border-gray-200" />
+                      <hr className="my-4 sm:my-5 border-gray-200" />
 
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="inline-flex items-center text-xs sm:text-sm font-medium text-red-500 transition-colors duration-300 group-hover:text-red-700">
-                            READ MORE
-                            <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 transition-transform duration-300 group-hover:translate-x-1" />
-                          </span>
-                          <span className="text-xs sm:text-sm text-gray-400">
-                            {formatDate(item.createdAt)} |{" "}
-                            {formatTime(item.createdAt)}
-                          </span>
-                        </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="inline-flex items-center text-xs sm:text-sm font-medium text-red-500 group-hover:text-red-700">
+                          READ MORE
+                          <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5" />
+                        </span>
+                        <span className="text-xs sm:text-sm text-gray-400">
+                          {formatDate(item.createdAt)} |{" "}
+                          {formatTime(item.createdAt)}
+                        </span>
+                      </div>
 
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[10px] sm:text-xs text-gray-400">
-                          {item.category && <Beat label={item.category} />}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[10px] sm:text-xs text-gray-400">
+                        {item.category && (
+                          <CategoryBadge label={item.category} />
+                        )}
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {readingTime(item.description)}
+                        </span>
+                        {typeof item.views === "number" && (
                           <span className="inline-flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {readingTime(item.description)}
+                            <Eye className="w-3 h-3" />
+                            {item.views}
                           </span>
-                          {typeof item.views === "number" && (
-                            <span className="inline-flex items-center gap-1">
-                              <Eye className="w-3 h-3" />
-                              {item.views}
-                            </span>
-                          )}
-                        </div>
-                      </Link>
-                    </div>
-                  </Reveal>
+                        )}
+                      </div>
+                    </Link>
+                  </div>
                 ))}
           </div>
         </div>
       )}
 
-      {/* ═══ Infinite scroll sentinel + loading-more state ═══ */}
+      {/* Infinite scroll sentinel */}
       {!loading && hasMore && (
         <div ref={sentinelRef} className="mt-10 flex justify-center">
           {loadingMore && (
@@ -554,7 +455,6 @@ const HNews = () => {
 };
 
 export default HNews;
-
 
 
 
