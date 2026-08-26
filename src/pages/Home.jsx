@@ -64,6 +64,88 @@ const getFallbackImage = () => {
   return 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22300%22%20viewBox%3D%220%200%20400%20300%22%3E%3Crect%20width%3D%22400%22%20height%3D%22300%22%20fill%3D%22%23f0f0f0%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%22145%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2220%22%20fill%3D%22%23999%22%20text-anchor%3D%22middle%22%3E%F0%9F%93%A2%20Advertise%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22170%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2216%22%20fill%3D%22%23999%22%20text-anchor%3D%22middle%22%3EYour%20ad%20could%20be%20here%3C%2Ftext%3E%3C%2Fsvg%3E';
 };
 
+// ─── Sandook Ad Card (static) ─────────────────────────
+const SandookAdCard = () => {
+  const fallbackImg = getFallbackImage();
+  const image = fallbackImg; // placeholder, you can replace with actual image URL
+  const title = 'Purchase from Sandook.pk';
+  const description = 'Reach thousands of readers with a sponsored placement.';
+  const brand = 'SANDOOK';
+  const ctaText = 'Purchase →';
+  const ctaLink = 'https://sandook.pk'; // external link
+
+  const cardInner = (
+    <div
+      className="w-full border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900
+        hover:border-gray-400 dark:hover:border-zinc-500 transition-colors duration-150
+        flex flex-col sm:flex-row items-stretch"
+    >
+      {/* Image */}
+      <div className="relative w-full sm:w-48 md:w-56 flex-shrink-0 aspect-[16/9] sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
+        <img
+          src={image}
+          alt="Sandook.pk advertisement"
+          className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
+          onError={(e) => {
+            e.target.src = fallbackImg;
+          }}
+        />
+      </div>
+
+      {/* Text content */}
+      <div className="flex-1 min-w-0 p-3 sm:p-4 flex flex-col justify-center">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="text-[10px] font-bold text-green-700 dark:text-green-500 border border-green-700 dark:border-green-500 rounded-[2px] px-1 leading-tight">
+            Ad
+          </span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            sandook.pk
+          </span>
+        </div>
+
+        <h3 className="text-[15px] sm:text-base font-medium text-blue-800 dark:text-blue-400 leading-snug line-clamp-1 group-hover:underline">
+          {title}
+        </h3>
+
+        <p className="text-xs sm:text-[13px] text-gray-600 dark:text-gray-300 mt-1 leading-relaxed line-clamp-2">
+          {description}
+        </p>
+
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-xs font-bold tracking-wider text-gray-700 dark:text-gray-300">
+            {brand}
+          </span>
+          <a
+            href={ctaLink}
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:text-black dark:hover:text-white transition"
+          >
+            {ctaText}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-70">
+              <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <a
+      href={ctaLink}
+      target="_blank"
+      rel="noopener noreferrer sponsored"
+      className="group block w-full"
+      aria-label={title}
+    >
+      {cardInner}
+    </a>
+  );
+};
+
 const Home = () => {
   const [adTop, setAdTop] = useState(null);
   const [adMiddle, setAdMiddle] = useState(null);
@@ -130,7 +212,6 @@ const Home = () => {
           hover:border-gray-400 dark:hover:border-zinc-500 transition-colors duration-150
           flex flex-col sm:flex-row items-stretch"
       >
-        {/* Image */}
         <div className="relative w-full sm:w-48 md:w-56 flex-shrink-0 aspect-[16/9] sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
           <img
             src={image}
@@ -144,8 +225,6 @@ const Home = () => {
             }}
           />
         </div>
-
-        {/* Text content */}
         <div className="flex-1 min-w-0 p-3 sm:p-4 flex flex-col justify-center">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-[10px] font-bold text-green-700 dark:text-green-500 border border-green-700 dark:border-green-500 rounded-[2px] px-1 leading-tight">
@@ -155,15 +234,12 @@ const Home = () => {
               {displayUrl}
             </span>
           </div>
-
           <h3 className="text-[15px] sm:text-base font-medium text-blue-800 dark:text-blue-400 leading-snug line-clamp-1 group-hover:underline">
             {title}
           </h3>
-
           <p className="text-xs sm:text-[13px] text-gray-600 dark:text-gray-300 mt-1 leading-relaxed line-clamp-2">
             {description}
           </p>
-
           <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-gray-700 dark:text-gray-200 w-fit">
             {ctaText}
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-70">
@@ -225,6 +301,11 @@ const Home = () => {
 
       {/* ─── HNews ───────────────────────────────────────── */}
       <HNews />
+
+      {/* ─── Sandook Ad Card ────────────────────────────── */}
+      <div className="max-w-2xl mx-auto my-6 px-4">
+        <SandookAdCard />
+      </div>
     </div>
   );
 };
