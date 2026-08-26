@@ -19,9 +19,7 @@ import { toast } from "sonner";
 import API from "@/utils/api";
 import { User } from "lucide-react";
 
-// ─── Editorial "beat" palette — same stable per-category color used
-// across the story components, so a category reads the same everywhere
-// on the site, including here in the nav. ─────────────────────────
+// ─── Editorial "beat" palette ─────────────────────────────
 const BEAT_PALETTE = [
   { fg: "#B91C1C", bg: "#FEF2F2" },
   { fg: "#1D4ED8", bg: "#EFF6FF" },
@@ -209,7 +207,7 @@ const Navbar = () => {
     return () => document.removeEventListener("keydown", handleEscape);
   }, []);
 
-  // ─── "/" keyboard shortcut opens search (ignored while typing) ─
+  // ─── "/" keyboard shortcut opens search ──────────────
   useEffect(() => {
     const handleShortcut = (e) => {
       const tag = document.activeElement?.tagName;
@@ -309,9 +307,7 @@ const Navbar = () => {
     [searchQuery, navigate]
   );
 
-  // ─── Mega menu open/close with a small delay so hover
-  // doesn't flicker when the cursor briefly leaves the trigger
-  // while moving toward the panel. ───────────────────────
+  // ─── Mega menu open/close with small delay ──────────
   const openMegaMenu = useCallback(() => {
     clearTimeout(megaCloseTimer.current);
     setMegaMenuOpen(true);
@@ -365,7 +361,6 @@ const Navbar = () => {
     }
   }, [accessToken, setUser, navigate, closeSidebar]);
 
-  // Helper to check if a category is active
   const isCategoryActive = (category) => {
     const params = new URLSearchParams(location.search);
     return params.get("category") === category;
@@ -391,7 +386,7 @@ const Navbar = () => {
           }
         }
       `}</style>
-      <div className="max-w-6xl 2xl:max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* ─── Top Header ──────────────────────────────────── */}
         <div
           className={`relative flex items-center justify-between transition-[padding] duration-300 ease-in-out ${
@@ -423,9 +418,7 @@ const Navbar = () => {
             </button>
           </div>
 
-          {/* ─── Logo (clickable) — fluid type scale instead of
-              six discrete breakpoints, so it grows continuously
-              on very large / HD displays too. ────────────────── */}
+          {/* ─── Logo ────────────────────────────────── */}
           <Link
             to="/"
             className="absolute left-1/2 -translate-x-1/2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded transition-opacity duration-200 ease-in-out hover:opacity-80"
@@ -450,7 +443,6 @@ const Navbar = () => {
 
           {/* Right: Social + Auth */}
           <div className="flex items-center gap-4 lg:gap-5">
-            {/* Desktop social icons with border & rounded */}
             <div className="hidden lg:flex items-center gap-2.5 text-gray-600">
               <a
                 href="#"
@@ -516,19 +508,22 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* ─── MOBILE CATEGORIES STRIP — sits directly under the
-            top header on small/medium screens (hidden at lg, where
-            the mega menu takes over). Pills fade + slide in on
-            mount, staggered, and respect prefers-reduced-motion. ── */}
+        {/* ─── MOBILE CATEGORIES STRIP – fully responsive ── */}
         <div className="lg:hidden border-t border-gray-100 py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6">
           <div className="flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <Link
               to="/news"
-              className={`snap-start shrink-0 text-[11px] font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all duration-200 ease-in-out opacity-0 animate-[fadeInRight_0.4s_ease-out_forwards] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
-                location.pathname === "/news" && !new URLSearchParams(location.search).get("category")
-                  ? "bg-black text-white border-black"
-                  : "bg-white text-gray-600 border-gray-200"
-              }`}
+              className={`snap-start shrink-0 font-semibold uppercase tracking-wide rounded-full border transition-all duration-200 ease-in-out opacity-0 animate-[fadeInRight_0.4s_ease-out_forwards] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500
+                ${
+                  location.pathname === "/news" && !new URLSearchParams(location.search).get("category")
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-gray-600 border-gray-200"
+                }
+              `}
+              style={{
+                fontSize: "clamp(9px, 2.4vw, 12px)",
+                padding: "clamp(4px, 1.2vw, 8px) clamp(10px, 2.5vw, 16px)",
+              }}
             >
               All
             </Link>
@@ -543,11 +538,13 @@ const Navbar = () => {
                       to={`/news?category=${encodeURIComponent(cat)}`}
                       style={{
                         animationDelay: `${Math.min(i, 10) * 40}ms`,
+                        fontSize: "clamp(9px, 2.4vw, 12px)",
+                        padding: "clamp(4px, 1.2vw, 8px) clamp(10px, 2.5vw, 16px)",
                         ...(active
                           ? { color: c.bg, backgroundColor: c.fg, borderColor: c.fg }
                           : { color: c.fg, borderColor: "transparent", backgroundColor: c.bg }),
                       }}
-                      className="snap-start shrink-0 text-[11px] font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all duration-200 ease-in-out opacity-0 animate-[fadeInRight_0.4s_ease-out_forwards] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                      className="snap-start shrink-0 font-semibold uppercase tracking-wide rounded-full border transition-all duration-200 ease-in-out opacity-0 animate-[fadeInRight_0.4s_ease-out_forwards] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                     >
                       {cat}
                     </Link>
@@ -556,12 +553,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* ─── DESKTOP PRIMARY NAV + CATEGORIES MEGA MENU ───────
-            Previously the primary links (Home, News, Listen, About,
-            Contact...) only existed inside the mobile sidebar — desktop
-            had no way to reach them except the logo and a bare category
-            strip. This adds a real nav row with all of them, plus a
-            keyboard- and hover-accessible mega menu for categories. ── */}
+        {/* ─── DESKTOP PRIMARY NAV + MEGA MENU ──────────── */}
         <div className="hidden lg:block relative border-t border-gray-200">
           <div className="flex items-center justify-between py-2.5 gap-6">
             <nav aria-label="Primary" className="flex items-center gap-1">
@@ -660,8 +652,7 @@ const Navbar = () => {
               ))}
             </nav>
 
-            {/* Quick category pills — fast one-click topic switching,
-                color-coded to match the mega menu and story cards. */}
+            {/* Quick category pills on desktop */}
             <div className="flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory min-w-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <Link
                 to="/news"
@@ -699,14 +690,13 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* ─── Search Bar — with clear button and quick topic chips
-          for when the field is empty. ─────────────────────────── */}
+      {/* ─── Search Bar ────────────────────────────────────── */}
       <div
         className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${
           searchOpen ? "max-h-32 opacity-100 border-t border-gray-200" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="max-w-6xl 2xl:max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <form onSubmit={handleSearchSubmit} className="relative">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
@@ -755,7 +745,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* ─── Sidebar (Drawer) – visible on all screens ── */}
+      {/* ─── Sidebar (Drawer) ──────────────────────────────── */}
       <div
         className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 ease-in-out ${
           sidebarOpen ? "opacity-100 block" : "opacity-0 hidden"
@@ -903,7 +893,6 @@ const Navbar = () => {
 
           {/* Footer */}
           <div className="border-t border-gray-200 bg-gray-50/50">
-            {/* Sidebar social icons with border & rounded */}
             <div className="flex justify-center gap-2.5 py-4 px-4 border-b border-gray-200">
               <a
                 href="#"
