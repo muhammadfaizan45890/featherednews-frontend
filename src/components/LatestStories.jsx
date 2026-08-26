@@ -47,25 +47,6 @@ const IMG_H = "clamp(70px, 23.7vw, 170px)"; // keeps the ~215:170 ratio
 const CARD_GAP = "clamp(12px, 6vw, 24px)";
 const OVERLAP = "clamp(18px, 8.7vw, 62px)";
 
-// Editorial "beat" palette — stable per-category color, same idea used
-// across the site so a category reads the same way everywhere.
-const BEAT_PALETTE = [
-  { fg: "#B91C1C", bg: "#FEF2F2" },
-  { fg: "#1D4ED8", bg: "#EFF6FF" },
-  { fg: "#B45309", bg: "#FFFBEB" },
-  { fg: "#047857", bg: "#ECFDF5" },
-  { fg: "#6D28D9", bg: "#F5F3FF" },
-  { fg: "#0E7490", bg: "#ECFEFF" },
-];
-const beatColor = (label = "") => {
-  let hash = 0;
-  for (let i = 0; i < label.length; i++) {
-    hash = (hash << 5) - hash + label.charCodeAt(i);
-    hash |= 0;
-  }
-  return BEAT_PALETTE[Math.abs(hash) % BEAT_PALETTE.length];
-};
-
 // ─────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────
@@ -166,7 +147,6 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
   const formattedDate = formatDate(post.createdAt);
   const authorName = post.author?.fullname || post.author?.username || "Admin";
   const commentCount = post.comments?.length || 0;
-  const beat = post.category ? beatColor(post.category) : null;
 
   return (
     <li
@@ -199,10 +179,7 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
           className="relative min-w-0 w-full flex-1"
           style={{ paddingTop: "clamp(4px, 1.5vw, 14px)" }}
         >
-          {/* Overlapping white title box — overlap scales fluidly instead
-              of switching between a "full bleed" mobile treatment and a
-              "partial overlap" desktop one, so it looks the same shape
-              at every width. */}
+          {/* Overlapping white title box */}
           <div
             className="mb-3 bg-white dark:bg-zinc-900 px-[20px] py-[8px]"
             style={{ marginLeft: `calc(-1 * ${OVERLAP})` }}
@@ -233,10 +210,7 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
             style={{ fontSize: "clamp(7px, 1.8vw, 8px)" }}
           >
             {post.category && (
-              <span
-                className="inline-flex h-[17px] items-center px-[9px] font-bold uppercase tracking-[0.2px]"
-                style={{ color: beat.fg, backgroundColor: beat.bg }}
-              >
+              <span className="inline-flex h-[17px] items-center px-[9px] font-bold uppercase tracking-[0.2px] bg-red-100 text-red-700">
                 {post.category}
               </span>
             )}
@@ -395,7 +369,8 @@ const LatestStories = () => {
         }
       `}</style>
 
-      <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] px-[20px] py-[25px] sm:px-[30px]">
+      {/* ─── Container – width reduced to max-w-6xl ─── */}
+      <div className="mx-auto w-full max-w-6xl px-[20px] py-[25px] sm:px-[30px]">
         {/* ─── Header ────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
           <div>
