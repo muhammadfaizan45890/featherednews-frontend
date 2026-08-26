@@ -41,8 +41,8 @@ const FALLBACK_IMG =
 // Fluid image size – scales nicely on all screens
 const IMG_W = "clamp(88px, 30vw, 215px)";
 const IMG_H = "clamp(70px, 23.7vw, 170px)";
-// Reduced horizontal gap on mobile: min 8px, preferred 4vw, max 24px
-const CARD_GAP = "clamp(8px, 4vw, 24px)";
+// Even tighter horizontal gap on mobile: min 6px, preferred 3vw, max 24px
+const CARD_GAP = "clamp(6px, 3vw, 24px)";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -73,7 +73,7 @@ const readingTime = (text) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Blur‑up image
+// Blur‑up image (no hover scale, no transitions)
 // ─────────────────────────────────────────────────────────────
 const Thumb = ({ src, alt, onError, badge }) => {
   const [loaded, setLoaded] = useState(false);
@@ -93,7 +93,7 @@ const Thumb = ({ src, alt, onError, badge }) => {
         sizes="(min-width: 1024px) 215px, 30vw"
         onLoad={() => setLoaded(true)}
         onError={onError}
-        className={`h-full w-full object-cover transition-all duration-500 ease-out group-hover:scale-105 ${
+        className={`h-full w-full object-cover ${
           loaded ? "opacity-100 blur-0 scale-100" : "opacity-0 blur-md scale-105"
         }`}
       />
@@ -113,16 +113,16 @@ const SkeletonRow = () => (
     >
       <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
     </div>
-    <div className="relative min-w-0 w-full flex-1" style={{ paddingTop: "clamp(4px, 1.5vw, 14px)" }}>
+    <div className="relative min-w-0 w-full flex-1" style={{ paddingTop: "clamp(2px, 1vw, 14px)" }}>
       {/* Title skeleton – now flush left, no negative margin */}
-      <div className="mb-3 bg-white dark:bg-zinc-900 px-[16px] sm:px-[20px] py-[6px] sm:py-[8px]">
+      <div className="mb-2 sm:mb-3 bg-white dark:bg-zinc-900 px-[12px] sm:px-[20px] py-[4px] sm:py-[8px]">
         <div className="h-5 w-3/4 bg-gray-200 dark:bg-zinc-800" />
       </div>
-      <div className="space-y-2">
+      <div className="space-y-1.5 sm:space-y-2">
         <div className="h-3 w-full bg-gray-200 dark:bg-zinc-800" />
         <div className="h-3 w-2/3 bg-gray-200 dark:bg-zinc-800" />
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+      <div className="mt-2 sm:mt-3 flex flex-wrap items-center gap-x-1.5 sm:gap-x-2 gap-y-1">
         <div className="h-[17px] w-14 bg-gray-200 dark:bg-zinc-800" />
         <div className="h-3 w-16 bg-gray-200 dark:bg-zinc-800" />
         <div className="h-3 w-14 bg-gray-200 dark:bg-zinc-800" />
@@ -132,9 +132,9 @@ const SkeletonRow = () => (
 );
 
 // ─────────────────────────────────────────────────────────────
-// Story Card – no overlap, compact on mobile
+// Story Card – no transitions, extra‑tight spacing on mobile
 // ─────────────────────────────────────────────────────────────
-const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, index }) {
+const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) {
   const src = isBroken
     ? FALLBACK_IMG
     : post.images && post.images.length > 0
@@ -147,12 +147,9 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
   const commentCount = post.comments?.length || 0;
 
   return (
-    <li
-      className="list-none opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
-      style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
-    >
-      <article className="group flex w-full items-start" style={{ gap: CARD_GAP }}>
-        {/* Image */}
+    <li className="list-none">
+      <article className="flex w-full items-start" style={{ gap: CARD_GAP }}>
+        {/* Image – no hover effect */}
         <Link
           to={`/news/${post.slug || post._id}`}
           aria-label={`Read story: ${post.title}`}
@@ -172,19 +169,19 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
           />
         </Link>
 
-        {/* Content – title box now flush, no overlap */}
+        {/* Content – tighter mobile spacing */}
         <div
           className="relative min-w-0 w-full flex-1"
-          style={{ paddingTop: "clamp(4px, 1.5vw, 14px)" }}
+          style={{ paddingTop: "clamp(2px, 1vw, 14px)" }}
         >
-          {/* Title box – no negative margin, responsive padding */}
-          <div className="mb-3 bg-white dark:bg-zinc-900 px-[16px] sm:px-[20px] py-[6px] sm:py-[8px]">
+          {/* Title box – reduced padding & margin on mobile */}
+          <div className="mb-2 sm:mb-3 bg-white dark:bg-zinc-900 px-[12px] sm:px-[20px] py-[4px] sm:py-[8px]">
             <Link
               to={`/news/${post.slug || post._id}`}
               className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             >
               <h2
-                className="m-0 max-w-[590px] font-[800] leading-[1.14] tracking-[-0.4px] text-[#151515] dark:text-white group-hover:text-red-500 transition-colors line-clamp-2"
+                className="m-0 max-w-[590px] font-[800] leading-[1.14] tracking-[-0.4px] text-[#151515] dark:text-white line-clamp-2"
                 style={{ fontSize: "clamp(14px, 4vw, 21px)" }}
               >
                 {post.title}
@@ -192,16 +189,17 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
             </Link>
           </div>
 
+          {/* Excerpt – smaller margin on mobile */}
           <p
-            className="mb-3 max-w-[515px] font-normal leading-[1.55] text-[#999] dark:text-gray-400 line-clamp-2 sm:line-clamp-3"
+            className="mb-2 sm:mb-3 max-w-[515px] font-normal leading-[1.55] text-[#999] dark:text-gray-400 line-clamp-2 sm:line-clamp-3"
             style={{ fontSize: "clamp(10.5px, 2.6vw, 12px)" }}
           >
             {cleanExcerpt}
           </p>
 
-          {/* Post meta */}
+          {/* Post meta – tighter gaps on mobile */}
           <div
-            className="flex flex-wrap items-center gap-x-[9px] gap-y-[4px]"
+            className="flex flex-wrap items-center gap-x-[6px] sm:gap-x-[9px] gap-y-[4px]"
             style={{ fontSize: "clamp(7px, 1.8vw, 8px)" }}
           >
             {post.category && (
@@ -352,10 +350,6 @@ const LatestStories = () => {
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
         }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
         @media (prefers-reduced-motion: reduce) {
           *, *::before, *::after {
             animation-duration: 0.001ms !important;
@@ -366,7 +360,7 @@ const LatestStories = () => {
 
       {/* ─── Container – reduced padding on mobile ─── */}
       <div className="mx-auto w-full max-w-7xl px-[16px] py-[20px] sm:px-[30px] sm:py-[25px]">
-        {/* ─── Header – smaller gap on mobile ─── */}
+        {/* ─── Header ─── */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-4 sm:mb-6">
           <div>
             <p className="uppercase text-red-500 tracking-[3px] text-xs sm:text-sm font-bold">
@@ -393,7 +387,7 @@ const LatestStories = () => {
 
         {/* ─── Story List – reduced gap on mobile ─── */}
         {loading && initialLoad ? (
-          <div className="flex flex-col gap-[12px] sm:gap-[20px] md:gap-[30px]">
+          <div className="flex flex-col gap-[10px] sm:gap-[20px] md:gap-[30px]">
             {Array.from({ length: 5 }).map((_, i) => (
               <SkeletonRow key={i} />
             ))}
@@ -420,12 +414,11 @@ const LatestStories = () => {
           </div>
         ) : (
           <>
-            <ul className="flex flex-col gap-[12px] sm:gap-[20px] md:gap-[30px]">
-              {posts.map((post, index) => (
+            <ul className="flex flex-col gap-[10px] sm:gap-[20px] md:gap-[30px]">
+              {posts.map((post) => (
                 <StoryCard
                   key={post._id}
                   post={post}
-                  index={index}
                   isBroken={brokenImages.has(post._id)}
                   onImgError={handleImgError}
                 />
