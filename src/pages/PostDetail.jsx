@@ -688,6 +688,92 @@ const PostDetail = () => {
     );
   };
 
+  // ─── Top Ad Card (Google Ads style, fully clickable, responsive) ──
+  const renderTopAdCard = (ad) => {
+    const fallbackImg = getFallbackImage();
+    const image = ad?.image || fallbackImg;
+    const title = ad?.title || 'Advertise with us';
+    const description = ad?.description || 'Reach thousands of readers with a sponsored placement.';
+    const ctaText = ad?.ctaText || 'Learn More';
+    const ctaLink = ad?.ctaLink || '/advertise';
+    const isExternal = ctaLink.startsWith('http://') || ctaLink.startsWith('https://');
+
+    let displayUrl = '';
+    try {
+      displayUrl = isExternal
+        ? new URL(ctaLink).hostname.replace('www.', '')
+        : `yoursite.com${ctaLink}`;
+    } catch {
+      displayUrl = ctaLink;
+    }
+
+    const cardInner = (
+      <div
+        className="w-full border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900
+          hover:border-gray-400 dark:hover:border-zinc-500 transition-colors duration-150
+          flex flex-col sm:flex-row items-stretch"
+      >
+        {/* Image */}
+        <div className="relative w-full sm:w-48 md:w-56 flex-shrink-0 aspect-[16/9] sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
+          <img
+            src={image}
+            srcSet={ad?.image ? `${image} 1x, ${image} 2x` : undefined}
+            alt={title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              e.target.src = fallbackImg;
+            }}
+          />
+        </div>
+
+        {/* Text content */}
+        <div className="flex-1 min-w-0 p-3 sm:p-4 flex flex-col justify-center">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="text-[10px] font-bold text-green-700 dark:text-green-500 border border-green-700 dark:border-green-500 rounded-[2px] px-1 leading-tight">
+              Ad
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {displayUrl}
+            </span>
+          </div>
+
+          <h3 className="text-[15px] sm:text-base font-medium text-blue-800 dark:text-blue-400 leading-snug line-clamp-1 group-hover:underline">
+            {title}
+          </h3>
+
+          <p className="text-xs sm:text-[13px] text-gray-600 dark:text-gray-300 mt-1 leading-relaxed line-clamp-2">
+            {description}
+          </p>
+
+          <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-gray-700 dark:text-gray-200 w-fit">
+            {ctaText}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-70">
+              <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </div>
+      </div>
+    );
+
+    return isExternal ? (
+      <a
+        href={ctaLink}
+        target="_blank"
+        rel="noopener noreferrer sponsored"
+        className="group block w-full"
+        aria-label={title}
+      >
+        {cardInner}
+      </a>
+    ) : (
+      <Link to={ctaLink} className="group block w-full" aria-label={title}>
+        {cardInner}
+      </Link>
+    );
+  };
+
   if (loading) {
     return (
       <div style={TOKENS} className="min-h-screen bg-[var(--paper)]">
@@ -764,9 +850,9 @@ const PostDetail = () => {
           </button>
         </div>
 
-        {/* ─── Top Ad Slot (compact, capped width on desktop) ────────────────────── */}
-        <div className="mb-4 max-w-sm mx-auto lg:max-w-xs lg:mx-0">
-          {renderAdCard(adTop, 'top')}
+        {/* ─── Top Ad Slot (Google Ads style, centered) ────────────────────── */}
+        <div className="mb-6 w-full max-w-2xl mx-auto">
+          {renderTopAdCard(adTop)}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8">
