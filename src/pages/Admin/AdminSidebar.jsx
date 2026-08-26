@@ -99,6 +99,11 @@ const AdminSidebar = () => {
       icon: <Music size={20} />,
       path: "/admin/admin-audio"
     },
+        {
+      title: "Advertisements",
+      icon: <Pencil size={20} />,
+      path: "/admin/advertisements"
+    },
   ];
 
   const logoutHandler = () => {
