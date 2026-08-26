@@ -304,7 +304,12 @@ const LatestStories = () => {
         }
       `}</style>
 
-      <div className="mx-auto w-full max-w-[900px] px-[20px] py-[25px] sm:px-[30px]">
+      {/*
+        ─── The change is here ──────────────────────────
+        Replaced max-w-[900px] with max-w-7xl for wider desktop.
+        You can also use e.g. max-w-[1200px] if you prefer.
+      */}
+      <div className="mx-auto w-full max-w-7xl px-[20px] py-[25px] sm:px-[30px]">
         {/* ─── Header ────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
           <div>
