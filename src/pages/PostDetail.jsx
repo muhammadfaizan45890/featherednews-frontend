@@ -24,6 +24,7 @@ import {
   FiList,
 } from 'react-icons/fi';
 import API from '../utils/api';
+import FeaturedStories from '../components/FeaturedStories'; // adjust the import path as needed
 
 // ─── Design tokens ─────────────────────────────────────
 const TOKENS = {
@@ -349,8 +350,6 @@ const PostDetail = () => {
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
-        // Adjust the endpoint as per your backend.
-        // Example: /api/posts?featured=true&limit=4
         const res = await api.get('/api/posts', {
           params: { featured: true, limit: 4, page: 1 },
         });
@@ -1114,7 +1113,7 @@ const PostDetail = () => {
                 {renderTopAdCard(adBottom)}
               </div>
 
-              {/* ─── Featured Posts ────────────────────────── */}
+              {/* ─── Featured Posts (compact list) ────────── */}
               {featuredPosts.length > 0 && (
                 <div className="mt-6">
                   <h3 className="text-lg font-bold mb-4 border-b border-[var(--rule)] pb-2 text-[var(--ink)] flex items-center gap-2">
@@ -1163,6 +1162,11 @@ const PostDetail = () => {
               )}
             </div>
           </div>
+        </div>
+
+        {/* ─── Featured Stories Carousel ───────────────────── */}
+        <div className="mt-16">
+          <FeaturedStories />
         </div>
       </div>
     </div>
