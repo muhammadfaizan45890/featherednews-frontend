@@ -131,30 +131,34 @@ const SkeletonRow = () => (
 );
 
 // ─────────────────────────────────────────────────────────────
-// Advertisement Card
+// Advertisement Card – always visible, navigate to /advertise
 // ─────────────────────────────────────────────────────────────
-const AdCard = () => (
-  <div className="w-full lg:w-[280px] xl:w-[320px] shrink-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-lg overflow-hidden shadow-sm p-4 flex flex-col items-center">
-    <span className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold mb-2">
-      Sponsored
-    </span>
-    <img
-      src="https://via.placeholder.com/300x250/cccccc/666666?text=Advertisement"
-      alt="Advertisement"
-      className="w-full h-auto rounded-md"
-      loading="lazy"
-    />
-    <p className="text-sm text-gray-600 dark:text-gray-300 mt-3 text-center">
-      Your ad could be here
-    </p>
-    <button
-      type="button"
-      className="mt-3 text-xs font-semibold bg-black text-white dark:bg-white dark:text-black px-5 py-1.5 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
-    >
-      Learn More
-    </button>
-  </div>
-);
+const AdCard = () => {
+  const navigate = useNavigate();
+  return (
+    <div className="w-full lg:w-[280px] xl:w-[320px] shrink-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-lg overflow-hidden shadow-sm p-4 flex flex-col items-center">
+      <span className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold mb-2">
+        Sponsored
+      </span>
+      <img
+        src="https://via.placeholder.com/300x250/cccccc/666666?text=Advertisement"
+        alt="Advertisement"
+        className="w-full h-auto rounded-md"
+        loading="lazy"
+      />
+      <p className="text-sm text-gray-600 dark:text-gray-300 mt-3 text-center">
+        Your ad could be here
+      </p>
+      <button
+        type="button"
+        onClick={() => navigate("/advertise")}
+        className="mt-3 text-xs font-semibold bg-black text-white dark:bg-white dark:text-black px-5 py-1.5 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+      >
+        Learn More
+      </button>
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────
 // Story Card – no transitions, extra‑tight spacing on mobile
