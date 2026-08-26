@@ -133,7 +133,7 @@ const normalizeLikes = (comment) => {
   };
 };
 
-// ─── Comment Item Component ────────────────────────────
+// ─── Comment Item ──────────────────────────────────────
 const CommentItem = ({ comment, onReply, onLike, onDelete, currentUser, isRoot = false }) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -303,6 +303,12 @@ const PostDetail = () => {
   const articleRef = useRef(null);
   const autoPlayRef = useRef(null);
 
+  // ─── Ad states for three slots ──────────────────────
+  const [adTop, setAdTop] = useState(null);
+  const [adMiddle, setAdMiddle] = useState(null);
+  const [adBottom, setAdBottom] = useState(null);
+  const [adsLoading, setAdsLoading] = useState(true);
+
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
@@ -310,6 +316,7 @@ const PostDetail = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [commentSort, setCommentSort] = useState('newest');
 
+  // ─── Fetch post ──────────────────────────────────────
   useEffect(() => {
     const fetchPost = async () => {
       try {
@@ -336,6 +343,51 @@ const PostDetail = () => {
     };
     if (postIdentifier) fetchPost();
   }, [postIdentifier]);
+
+  // ─── Fetch all three ads by slot ────────────────────
+  useEffect(() => {
+    const fetchAds = async () => {
+      try {
+        setAdsLoading(true);
+
+        const [topResult, middleResult, bottomResult] = await Promise.allSettled([
+          api.get('/api/ads/current?slot=top'),
+          api.get('/api/ads/current?slot=middle'),
+          api.get('/api/ads/current?slot=bottom'),
+        ]);
+
+        const topAd = topResult.status === 'fulfilled' && topResult.value?.data?.data
+          ? topResult.value.data.data
+          : null;
+        const middleAd = middleResult.status === 'fulfilled' && middleResult.value?.data?.data
+          ? middleResult.value.data.data
+          : null;
+        const bottomAd = bottomResult.status === 'fulfilled' && bottomResult.value?.data?.data
+          ? bottomResult.value.data.data
+          : null;
+
+        if (topAd) console.log('🔵 Top ad found:', topAd.title);
+        if (middleAd) console.log('🟢 Middle ad found:', middleAd.title);
+        if (bottomAd) console.log('🟠 Bottom ad found:', bottomAd.title);
+
+        if (!topAd && !middleAd && !bottomAd) {
+          console.log('ℹ️ No active ads found in any slot (this is normal if you haven\'t added any).');
+        }
+
+        setAdTop(topAd);
+        setAdMiddle(middleAd);
+        setAdBottom(bottomAd);
+      } catch (error) {
+        console.error('Unexpected error fetching ads:', error);
+        setAdTop(null);
+        setAdMiddle(null);
+        setAdBottom(null);
+      } finally {
+        setAdsLoading(false);
+      }
+    };
+    fetchAds();
+  }, []);
 
   const fetchComments = useCallback(async () => {
     try {
@@ -562,6 +614,55 @@ const PostDetail = () => {
   );
   const readingStats = useMemo(() => getReadingStats(post?.description || ''), [post?.description]);
 
+  // ─── Inline SVG fallback image (no external requests) ──
+  const getFallbackImage = () => {
+    return 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22300%22%20viewBox%3D%220%200%20400%20300%22%3E%3Crect%20width%3D%22400%22%20height%3D%22300%22%20fill%3D%22%23f0f0f0%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%22145%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2220%22%20fill%3D%22%23999%22%20text-anchor%3D%22middle%22%3E%F0%9F%93%A2%20Advertise%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22170%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2216%22%20fill%3D%22%23999%22%20text-anchor%3D%22middle%22%3EYour%20ad%20could%20be%20here%3C%2Ftext%3E%3C%2Fsvg%3E';
+  };
+
+  // ─── Compact Ad Card ──────────────────────────────────
+  const renderAdCard = (ad) => {
+    const fallbackImg = getFallbackImage();
+    const image = ad?.image || fallbackImg;
+    const title = ad?.title || '🚀 Advertise with us!';
+    const ctaText = ad?.ctaText || 'Learn More';
+    const ctaLink = ad?.ctaLink || '/advertise';
+
+    return (
+      <div className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-lg overflow-hidden shadow-sm p-2 flex flex-col items-center">
+        <span className="text-[8px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold mb-1">
+          Sponsored
+        </span>
+        <div className="relative w-full aspect-[3/2] bg-gray-100 dark:bg-zinc-800 rounded-md overflow-hidden flex items-center justify-center">
+          <img
+            src={image}
+            alt="Advertisement"
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              e.target.src = fallbackImg;
+            }}
+          />
+        </div>
+        <p className="text-[10px] text-gray-600 dark:text-gray-300 mt-1.5 text-center leading-tight line-clamp-2">
+          {title}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            if (ctaLink.startsWith('http://') || ctaLink.startsWith('https://')) {
+              window.open(ctaLink, '_blank');
+            } else {
+              navigate(ctaLink);
+            }
+          }}
+          className="mt-1.5 text-[9px] font-semibold bg-black text-white dark:bg-white dark:text-black px-3 py-0.5 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+        >
+          {ctaText}
+        </button>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div style={TOKENS} className="min-h-screen bg-[var(--paper)]">
@@ -636,6 +737,11 @@ const PostDetail = () => {
             <FiBookmark size={15} className={bookmarked ? 'fill-[var(--accent)] text-[var(--accent)]' : ''} />
             <span className="hidden sm:inline">{bookmarked ? 'Saved' : 'Save for later'}</span>
           </button>
+        </div>
+
+        {/* ─── Top Ad Slot (compact) ────────────────────── */}
+        <div className="mb-4 max-w-sm mx-auto lg:max-w-none">
+          {renderAdCard(adTop)}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8">
@@ -746,7 +852,7 @@ const PostDetail = () => {
                 </div>
               )}
 
-              {/* ─── Description (HTML content) ────────────── */}
+              {/* ─── Description ────────────────────────────── */}
               <div
                 className="mt-8 prose prose-lg max-w-none text-[var(--ink)] prose-p:leading-[1.8] prose-hr:my-8 prose-hr:border-[var(--rule)] post-content"
                 style={{ whiteSpace: 'pre-wrap' }}
@@ -762,6 +868,11 @@ const PostDetail = () => {
                   margin-bottom: 1.25em;
                 }
               `}</style>
+
+              {/* ─── Middle Ad Slot (compact) ────────────── */}
+              <div className="mt-8 max-w-sm mx-auto lg:max-w-none">
+                {renderAdCard(adMiddle)}
+              </div>
 
               {/* ─── Author Bio ────────────────────────────── */}
               <div className="mt-10 p-5 bg-[var(--paper-dim)] border-l-2 border-[var(--accent)] flex items-start gap-4 rounded-sm">
@@ -865,7 +976,7 @@ const PostDetail = () => {
 
           {/* ─── Sidebar ──────────────────────────────────── */}
           <div className="lg:col-span-4">
-            <div className="lg:sticky lg:top-20 space-y-8">
+            <div className="lg:sticky lg:top-20 space-y-6">
               {toc.length > 0 && (
                 <div className="hidden lg:block border border-[var(--rule)] rounded-sm p-5">
                   <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)] mb-3">
@@ -885,31 +996,6 @@ const PostDetail = () => {
                   </ul>
                 </div>
               )}
-
-              {/* ─── Advertisement Card ────────────────────── */}
-              <div className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-lg overflow-hidden shadow-sm p-4 flex flex-col items-center">
-                <span className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold mb-2">
-                  Sponsored
-                </span>
-                <div className="relative w-full aspect-[4/3] bg-gray-100 dark:bg-zinc-800 rounded-md overflow-hidden flex items-center justify-center">
-                  <img
-                    src="https://via.placeholder.com/400x300/cccccc/666666?text=Your+Ad+Here"
-                    alt="Advertisement"
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-3 text-center">
-                  Reach thousands of readers – advertise with us!
-                </p>
-                <button
-                  type="button"
-                  onClick={() => navigate("/advertise")}
-                  className="mt-3 text-xs font-semibold bg-black text-white dark:bg-white dark:text-black px-5 py-1.5 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
-                >
-                  Advertise Now
-                </button>
-              </div>
 
               <div className="p-4 bg-[var(--paper-dim)] border border-[var(--rule)] rounded-sm">
                 <div className="flex items-center gap-2">
@@ -933,11 +1019,20 @@ const PostDetail = () => {
                       >
                         <div className="flex gap-3">
                           <div className="flex-shrink-0 w-20 h-20 overflow-hidden bg-[var(--paper-dim)]">
-                            <img
-                              src={related.images?.[0] || 'https://via.placeholder.com/80'}
-                              alt={related.title}
-                              className="w-full h-full object-cover"
-                            />
+                            {related.images?.[0] ? (
+                              <img
+                                src={related.images[0]}
+                                alt={related.title}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.src = 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2280%22%20height%3D%2280%22%20viewBox%3D%220%200%2080%2080%22%3E%3Crect%20width%3D%2280%22%20height%3D%2280%22%20fill%3D%22%23eeeeee%22%2F%3E%3Ctext%20x%3D%2240%22%20y%3D%2245%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20fill%3D%22%23999%22%20text-anchor%3D%22middle%22%3ENo%20Image%3C%2Ftext%3E%3C%2Fsvg%3E';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">
+                                No image
+                              </div>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">{related.category}</p>
@@ -952,6 +1047,11 @@ const PostDetail = () => {
                   </div>
                 </div>
               )}
+
+              {/* ─── Bottom Ad Slot (compact) after related posts ── */}
+              <div className="mt-4">
+                {renderAdCard(adBottom)}
+              </div>
             </div>
           </div>
         </div>
