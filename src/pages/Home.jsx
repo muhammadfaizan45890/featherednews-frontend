@@ -303,9 +303,9 @@ const Home = () => {
       <HNews />
 
       {/* ─── Sandook Ad Card ────────────────────────────── */}
-      <div className="max-w-2xl mx-auto my-6 px-4">
+      {/* <div className="max-w-2xl mx-auto my-6 px-4">
         <SandookAdCard />
-      </div>
+      </div> */}
     </div>
   );
 };
