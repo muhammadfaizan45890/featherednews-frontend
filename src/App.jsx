@@ -113,7 +113,6 @@ const router = createBrowserRouter([
                     { path: '/advertise', element: <Advertise /> },
                           { path:"/article/:slug", element: <FeaturedDetail /> },
                                       { path: '/audio', element: <AudioPage /> },
-                              { path: '/admin/advertisements', element: <Advertisements/> },
 
 
 
@@ -145,6 +144,8 @@ const router = createBrowserRouter([
                     { path: '/admin/admin-advertise', element: <AdminAdvertise/> },
                                         { path: '/admin/admin-featured', element: <AdminFeatured/> },
                       { path: '/admin/admin-audio', element: <AdminAudio/> },
+                                        { path: '/admin/advertisements', element: <Advertisements/> },
+
 
 
 
