@@ -31,28 +31,15 @@ const staticStories = [
 
 const AUTOPLAY_DELAY = 3000;
 
-// Fluid slide width — replaces the six-breakpoint media-query ladder
-// with one continuous scale, so a large HD/2xl monitor keeps growing
-// past 400px instead of plateauing, and everything in between is smooth.
+// Fluid slide width — continuous scaling
 const SLIDE_WIDTH = 'clamp(240px, 26vw, 440px)';
 
-// Editorial "beat" palette — same stable per-category color used across
-// the other story components, so a category reads the same everywhere.
-const BEAT_PALETTE = [
-  { fg: '#FEF2F2', bg: '#B91C1C' },
-  { fg: '#EFF6FF', bg: '#1D4ED8' },
-  { fg: '#FFFBEB', bg: '#B45309' },
-  { fg: '#ECFDF5', bg: '#047857' },
-  { fg: '#F5F3FF', bg: '#6D28D9' },
-  { fg: '#ECFEFF', bg: '#0E7490' },
-];
-const beatColor = (label = '') => {
-  let hash = 0;
-  for (let i = 0; i < label.length; i++) {
-    hash = (hash << 5) - hash + label.charCodeAt(i);
-    hash |= 0;
-  }
-  return BEAT_PALETTE[Math.abs(hash) % BEAT_PALETTE.length];
+// ─── Helper: strip HTML (if needed) ──────────────────────
+const stripHtml = (html) => {
+  if (!html) return '';
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  return temp.textContent || '';
 };
 
 const usePrefersReducedMotion = () => {
@@ -85,7 +72,6 @@ const SkeletonCard = () => (
 const Card = ({ post, isActive, index, total, paused }) => {
   const slug = post.slug || post.id || post._id;
   const [loaded, setLoaded] = useState(false);
-  const beat = post.category ? beatColor(post.category) : null;
 
   return (
     <Link
@@ -98,12 +84,12 @@ const Card = ({ post, isActive, index, total, paused }) => {
         group bg-white dark:bg-zinc-800
       `}
     >
-      {/* index tag — encodes position in this edition's lineup */}
+      {/* index tag */}
       <span className="absolute top-0 left-0 z-10 bg-black/80 text-white text-[10px] font-bold tracking-widest px-2 py-1">
         {String(index + 1).padStart(2, '0')}
       </span>
 
-      {/* autoplay progress bar — only meaningful (and only shown) on the active slide */}
+      {/* autoplay progress bar */}
       {isActive && (
         <span className="absolute top-0 left-0 right-0 z-10 h-[2px] bg-black/10 dark:bg-white/10">
           <span
@@ -140,10 +126,7 @@ const Card = ({ post, isActive, index, total, paused }) => {
         <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 text-white">
           <div className="flex items-center justify-between mb-1.5">
             {post.category && (
-              <span
-                className="inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-1"
-                style={{ color: beat.fg, backgroundColor: beat.bg }}
-              >
+              <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 bg-red-100 text-red-700">
                 {post.category}
               </span>
             )}
@@ -159,7 +142,7 @@ const Card = ({ post, isActive, index, total, paused }) => {
 
           {post.excerpt && (
             <p className="text-[11px] sm:text-xs md:text-sm text-white/75 leading-snug line-clamp-2 mt-1 max-w-[95%]">
-              {post.excerpt}
+              {stripHtml(post.excerpt)}
             </p>
           )}
 
@@ -216,7 +199,7 @@ const FeaturedStories = () => {
     fetchFeatured();
   }, [fetchFeatured]);
 
-  // ─── Render header – always visible ──────────────────────
+  // ─── Render header ──────────────────────────────────────
   const renderHeader = () => (
     <div className="mb-4 sm:mb-5 flex items-end justify-between gap-4">
       <div>
@@ -231,8 +214,7 @@ const FeaturedStories = () => {
         </p>
       </div>
 
-      {/* Prev/Next controls — keyboard- and screen-reader-accessible,
-          hidden on the smallest screens where swipe is the primary input */}
+      {/* Prev/Next controls — hidden on mobile, visible on sm+ */}
       {!loading && !error && posts.length > 0 && (
         <div className="hidden sm:flex items-center gap-2 shrink-0 mb-1">
           <button
@@ -329,7 +311,7 @@ const FeaturedStories = () => {
           ))}
         </Swiper>
 
-        {/* live region for screen readers — announces slide changes without visual clutter */}
+        {/* live region for screen readers */}
         <span className="sr-only" aria-live="polite">
           {`Showing story ${activeIndex + 1} of ${posts.length}: ${posts[activeIndex]?.title || ''}`}
         </span>
@@ -339,10 +321,11 @@ const FeaturedStories = () => {
 
   return (
     <div className="relative w-full bg-gradient-to-b from-gray-50/50 to-white dark:from-zinc-900/50 dark:to-zinc-900 py-5 sm:py-6 overflow-hidden">
-      <div className="max-w-7xl 2xl:max-w-[1700px] mx-auto px-4 sm:px-6">
+      {/* ─── Container width reduced to max-w-7xl ─── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {renderHeader()}
         {renderContent()}
-        {/* progress dots replace the removed forward/next control on mobile — fluidly scaled */}
+        {/* progress dots */}
         <div className="featured-pagination flex items-center justify-center gap-1 sm:gap-1.5 mt-3 flex-wrap" />
       </div>
 
@@ -368,9 +351,7 @@ const FeaturedStories = () => {
           transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
-        /* Fluid pagination dots — width scales continuously with viewport
-           instead of jumping at fixed breakpoints, and wraps instead of
-           overflowing when there are many slides on a narrow screen. */
+        /* Fluid pagination dots */
         .featured-pagination .swiper-pagination-bullet {
           width: clamp(12px, 2.4vw, 22px);
           height: clamp(2px, 0.3vw, 3px);
