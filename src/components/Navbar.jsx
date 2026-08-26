@@ -87,7 +87,6 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
 
   // ─── Refs ──────────────────────────────────────────────
@@ -264,12 +263,6 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // ─── Live clock ──────────────────────────────────────
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   // ─── Lock body scroll when sidebar open ──────────────
   useEffect(() => {
     if (sidebarOpen) {
@@ -379,36 +372,6 @@ const Navbar = () => {
   };
   const isLinkActive = (link) => location.pathname === link;
 
-  // ─── Date formatting ──────────────────────────────
-  const fullDate = currentTime.toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const mediumDate = currentTime.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-  const shortDate = currentTime.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-  const timeWithSeconds = currentTime.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-  const timeNoSeconds = currentTime.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-
   // ─── Render ──────────────────────────────────────────
   return (
     <header
@@ -416,28 +379,19 @@ const Navbar = () => {
         isScrolled ? "shadow-sm" : ""
       }`}
     >
-      {/* ─── Live Date/Time Bar — collapses away once the page is
-          scrolled, so the sticky nav gets more compact instead of
-          permanently eating vertical space. ────────────────── */}
-      <div
-        className={`border-b border-gray-800 bg-black overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${
-          isScrolled ? "max-h-0 opacity-0" : "max-h-10 opacity-100"
-        }`}
-      >
-        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 h-7 sm:h-8 flex items-center justify-between text-[11px] sm:text-xs text-white font-medium">
-          <span aria-live="off">
-            <span className="hidden md:inline">{fullDate}</span>
-            <span className="hidden sm:inline md:hidden">{mediumDate}</span>
-            <span className="sm:hidden">{shortDate}</span>
-          </span>
-          <span className="tabular-nums text-gray-300" aria-live="off">
-            <span className="hidden sm:inline">{timeWithSeconds}</span>
-            <span className="sm:hidden">{timeNoSeconds}</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
+      <style>{`
+        @keyframes fadeInRight {
+          from { opacity: 0; transform: translateX(8px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.001ms !important;
+            transition-duration: 0.001ms !important;
+          }
+        }
+      `}</style>
+      <div className="max-w-6xl 2xl:max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* ─── Top Header ──────────────────────────────────── */}
         <div
           className={`relative flex items-center justify-between transition-[padding] duration-300 ease-in-out ${
@@ -559,6 +513,46 @@ const Navbar = () => {
                 </Link>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* ─── MOBILE CATEGORIES STRIP — sits directly under the
+            top header on small/medium screens (hidden at lg, where
+            the mega menu takes over). Pills fade + slide in on
+            mount, staggered, and respect prefers-reduced-motion. ── */}
+        <div className="lg:hidden border-t border-gray-100 py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6">
+          <div className="flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Link
+              to="/news"
+              className={`snap-start shrink-0 text-[11px] font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all duration-200 ease-in-out opacity-0 animate-[fadeInRight_0.4s_ease-out_forwards] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+                location.pathname === "/news" && !new URLSearchParams(location.search).get("category")
+                  ? "bg-black text-white border-black"
+                  : "bg-white text-gray-600 border-gray-200"
+              }`}
+            >
+              All
+            </Link>
+            {categoriesLoading
+              ? Array.from({ length: 5 }).map((_, i) => <PillSkeleton key={i} w="w-16" />)
+              : categories.map((cat, i) => {
+                  const active = isCategoryActive(cat);
+                  const c = beatColor(cat);
+                  return (
+                    <Link
+                      key={cat}
+                      to={`/news?category=${encodeURIComponent(cat)}`}
+                      style={{
+                        animationDelay: `${Math.min(i, 10) * 40}ms`,
+                        ...(active
+                          ? { color: c.bg, backgroundColor: c.fg, borderColor: c.fg }
+                          : { color: c.fg, borderColor: "transparent", backgroundColor: c.bg }),
+                      }}
+                      className="snap-start shrink-0 text-[11px] font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all duration-200 ease-in-out opacity-0 animate-[fadeInRight_0.4s_ease-out_forwards] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                    >
+                      {cat}
+                    </Link>
+                  );
+                })}
           </div>
         </div>
 
@@ -712,7 +706,7 @@ const Navbar = () => {
           searchOpen ? "max-h-32 opacity-100 border-t border-gray-200" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-3">
+        <div className="max-w-6xl 2xl:max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <form onSubmit={handleSearchSubmit} className="relative">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
