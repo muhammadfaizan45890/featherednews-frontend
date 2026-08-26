@@ -34,7 +34,7 @@ const AUTOPLAY_DELAY = 3000;
 // Fluid slide width — continuous scaling
 const SLIDE_WIDTH = 'clamp(240px, 26vw, 440px)';
 
-// ─── Helper: strip HTML (if needed) ──────────────────────
+// ─── Helper: strip HTML ──────────────────────────────────
 const stripHtml = (html) => {
   if (!html) return '';
   const temp = document.createElement('div');
@@ -126,7 +126,8 @@ const Card = ({ post, isActive, index, total, paused }) => {
         <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 text-white">
           <div className="flex items-center justify-between mb-1.5">
             {post.category && (
-              <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 bg-red-100 text-red-700">
+              // ─── Category badge – now solid red background with white text ───
+              <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 bg-red-600 text-white">
                 {post.category}
               </span>
             )}
@@ -321,7 +322,7 @@ const FeaturedStories = () => {
 
   return (
     <div className="relative w-full bg-gradient-to-b from-gray-50/50 to-white dark:from-zinc-900/50 dark:to-zinc-900 py-5 sm:py-6 overflow-hidden">
-      {/* ─── Container width reduced to max-w-7xl ─── */}
+      {/* ─── Container width – max-w-7xl ─── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {renderHeader()}
         {renderContent()}
