@@ -41,7 +41,8 @@ const FALLBACK_IMG =
 // Fluid image size – scales nicely on all screens
 const IMG_W = "clamp(88px, 30vw, 215px)";
 const IMG_H = "clamp(70px, 23.7vw, 170px)";
-const CARD_GAP = "clamp(12px, 6vw, 24px)";
+// Reduced horizontal gap on mobile: min 8px, preferred 4vw, max 24px
+const CARD_GAP = "clamp(8px, 4vw, 24px)";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -388,12 +389,11 @@ const LatestStories = () => {
           >
             View All →
           </Link>
-          <h1>Hello</h1>
         </div>
 
         {/* ─── Story List – reduced gap on mobile ─── */}
         {loading && initialLoad ? (
-          <div className="flex flex-col gap-[20px] sm:gap-[30px]">
+          <div className="flex flex-col gap-[12px] sm:gap-[20px] md:gap-[30px]">
             {Array.from({ length: 5 }).map((_, i) => (
               <SkeletonRow key={i} />
             ))}
@@ -420,7 +420,7 @@ const LatestStories = () => {
           </div>
         ) : (
           <>
-            <ul className="flex flex-col gap-[20px] sm:gap-[30px]">
+            <ul className="flex flex-col gap-[12px] sm:gap-[20px] md:gap-[30px]">
               {posts.map((post, index) => (
                 <StoryCard
                   key={post._id}
