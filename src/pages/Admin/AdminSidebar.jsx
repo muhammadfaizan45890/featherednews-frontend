@@ -29,7 +29,8 @@ import {
   MessagesSquare,
   AlignEndVertical,
   Globe,
-  Music,// ✅ use Globe from lucide-react instead of FaEarthAsia
+  Music,
+  DollarSign// ✅ use Globe from lucide-react instead of FaEarthAsia
 } from "lucide-react";
 
 // If you prefer react-icons/fa6, uncomment this and remove Globe above:
@@ -101,7 +102,7 @@ const AdminSidebar = () => {
     },
         {
       title: "Advertisements",
-      icon: <Pencil size={20} />,
+      icon: <DollarSign size={20} />,
       path: "/admin/advertisements"
     },
   ];
