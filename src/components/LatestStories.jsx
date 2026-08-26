@@ -38,14 +38,10 @@ const api = getApiInstance();
 const FALLBACK_IMG =
   "https://via.placeholder.com/900x700/111111/FFFFFF?text=No+Image";
 
-// Same fluid scale used everywhere a card renders: it shrinks smoothly
-// with viewport width instead of jumping between a mobile and a desktop
-// layout, so the side-by-side design looks identical (just smaller) on
-// a phone as it does on a monitor.
+// Fluid image size – scales nicely on all screens
 const IMG_W = "clamp(88px, 30vw, 215px)";
-const IMG_H = "clamp(70px, 23.7vw, 170px)"; // keeps the ~215:170 ratio
+const IMG_H = "clamp(70px, 23.7vw, 170px)";
 const CARD_GAP = "clamp(12px, 6vw, 24px)";
-const OVERLAP = "clamp(18px, 8.7vw, 62px)";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -76,7 +72,7 @@ const readingTime = (text) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Blur-up image — crisp on load, shimmering placeholder before it
+// Blur‑up image
 // ─────────────────────────────────────────────────────────────
 const Thumb = ({ src, alt, onError, badge }) => {
   const [loaded, setLoaded] = useState(false);
@@ -106,7 +102,7 @@ const Thumb = ({ src, alt, onError, badge }) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Skeleton – mirrors the fluid card layout at every width
+// Skeleton – matches the new layout (no overlap)
 // ─────────────────────────────────────────────────────────────
 const SkeletonRow = () => (
   <div className="flex w-full items-start animate-pulse" style={{ gap: CARD_GAP }}>
@@ -117,7 +113,8 @@ const SkeletonRow = () => (
       <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
     </div>
     <div className="relative min-w-0 w-full flex-1" style={{ paddingTop: "clamp(4px, 1.5vw, 14px)" }}>
-      <div className="mb-3 bg-white dark:bg-zinc-900 px-[20px] py-[8px]" style={{ marginLeft: `calc(-1 * ${OVERLAP})` }}>
+      {/* Title skeleton – now flush left, no negative margin */}
+      <div className="mb-3 bg-white dark:bg-zinc-900 px-[16px] sm:px-[20px] py-[6px] sm:py-[8px]">
         <div className="h-5 w-3/4 bg-gray-200 dark:bg-zinc-800" />
       </div>
       <div className="space-y-2">
@@ -134,7 +131,7 @@ const SkeletonRow = () => (
 );
 
 // ─────────────────────────────────────────────────────────────
-// Story Card – one fluid layout, identical proportions mobile → HD
+// Story Card – no overlap, compact on mobile
 // ─────────────────────────────────────────────────────────────
 const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, index }) {
   const src = isBroken
@@ -174,16 +171,13 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError, in
           />
         </Link>
 
-        {/* Content */}
+        {/* Content – title box now flush, no overlap */}
         <div
           className="relative min-w-0 w-full flex-1"
           style={{ paddingTop: "clamp(4px, 1.5vw, 14px)" }}
         >
-          {/* Overlapping white title box */}
-          <div
-            className="mb-3 bg-white dark:bg-zinc-900 px-[20px] py-[8px]"
-            style={{ marginLeft: `calc(-1 * ${OVERLAP})` }}
-          >
+          {/* Title box – no negative margin, responsive padding */}
+          <div className="mb-3 bg-white dark:bg-zinc-900 px-[16px] sm:px-[20px] py-[6px] sm:py-[8px]">
             <Link
               to={`/news/${post.slug || post._id}`}
               className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
@@ -369,10 +363,10 @@ const LatestStories = () => {
         }
       `}</style>
 
-      {/* ─── Container – width increased to max-w-7xl ─── */}
-      <div className="mx-auto w-full max-w-7xl px-[20px] py-[25px] sm:px-[30px]">
-        {/* ─── Header ────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6">
+      {/* ─── Container – reduced padding on mobile ─── */}
+      <div className="mx-auto w-full max-w-7xl px-[16px] py-[20px] sm:px-[30px] sm:py-[25px]">
+        {/* ─── Header – smaller gap on mobile ─── */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-4 sm:mb-6">
           <div>
             <p className="uppercase text-red-500 tracking-[3px] text-xs sm:text-sm font-bold">
               Browse &amp; Read
@@ -396,9 +390,9 @@ const LatestStories = () => {
           </Link>
         </div>
 
-        {/* ─── Story List ────────────────────────────────── */}
+        {/* ─── Story List – reduced gap on mobile ─── */}
         {loading && initialLoad ? (
-          <div className="flex flex-col gap-[30px]">
+          <div className="flex flex-col gap-[20px] sm:gap-[30px]">
             {Array.from({ length: 5 }).map((_, i) => (
               <SkeletonRow key={i} />
             ))}
@@ -425,7 +419,7 @@ const LatestStories = () => {
           </div>
         ) : (
           <>
-            <ul className="flex flex-col gap-[30px]">
+            <ul className="flex flex-col gap-[20px] sm:gap-[30px]">
               {posts.map((post, index) => (
                 <StoryCard
                   key={post._id}
