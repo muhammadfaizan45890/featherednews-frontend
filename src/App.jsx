@@ -47,6 +47,8 @@ import AdminFeatured from './pages/Admin/AdminFeatured';
 import FeaturedDetail from './pages/FeaturedDetail';
 import AdminAudio from './pages/Admin/AdminAudio';
 import AudioPage from './pages/AudioPage';
+import Advertisements from './pages/Admin/Advertisements';
+
 
 
 
@@ -111,6 +113,8 @@ const router = createBrowserRouter([
                     { path: '/advertise', element: <Advertise /> },
                           { path:"/article/:slug", element: <FeaturedDetail /> },
                                       { path: '/audio', element: <AudioPage /> },
+                              { path: '/admin/advertisements', element: <Advertisements/> },
+
 
 
                     
