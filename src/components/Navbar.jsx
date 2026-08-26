@@ -89,8 +89,6 @@ const Navbar = () => {
 
   // ─── Top bar visibility state ──────────────────────────
   const [isTopBarVisible, setIsTopBarVisible] = useState(true);
-  const lastScrollY = useRef(0);
-  const scrollTimeout = useRef(null);
 
   // ─── Refs ──────────────────────────────────────────────
   const sidebarRef = useRef(null);
@@ -270,32 +268,18 @@ const Navbar = () => {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      // Clear previous timeout to avoid rapid toggles
-      clearTimeout(scrollTimeout.current);
-
-      // Only update if we have scrolled past a small threshold
-      if (Math.abs(currentScrollY - lastScrollY.current) > 8) {
-        if (currentScrollY > 40 && currentScrollY > lastScrollY.current) {
-          // Scrolling down – hide bar
-          setIsTopBarVisible(false);
-        } else if (currentScrollY < lastScrollY.current || currentScrollY < 40) {
-          // Scrolling up or at top – show bar
-          setIsTopBarVisible(true);
-        }
-        lastScrollY.current = currentScrollY;
-      }
-
-      // If we are at the very top, always show the bar
+      // Show bar only when at the very top
       if (currentScrollY === 0) {
         setIsTopBarVisible(true);
+      } else {
+        setIsTopBarVisible(false);
       }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      clearTimeout(scrollTimeout.current);
-    };
+    // Initial check
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // ─── Lock body scroll when sidebar open ──────────────
@@ -422,20 +406,20 @@ const Navbar = () => {
     <>
       {/* ─── TOP BAR (date + time) ─────────────────────────────── */}
       <div
-        className={`sticky top-0 z-[51] bg-white border-b border-gray-200 transition-transform duration-300 ease-in-out ${
+        className={`sticky top-0 z-[51] bg-black text-white border-b border-gray-800 transition-transform duration-300 ease-in-out ${
           isTopBarVisible ? "translate-y-0" : "-translate-y-full"
         }`}
         style={{ willChange: "transform" }}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 sm:py-2 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 sm:py-2 flex items-center justify-between">
           <span
-            className="text-gray-500 font-medium"
+            className="font-medium"
             style={{ fontSize: "clamp(10px, 1.6vw, 13px)" }}
           >
             {dateStr}
           </span>
           <span
-            className="text-gray-500 font-medium"
+            className="font-medium"
             style={{ fontSize: "clamp(10px, 1.6vw, 13px)" }}
           >
             {timeStr}
@@ -461,7 +445,7 @@ const Navbar = () => {
             }
           }
         `}</style>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* ─── Top Header ──────────────────────────────────── */}
           <div
             className={`relative flex items-center justify-between transition-[padding] duration-300 ease-in-out ${
@@ -726,7 +710,7 @@ const Navbar = () => {
             searchOpen ? "max-h-32 opacity-100 border-t border-gray-200" : "max-h-0 opacity-0"
           }`}
         >
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <form onSubmit={handleSearchSubmit} className="relative">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input
