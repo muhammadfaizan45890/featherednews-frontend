@@ -24,7 +24,6 @@ import {
   FiList,
 } from 'react-icons/fi';
 import API from '../utils/api';
-import FeaturedStories from '../components/FeaturedStories';
 
 // ─── Design tokens ─────────────────────────────────────
 const TOKENS = {
@@ -621,6 +620,7 @@ const PostDetail = () => {
   };
 
   // ─── Ad Card (Google Ads style, fully clickable, responsive) ──
+  // Used for all three ad slots: top, middle, and bottom.
   const renderTopAdCard = (ad) => {
     const fallbackImg = getFallbackImage();
     const image = ad?.image || fallbackImg;
@@ -782,7 +782,7 @@ const PostDetail = () => {
           </button>
         </div>
 
-        {/* ─── Top Ad Slot ────────────────────────────────── */}
+        {/* ─── Top Ad Slot (Google Ads style, centered) ────────────────────── */}
         <div className="mb-6 w-full max-w-2xl mx-auto">
           {renderTopAdCard(adTop)}
         </div>
@@ -912,7 +912,7 @@ const PostDetail = () => {
                 }
               `}</style>
 
-              {/* ─── Middle Ad Slot ────────────────────────── */}
+              {/* ─── Middle Ad Slot (Google Ads style) ────────────── */}
               <div className="mt-8 w-full max-w-2xl mx-auto">
                 {renderTopAdCard(adMiddle)}
               </div>
@@ -1091,17 +1091,12 @@ const PostDetail = () => {
                 </div>
               )}
 
-              {/* ─── Bottom Ad Slot ────────────────────────── */}
+              {/* ─── Bottom Ad Slot (Google Ads style) after related posts ── */}
               <div className="mt-4 w-full">
                 {renderTopAdCard(adBottom)}
               </div>
             </div>
           </div>
-        </div>
-
-        {/* ─── Featured Stories Carousel ───────────────────── */}
-        <div className="mt-16">
-          <FeaturedStories />
         </div>
       </div>
     </div>
@@ -1109,7 +1104,6 @@ const PostDetail = () => {
 };
 
 export default PostDetail;
-
 
 
 
