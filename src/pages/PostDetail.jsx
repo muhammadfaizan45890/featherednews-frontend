@@ -24,7 +24,7 @@ import {
   FiList,
 } from 'react-icons/fi';
 import API from '../utils/api';
-import FeaturedStories from '../components/FeaturedStories'; // adjust the import path as needed
+import FeaturedStories from '../components/FeaturedStories';
 
 // ─── Design tokens ─────────────────────────────────────
 const TOKENS = {
@@ -294,7 +294,6 @@ const PostDetail = () => {
 
   const [post, setPost] = useState(null);
   const [relatedPosts, setRelatedPosts] = useState([]);
-  const [featuredPosts, setFeaturedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -345,22 +344,6 @@ const PostDetail = () => {
     };
     if (postIdentifier) fetchPost();
   }, [postIdentifier]);
-
-  // ─── Fetch featured posts ────────────────────────────
-  useEffect(() => {
-    const fetchFeatured = async () => {
-      try {
-        const res = await api.get('/api/posts', {
-          params: { featured: true, limit: 4, page: 1 },
-        });
-        setFeaturedPosts(res.data.data || []);
-      } catch (error) {
-        console.error('Error fetching featured posts:', error);
-        setFeaturedPosts([]);
-      }
-    };
-    fetchFeatured();
-  }, []);
 
   // ─── Fetch all three ads by slot ────────────────────
   useEffect(() => {
@@ -1112,54 +1095,6 @@ const PostDetail = () => {
               <div className="mt-4 w-full">
                 {renderTopAdCard(adBottom)}
               </div>
-
-              {/* ─── Featured Posts (compact list) ────────── */}
-              {featuredPosts.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-bold mb-4 border-b border-[var(--rule)] pb-2 text-[var(--ink)] flex items-center gap-2">
-                    <span className="text-yellow-500">⭐</span> Featured Posts
-                  </h3>
-                  <div className="space-y-4">
-                    {featuredPosts.map((featured) => (
-                      <Link
-                        key={featured._id}
-                        to={`/news/${featured.slug || featured._id}`}
-                        className="group block"
-                      >
-                        <div className="flex gap-3">
-                          <div className="flex-shrink-0 w-20 h-20 overflow-hidden bg-[var(--paper-dim)]">
-                            {featured.images?.[0] ? (
-                              <img
-                                src={featured.images[0]}
-                                alt={featured.title}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.src = 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2280%22%20height%3D%2280%22%20viewBox%3D%220%200%2080%2080%22%3E%3Crect%20width%3D%2280%22%20height%3D%2280%22%20fill%3D%22%23eeeeee%22%2F%3E%3Ctext%20x%3D%2240%22%20y%3D%2245%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20fill%3D%22%23999%22%20text-anchor%3D%22middle%22%3ENo%20Image%3C%2Ftext%3E%3C%2Fsvg%3E';
-                                }}
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">
-                                No image
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
-                              {featured.category}
-                            </p>
-                            <h4 className="text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--accent)] line-clamp-2 mt-0.5">
-                              {featured.title}
-                            </h4>
-                            <p className="text-xs text-[var(--ink-faint)] mt-1">
-                              {new Date(featured.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -1174,7 +1109,6 @@ const PostDetail = () => {
 };
 
 export default PostDetail;
-
 
 
 
