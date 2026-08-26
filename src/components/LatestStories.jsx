@@ -114,7 +114,6 @@ const SkeletonRow = () => (
       <div className="absolute inset-0 bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-200 dark:from-zinc-800 dark:via-zinc-700 dark:to-zinc-800 bg-[length:200%_100%] animate-[shimmer_1.6s_infinite]" />
     </div>
     <div className="relative min-w-0 w-full flex-1" style={{ paddingTop: "clamp(2px, 1vw, 14px)" }}>
-      {/* Title skeleton – now flush left, no negative margin */}
       <div className="mb-2 sm:mb-3 bg-white dark:bg-zinc-900 px-[12px] sm:px-[20px] py-[4px] sm:py-[8px]">
         <div className="h-5 w-3/4 bg-gray-200 dark:bg-zinc-800" />
       </div>
@@ -128,6 +127,32 @@ const SkeletonRow = () => (
         <div className="h-3 w-14 bg-gray-200 dark:bg-zinc-800" />
       </div>
     </div>
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────
+// Advertisement Card
+// ─────────────────────────────────────────────────────────────
+const AdCard = () => (
+  <div className="w-full lg:w-[280px] xl:w-[320px] shrink-0 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-lg overflow-hidden shadow-sm p-4 flex flex-col items-center">
+    <span className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold mb-2">
+      Sponsored
+    </span>
+    <img
+      src="https://via.placeholder.com/300x250/cccccc/666666?text=Advertisement"
+      alt="Advertisement"
+      className="w-full h-auto rounded-md"
+      loading="lazy"
+    />
+    <p className="text-sm text-gray-600 dark:text-gray-300 mt-3 text-center">
+      Your ad could be here
+    </p>
+    <button
+      type="button"
+      className="mt-3 text-xs font-semibold bg-black text-white dark:bg-white dark:text-black px-5 py-1.5 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+    >
+      Learn More
+    </button>
   </div>
 );
 
@@ -149,7 +174,6 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) 
   return (
     <li className="list-none">
       <article className="flex w-full items-start" style={{ gap: CARD_GAP }}>
-        {/* Image – no hover effect */}
         <Link
           to={`/news/${post.slug || post._id}`}
           aria-label={`Read story: ${post.title}`}
@@ -169,12 +193,10 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) 
           />
         </Link>
 
-        {/* Content – tighter mobile spacing */}
         <div
           className="relative min-w-0 w-full flex-1"
           style={{ paddingTop: "clamp(2px, 1vw, 14px)" }}
         >
-          {/* Title box – reduced padding & margin on mobile */}
           <div className="mb-2 sm:mb-3 bg-white dark:bg-zinc-900 px-[12px] sm:px-[20px] py-[4px] sm:py-[8px]">
             <Link
               to={`/news/${post.slug || post._id}`}
@@ -189,7 +211,6 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) 
             </Link>
           </div>
 
-          {/* Excerpt – smaller margin on mobile */}
           <p
             className="mb-2 sm:mb-3 max-w-[515px] font-normal leading-[1.55] text-[#999] dark:text-gray-400 line-clamp-2 sm:line-clamp-3"
             style={{ fontSize: "clamp(10.5px, 2.6vw, 12px)" }}
@@ -197,7 +218,6 @@ const StoryCard = React.memo(function StoryCard({ post, isBroken, onImgError }) 
             {cleanExcerpt}
           </p>
 
-          {/* Post meta – tighter gaps on mobile */}
           <div
             className="flex flex-wrap items-center gap-x-[6px] sm:gap-x-[9px] gap-y-[4px]"
             style={{ fontSize: "clamp(7px, 1.8vw, 8px)" }}
@@ -257,7 +277,6 @@ const LatestStories = () => {
     hasMoreRef.current = hasMore;
   }, [hasMore]);
 
-  // ─── Fetch posts ──────────────────────────────────────
   const fetchPosts = useCallback(async (pageNum = 1, append = false) => {
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
@@ -292,7 +311,6 @@ const LatestStories = () => {
     }
   }, []);
 
-  // ─── Initial load ──────────────────────────────
   useEffect(() => {
     setPage(1);
     setPosts([]);
@@ -303,7 +321,6 @@ const LatestStories = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Load more ──────────────────────────────────────
   const loadMore = useCallback(() => {
     if (isLoadingMoreRef.current || !hasMoreRef.current) return;
     setPage((prev) => {
@@ -313,7 +330,6 @@ const LatestStories = () => {
     });
   }, [fetchPosts]);
 
-  // ─── Infinite scroll observer ──────────────────────────
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return undefined;
@@ -358,7 +374,6 @@ const LatestStories = () => {
         }
       `}</style>
 
-      {/* ─── Container – reduced padding on mobile ─── */}
       <div className="mx-auto w-full max-w-7xl px-[16px] py-[20px] sm:px-[30px] sm:py-[25px]">
         {/* ─── Header ─── */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-4 sm:mb-6">
@@ -385,59 +400,70 @@ const LatestStories = () => {
           </Link>
         </div>
 
-        {/* ─── Story List – reduced gap on mobile ─── */}
-        {loading && initialLoad ? (
-          <div className="flex flex-col gap-[10px] sm:gap-[20px] md:gap-[30px]">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <SkeletonRow key={i} />
-            ))}
-          </div>
-        ) : error ? (
-          <div
-            role="alert"
-            className="text-center py-12 border border-dashed border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20"
-          >
-            <p className="text-red-500 font-medium mb-3">{error}</p>
-            <button
-              type="button"
-              onClick={() => fetchPosts(1, false)}
-              aria-label="Retry loading stories"
-              className="inline-flex items-center gap-2 border-2 border-black dark:border-white bg-black dark:bg-white text-white dark:text-black px-4 py-1.5 text-xs sm:text-sm font-semibold uppercase tracking-wider hover:bg-white hover:text-black dark:hover:bg-transparent dark:hover:text-white transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Try Again
-            </button>
-          </div>
-        ) : showEmptyState ? (
-          <div className="text-center py-12 border border-dashed border-gray-200 dark:border-zinc-700">
-            <p className="text-gray-500 dark:text-gray-400">No stories found.</p>
-          </div>
-        ) : (
-          <>
-            <ul className="flex flex-col gap-[10px] sm:gap-[20px] md:gap-[30px]">
-              {posts.map((post) => (
-                <StoryCard
-                  key={post._id}
-                  post={post}
-                  isBroken={brokenImages.has(post._id)}
-                  onImgError={handleImgError}
-                />
-              ))}
-            </ul>
-
-            {/* Infinite-scroll sentinel */}
-            {hasMore && <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />}
-
-            {isLoadingMore && (
-              <div className="text-center mt-6" role="status" aria-live="polite">
-                <span className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  Loading more...
-                </span>
+        {/* ─── Two‑column layout: stories + ad ─── */}
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+          {/* Left column – stories */}
+          <div className="flex-1 min-w-0">
+            {loading && initialLoad ? (
+              <div className="flex flex-col gap-[10px] sm:gap-[20px] md:gap-[30px]">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <SkeletonRow key={i} />
+                ))}
               </div>
+            ) : error ? (
+              <div
+                role="alert"
+                className="text-center py-12 border border-dashed border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20"
+              >
+                <p className="text-red-500 font-medium mb-3">{error}</p>
+                <button
+                  type="button"
+                  onClick={() => fetchPosts(1, false)}
+                  aria-label="Retry loading stories"
+                  className="inline-flex items-center gap-2 border-2 border-black dark:border-white bg-black dark:bg-white text-white dark:text-black px-4 py-1.5 text-xs sm:text-sm font-semibold uppercase tracking-wider hover:bg-white hover:text-black dark:hover:bg-transparent dark:hover:text-white transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Try Again
+                </button>
+              </div>
+            ) : showEmptyState ? (
+              <div className="text-center py-12 border border-dashed border-gray-200 dark:border-zinc-700">
+                <p className="text-gray-500 dark:text-gray-400">No stories found.</p>
+              </div>
+            ) : (
+              <>
+                <ul className="flex flex-col gap-[10px] sm:gap-[20px] md:gap-[30px]">
+                  {posts.map((post) => (
+                    <StoryCard
+                      key={post._id}
+                      post={post}
+                      isBroken={brokenImages.has(post._id)}
+                      onImgError={handleImgError}
+                    />
+                  ))}
+                </ul>
+
+                {hasMore && <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />}
+
+                {isLoadingMore && (
+                  <div className="text-center mt-6" role="status" aria-live="polite">
+                    <span className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Loading more...
+                    </span>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
+          </div>
+
+          {/* Right column – ad card (appears at bottom on mobile) */}
+          {!loading && !error && posts.length > 0 && (
+            <div className="w-full lg:w-[280px] xl:w-[320px] shrink-0 order-2 lg:order-1">
+              <AdCard />
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
