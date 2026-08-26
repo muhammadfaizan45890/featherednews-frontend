@@ -619,76 +619,8 @@ const PostDetail = () => {
     return 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22300%22%20viewBox%3D%220%200%20400%20300%22%3E%3Crect%20width%3D%22400%22%20height%3D%22300%22%20fill%3D%22%23f0f0f0%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%22145%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2220%22%20fill%3D%22%23999%22%20text-anchor%3D%22middle%22%3E%F0%9F%93%A2%20Advertise%3C%2Ftext%3E%3Ctext%20x%3D%22200%22%20y%3D%22170%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2216%22%20fill%3D%22%23999%22%20text-anchor%3D%22middle%22%3EYour%20ad%20could%20be%20here%3C%2Ftext%3E%3C%2Fsvg%3E';
   };
 
-  // ─── Compact Ad Card (HD, responsive) ──────────────────
-  const renderAdCard = (ad, variant = 'default') => {
-    const fallbackImg = getFallbackImage();
-    const image = ad?.image || fallbackImg;
-    const title = ad?.title || '🚀 Advertise with us!';
-    const ctaText = ad?.ctaText || 'Learn More';
-    const ctaLink = ad?.ctaLink || '/advertise';
-
-    const isTop = variant === 'top';
-
-    return (
-      <div
-        className={`w-full bg-white dark:bg-zinc-900 border border-gray-200/80 dark:border-zinc-700
-          rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300
-          ${isTop ? 'p-2' : 'p-2.5 sm:p-3'} flex flex-col items-center`}
-      >
-        <div className="w-full flex items-center justify-between mb-1.5">
-          <span className="text-[8px] sm:text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">
-            Sponsored
-          </span>
-          {ad && (
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" title="Live ad" />
-          )}
-        </div>
-
-        <div
-          className={`relative w-full ${isTop ? 'aspect-[16/9]' : 'aspect-[3/2]'}
-            bg-gray-100 dark:bg-zinc-800 rounded-lg overflow-hidden`}
-        >
-          <img
-            src={image}
-            srcSet={ad?.image ? `${image} 1x, ${image} 2x` : undefined}
-            alt={title}
-            className="w-full h-full object-cover transition-transform duration-500 ease-out hover:scale-[1.04]"
-            loading="lazy"
-            decoding="async"
-            onError={(e) => {
-              e.target.src = fallbackImg;
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent pointer-events-none" />
-        </div>
-
-        <p
-          className={`text-gray-700 dark:text-gray-200 font-medium mt-2 text-center leading-tight line-clamp-2
-            ${isTop ? 'text-[10px] sm:text-xs' : 'text-[11px] sm:text-xs'}`}
-        >
-          {title}
-        </p>
-
-        <button
-          type="button"
-          onClick={() => {
-            if (ctaLink.startsWith('http://') || ctaLink.startsWith('https://')) {
-              window.open(ctaLink, '_blank', 'noopener,noreferrer');
-            } else {
-              navigate(ctaLink);
-            }
-          }}
-          className="mt-2 text-[9px] sm:text-[10px] font-semibold bg-black text-white dark:bg-white dark:text-black
-            px-3.5 py-1 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 active:scale-95
-            transition-all duration-150 shadow-sm"
-        >
-          {ctaText}
-        </button>
-      </div>
-    );
-  };
-
-  // ─── Top Ad Card (Google Ads style, fully clickable, responsive) ──
+  // ─── Ad Card (Google Ads style, fully clickable, responsive) ──
+  // Used for all three ad slots: top, middle, and bottom.
   const renderTopAdCard = (ad) => {
     const fallbackImg = getFallbackImage();
     const image = ad?.image || fallbackImg;
@@ -980,9 +912,9 @@ const PostDetail = () => {
                 }
               `}</style>
 
-              {/* ─── Middle Ad Slot (compact) ────────────── */}
-              <div className="mt-8 max-w-sm mx-auto lg:max-w-none">
-                {renderAdCard(adMiddle)}
+              {/* ─── Middle Ad Slot (Google Ads style) ────────────── */}
+              <div className="mt-8 w-full max-w-2xl mx-auto">
+                {renderTopAdCard(adMiddle)}
               </div>
 
               {/* ─── Author Bio ────────────────────────────── */}
@@ -1159,9 +1091,9 @@ const PostDetail = () => {
                 </div>
               )}
 
-              {/* ─── Bottom Ad Slot (compact) after related posts ── */}
-              <div className="mt-4">
-                {renderAdCard(adBottom)}
+              {/* ─── Bottom Ad Slot (Google Ads style) after related posts ── */}
+              <div className="mt-4 w-full">
+                {renderTopAdCard(adBottom)}
               </div>
             </div>
           </div>
