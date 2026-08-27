@@ -623,90 +623,90 @@ const PostDetail = () => {
   // Used for all three ad slots: top, middle, and bottom.
   // Layout is horizontal (image-left, text-right) at EVERY breakpoint,
   // matching the desktop design 1:1 on mobile — only sizes scale down.
-  const renderTopAdCard = (ad) => {
-    const fallbackImg = getFallbackImage();
-    const image = ad?.image || fallbackImg;
-    const title = ad?.title || 'Advertise with us';
-    const description = ad?.description || 'Reach thousands of readers with a sponsored placement.';
-    const ctaText = ad?.ctaText || 'Learn More';
-    const ctaLink = ad?.ctaLink || '/advertise';
-    const isExternal = ctaLink.startsWith('http://') || ctaLink.startsWith('https://');
+ const renderTopAdCard = (ad) => {
+  const fallbackImg = getFallbackImage();
+  const image = ad?.image || fallbackImg;
+  const title = ad?.title || 'Advertise with us';
+  const description = ad?.description || 'Reach thousands of readers with a sponsored placement.';
+  const ctaText = ad?.ctaText || 'Learn More';
+  const ctaLink = ad?.ctaLink || '/advertise';
+  const isExternal = ctaLink.startsWith('http://') || ctaLink.startsWith('https://');
 
-    let displayUrl = '';
-    try {
-      displayUrl = isExternal
-        ? new URL(ctaLink).hostname.replace('www.', '')
-        : `yoursite.com${ctaLink}`;
-    } catch {
-      displayUrl = ctaLink;
-    }
+  let displayUrl = '';
+  try {
+    displayUrl = isExternal
+      ? new URL(ctaLink).hostname.replace('www.', '')
+      : `yoursite.com${ctaLink}`;
+  } catch {
+    displayUrl = ctaLink;
+  }
 
-    const cardInner = (
-      <div
-        className="w-full max-w-full border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900
-          hover:border-gray-400 dark:hover:border-zinc-500 transition-colors duration-150
-          flex flex-row items-stretch overflow-hidden box-border"
-      >
-        {/* Image — small fixed thumbnail on mobile so it can never push the card wider than the viewport */}
-        <div className="relative w-16 h-16 xs:w-20 xs:h-20 sm:w-48 sm:h-auto md:w-56 flex-shrink-0 sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
-          <img
-            src={image}
-            srcSet={ad?.image ? `${image} 1x, ${image} 2x` : undefined}
-            alt={title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            decoding="async"
-            onError={(e) => {
-              e.target.src = fallbackImg;
-            }}
-          />
-        </div>
+  const cardInner = (
+    <div
+      className="w-full max-w-full border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900
+        hover:border-gray-400 dark:hover:border-zinc-500 transition-colors duration-150
+        flex flex-row items-stretch overflow-hidden box-border"
+    >
+      {/* Image — larger on mobile: w-20/h-20 (80px) → xs:w-24/h-24 (96px) */}
+      <div className="relative w-20 h-20 xs:w-24 xs:h-24 sm:w-48 sm:h-auto md:w-56 flex-shrink-0 sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
+        <img
+          src={image}
+          srcSet={ad?.image ? `${image} 1x, ${image} 2x` : undefined}
+          alt={title}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
+          onError={(e) => {
+            e.target.src = fallbackImg;
+          }}
+        />
+      </div>
 
-        {/* Text content — min-w-0 is required so this column can shrink instead of forcing overflow */}
-        <div className="flex-1 min-w-0 max-w-full p-2 xs:p-3 sm:p-4 flex flex-col justify-center overflow-hidden">
-          <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1 min-w-0">
-            <span className="text-[9px] xs:text-[10px] font-bold text-green-700 dark:text-green-500 border border-green-700 dark:border-green-500 rounded-[2px] px-1 leading-tight flex-shrink-0">
-              Ad
-            </span>
-            <span className="text-[11px] xs:text-xs text-gray-500 dark:text-gray-400 truncate min-w-0">
-              {displayUrl}
-            </span>
-          </div>
-
-          <h3 className="text-[12px] xs:text-[14px] sm:text-base font-medium text-blue-800 dark:text-blue-400 leading-snug line-clamp-1 break-words group-hover:underline">
-            {title}
-          </h3>
-
-          <p className="text-[10px] xs:text-[11px] sm:text-[13px] text-gray-600 dark:text-gray-300 mt-0.5 sm:mt-1 leading-relaxed line-clamp-2 break-words">
-            {description}
-          </p>
-
-          <span className="mt-1.5 sm:mt-2 inline-flex items-center gap-1 text-[10px] xs:text-xs font-semibold text-gray-700 dark:text-gray-200 w-fit max-w-full">
-            <span className="truncate">{ctaText}</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-70 flex-shrink-0">
-              <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+      {/* Text content — min-w-0 to avoid overflow */}
+      <div className="flex-1 min-w-0 max-w-full p-2 xs:p-3 sm:p-4 flex flex-col justify-center overflow-hidden">
+        <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1 min-w-0">
+          <span className="text-[9px] xs:text-[10px] font-bold text-green-700 dark:text-green-500 border border-green-700 dark:border-green-500 rounded-[2px] px-1 leading-tight flex-shrink-0">
+            Ad
+          </span>
+          <span className="text-[11px] xs:text-xs text-gray-500 dark:text-gray-400 truncate min-w-0">
+            {displayUrl}
           </span>
         </div>
-      </div>
-    );
 
-    return isExternal ? (
-      <a
-        href={ctaLink}
-        target="_blank"
-        rel="noopener noreferrer sponsored"
-        className="group block w-full"
-        aria-label={title}
-      >
-        {cardInner}
-      </a>
-    ) : (
-      <Link to={ctaLink} className="group block w-full" aria-label={title}>
-        {cardInner}
-      </Link>
-    );
-  };
+        <h3 className="text-[12px] xs:text-[14px] sm:text-base font-medium text-blue-800 dark:text-blue-400 leading-snug line-clamp-1 break-words group-hover:underline">
+          {title}
+        </h3>
+
+        <p className="text-[10px] xs:text-[11px] sm:text-[13px] text-gray-600 dark:text-gray-300 mt-0.5 sm:mt-1 leading-relaxed line-clamp-2 break-words">
+          {description}
+        </p>
+
+        <span className="mt-1.5 sm:mt-2 inline-flex items-center gap-1 text-[10px] xs:text-xs font-semibold text-gray-700 dark:text-gray-200 w-fit max-w-full">
+          <span className="truncate">{ctaText}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-70 flex-shrink-0">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </div>
+    </div>
+  );
+
+  return isExternal ? (
+    <a
+      href={ctaLink}
+      target="_blank"
+      rel="noopener noreferrer sponsored"
+      className="group block w-full"
+      aria-label={title}
+    >
+      {cardInner}
+    </a>
+  ) : (
+    <Link to={ctaLink} className="group block w-full" aria-label={title}>
+      {cardInner}
+    </Link>
+  );
+};
 
   if (loading) {
     return (
