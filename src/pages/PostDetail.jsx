@@ -647,8 +647,8 @@ const PostDetail = () => {
         hover:border-gray-400 dark:hover:border-zinc-500 transition-colors duration-150
         flex flex-row items-stretch overflow-hidden box-border"
     >
-      {/* Image — larger on mobile: w-20/h-20 (80px) → xs:w-24/h-24 (96px) */}
-      <div className="relative w-20 h-20 xs:w-24 xs:h-24 sm:w-48 sm:h-auto md:w-56 flex-shrink-0 sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
+      {/* Image — slightly larger: w-22/h-22 → xs:w-26/h-26 */}
+      <div className="relative w-22 h-22 xs:w-26 xs:h-26 sm:w-48 sm:h-auto md:w-56 flex-shrink-0 sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
         <img
           src={image}
           srcSet={ad?.image ? `${image} 1x, ${image} 2x` : undefined}
@@ -662,7 +662,7 @@ const PostDetail = () => {
         />
       </div>
 
-      {/* Text content — min-w-0 to avoid overflow */}
+      {/* Text content — unchanged */}
       <div className="flex-1 min-w-0 max-w-full p-2 xs:p-3 sm:p-4 flex flex-col justify-center overflow-hidden">
         <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1 min-w-0">
           <span className="text-[9px] xs:text-[10px] font-bold text-green-700 dark:text-green-500 border border-green-700 dark:border-green-500 rounded-[2px] px-1 leading-tight flex-shrink-0">
