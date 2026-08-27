@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -623,6 +621,8 @@ const PostDetail = () => {
 
   // ─── Ad Card (Google Ads style, fully clickable, responsive) ──
   // Used for all three ad slots: top, middle, and bottom.
+  // Layout is horizontal (image-left, text-right) at EVERY breakpoint,
+  // matching the desktop design 1:1 on mobile — only sizes scale down.
   const renderTopAdCard = (ad) => {
     const fallbackImg = getFallbackImage();
     const image = ad?.image || fallbackImg;
@@ -645,10 +645,10 @@ const PostDetail = () => {
       <div
         className="w-full border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900
           hover:border-gray-400 dark:hover:border-zinc-500 transition-colors duration-150
-          flex flex-col sm:flex-row items-stretch"
+          flex flex-row items-stretch"
       >
-        {/* Image */}
-        <div className="relative w-full sm:w-48 md:w-56 flex-shrink-0 aspect-[16/9] sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
+        {/* Image — fixed-size thumbnail on mobile, scales up at sm/md, same aspect as desktop */}
+        <div className="relative w-24 h-24 xs:w-28 xs:h-28 sm:w-48 sm:h-auto md:w-56 flex-shrink-0 sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
           <img
             src={image}
             srcSet={ad?.image ? `${image} 1x, ${image} 2x` : undefined}
@@ -663,25 +663,25 @@ const PostDetail = () => {
         </div>
 
         {/* Text content */}
-        <div className="flex-1 min-w-0 p-3 sm:p-4 flex flex-col justify-center">
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[10px] font-bold text-green-700 dark:text-green-500 border border-green-700 dark:border-green-500 rounded-[2px] px-1 leading-tight">
+        <div className="flex-1 min-w-0 p-2.5 xs:p-3 sm:p-4 flex flex-col justify-center">
+          <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1">
+            <span className="text-[9px] xs:text-[10px] font-bold text-green-700 dark:text-green-500 border border-green-700 dark:border-green-500 rounded-[2px] px-1 leading-tight flex-shrink-0">
               Ad
             </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            <span className="text-[11px] xs:text-xs text-gray-500 dark:text-gray-400 truncate">
               {displayUrl}
             </span>
           </div>
 
-          <h3 className="text-[15px] sm:text-base font-medium text-blue-800 dark:text-blue-400 leading-snug line-clamp-1 group-hover:underline">
+          <h3 className="text-[13px] xs:text-[15px] sm:text-base font-medium text-blue-800 dark:text-blue-400 leading-snug line-clamp-1 group-hover:underline">
             {title}
           </h3>
 
-          <p className="text-xs sm:text-[13px] text-gray-600 dark:text-gray-300 mt-1 leading-relaxed line-clamp-2">
+          <p className="text-[11px] xs:text-xs sm:text-[13px] text-gray-600 dark:text-gray-300 mt-0.5 sm:mt-1 leading-relaxed line-clamp-2">
             {description}
           </p>
 
-          <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-gray-700 dark:text-gray-200 w-fit">
+          <span className="mt-1.5 sm:mt-2 inline-flex items-center gap-1 text-[11px] xs:text-xs font-semibold text-gray-700 dark:text-gray-200 w-fit">
             {ctaText}
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-70">
               <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
