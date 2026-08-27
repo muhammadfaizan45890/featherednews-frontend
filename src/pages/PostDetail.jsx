@@ -643,12 +643,12 @@ const PostDetail = () => {
 
     const cardInner = (
       <div
-        className="w-full border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900
+        className="w-full max-w-full border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900
           hover:border-gray-400 dark:hover:border-zinc-500 transition-colors duration-150
-          flex flex-row items-stretch"
+          flex flex-row items-stretch overflow-hidden box-border"
       >
-        {/* Image — fixed-size thumbnail on mobile, scales up at sm/md, same aspect as desktop */}
-        <div className="relative w-24 h-24 xs:w-28 xs:h-28 sm:w-48 sm:h-auto md:w-56 flex-shrink-0 sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
+        {/* Image — small fixed thumbnail on mobile so it can never push the card wider than the viewport */}
+        <div className="relative w-16 h-16 xs:w-20 xs:h-20 sm:w-48 sm:h-auto md:w-56 flex-shrink-0 sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
           <img
             src={image}
             srcSet={ad?.image ? `${image} 1x, ${image} 2x` : undefined}
@@ -662,28 +662,28 @@ const PostDetail = () => {
           />
         </div>
 
-        {/* Text content */}
-        <div className="flex-1 min-w-0 p-2.5 xs:p-3 sm:p-4 flex flex-col justify-center">
-          <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1">
+        {/* Text content — min-w-0 is required so this column can shrink instead of forcing overflow */}
+        <div className="flex-1 min-w-0 max-w-full p-2 xs:p-3 sm:p-4 flex flex-col justify-center overflow-hidden">
+          <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1 min-w-0">
             <span className="text-[9px] xs:text-[10px] font-bold text-green-700 dark:text-green-500 border border-green-700 dark:border-green-500 rounded-[2px] px-1 leading-tight flex-shrink-0">
               Ad
             </span>
-            <span className="text-[11px] xs:text-xs text-gray-500 dark:text-gray-400 truncate">
+            <span className="text-[11px] xs:text-xs text-gray-500 dark:text-gray-400 truncate min-w-0">
               {displayUrl}
             </span>
           </div>
 
-          <h3 className="text-[13px] xs:text-[15px] sm:text-base font-medium text-blue-800 dark:text-blue-400 leading-snug line-clamp-1 group-hover:underline">
+          <h3 className="text-[12px] xs:text-[14px] sm:text-base font-medium text-blue-800 dark:text-blue-400 leading-snug line-clamp-1 break-words group-hover:underline">
             {title}
           </h3>
 
-          <p className="text-[11px] xs:text-xs sm:text-[13px] text-gray-600 dark:text-gray-300 mt-0.5 sm:mt-1 leading-relaxed line-clamp-2">
+          <p className="text-[10px] xs:text-[11px] sm:text-[13px] text-gray-600 dark:text-gray-300 mt-0.5 sm:mt-1 leading-relaxed line-clamp-2 break-words">
             {description}
           </p>
 
-          <span className="mt-1.5 sm:mt-2 inline-flex items-center gap-1 text-[11px] xs:text-xs font-semibold text-gray-700 dark:text-gray-200 w-fit">
-            {ctaText}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-70">
+          <span className="mt-1.5 sm:mt-2 inline-flex items-center gap-1 text-[10px] xs:text-xs font-semibold text-gray-700 dark:text-gray-200 w-fit max-w-full">
+            <span className="truncate">{ctaText}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="opacity-70 flex-shrink-0">
               <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
@@ -785,7 +785,7 @@ const PostDetail = () => {
         </div>
 
         {/* ─── Top Ad Slot (Google Ads style, centered) ────────────────────── */}
-        <div className="mb-6 w-full max-w-2xl mx-auto">
+        <div className="mb-6 w-full max-w-full sm:max-w-2xl mx-auto overflow-hidden">
           {renderTopAdCard(adTop)}
         </div>
 
@@ -915,7 +915,7 @@ const PostDetail = () => {
               `}</style>
 
               {/* ─── Middle Ad Slot (Google Ads style) ────────────── */}
-              <div className="mt-8 w-full max-w-2xl mx-auto">
+              <div className="mt-8 w-full max-w-full sm:max-w-2xl mx-auto overflow-hidden">
                 {renderTopAdCard(adMiddle)}
               </div>
 
@@ -1094,7 +1094,7 @@ const PostDetail = () => {
               )}
 
               {/* ─── Bottom Ad Slot (Google Ads style) after related posts ── */}
-              <div className="mt-4 w-full">
+              <div className="mt-4 w-full max-w-full overflow-hidden">
                 {renderTopAdCard(adBottom)}
               </div>
             </div>
