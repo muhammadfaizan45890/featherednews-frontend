@@ -623,7 +623,7 @@ const PostDetail = () => {
   // Used for all three ad slots: top, middle, and bottom.
   // Layout is horizontal (image-left, text-right) at EVERY breakpoint,
   // matching the desktop design 1:1 on mobile — only sizes scale down.
- const renderTopAdCard = (ad) => {
+const renderTopAdCard = (ad) => {
   const fallbackImg = getFallbackImage();
   const image = ad?.image || fallbackImg;
   const title = ad?.title || 'Advertise with us';
@@ -647,8 +647,8 @@ const PostDetail = () => {
         hover:border-gray-400 dark:hover:border-zinc-500 transition-colors duration-150
         flex flex-row items-stretch overflow-hidden box-border"
     >
-      {/* Image — slightly larger: w-22/h-22 → xs:w-26/h-26 */}
-      <div className="relative w-22 h-22 xs:w-26 xs:h-26 sm:w-48 sm:h-auto md:w-56 flex-shrink-0 sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
+      {/* Image — very little bit more: w-24/h-24 → xs:w-28/h-28 */}
+      <div className="relative w-24 h-24 xs:w-28 xs:h-28 sm:w-48 sm:h-auto md:w-56 flex-shrink-0 sm:aspect-auto bg-gray-100 dark:bg-zinc-800 overflow-hidden">
         <img
           src={image}
           srcSet={ad?.image ? `${image} 1x, ${image} 2x` : undefined}
