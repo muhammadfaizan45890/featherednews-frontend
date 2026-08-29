@@ -38,10 +38,8 @@ const api = getApiInstance();
 const FALLBACK_IMG =
   "https://via.placeholder.com/900x700/111111/FFFFFF?text=No+Image";
 
-// Fluid image size – scales nicely on all screens
 const IMG_W = "clamp(88px, 30vw, 215px)";
 const IMG_H = "clamp(70px, 23.7vw, 170px)";
-// Even tighter horizontal gap on mobile: min 6px, preferred 3vw, max 24px
 const CARD_GAP = "clamp(6px, 3vw, 24px)";
 
 // ─────────────────────────────────────────────────────────────
@@ -264,13 +262,16 @@ const LatestStories = () => {
       }
       setError(null);
 
-      const params = { page: pageNum, limit: 10, sort: "desc" };
+      // 🔄 CHANGED: limit from 10 → 20
+      const params = { page: pageNum, limit: 20, sort: "desc" };
 
       const res = await api.get("/api/posts", { params, signal: controller.signal });
       const { data, pagination } = res.data;
 
       setPosts((prev) => (append ? [...prev, ...data] : data));
-      setHasMore(pagination.hasMore);
+
+      // 🔄 CHANGED: Always set hasMore to false – we only want the first 20
+      setHasMore(false);
     } catch (err) {
       if (axios.isCancel(err) || err.name === "CanceledError" || err.code === "ERR_CANCELED") {
         return;
@@ -295,6 +296,7 @@ const LatestStories = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // loadMore is kept but will never be called because hasMore is false
   const loadMore = useCallback(() => {
     if (isLoadingMoreRef.current || !hasMoreRef.current) return;
     setPage((prev) => {
@@ -304,6 +306,8 @@ const LatestStories = () => {
     });
   }, [fetchPosts]);
 
+  // IntersectionObserver still observes the sentinel, but it never triggers loadMore
+  // because hasMore is false. We keep it to avoid changing the design.
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return undefined;
@@ -414,6 +418,7 @@ const LatestStories = () => {
               ))}
             </ul>
 
+            {/* sentinel still rendered, but hasMore is false so it won't trigger further loads */}
             {hasMore && <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />}
 
             {isLoadingMore && (
