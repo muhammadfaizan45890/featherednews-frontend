@@ -557,7 +557,6 @@
 
 
 
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Hero from '@/components/Hero';
@@ -633,7 +632,7 @@ const SandookAdCard = () => {
       <div
         className="
           relative
-          w-[110px] h-[110px]
+          w-[clamp(90px,28vw,140px)] h-[clamp(90px,28vw,140px)]
           sm:w-[180px] sm:h-[180px]
           md:w-[230px] md:h-[230px]
           lg:w-[280px] lg:h-[280px]
@@ -894,7 +893,7 @@ const Home = () => {
         <div
           className="
             relative
-            w-[110px] h-[110px]
+            w-[clamp(90px,28vw,140px)] h-[clamp(90px,28vw,140px)]
             sm:w-[180px] sm:h-[180px]
             md:w-[230px] md:h-[230px]
             lg:w-[280px] lg:h-[280px]
