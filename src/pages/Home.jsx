@@ -558,7 +558,6 @@
 
 
 
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Hero from '@/components/Hero';
@@ -630,14 +629,16 @@ const SandookAdCard = () => {
         overflow-hidden
       "
     >
-      {/* Image */}
+      {/* Image - increased only on desktop (lg+) */}
       <div
         className="
           relative
           w-[110px] h-[110px]
           sm:w-[180px] sm:h-[180px]
           md:w-[230px] md:h-[230px]
-          lg:w-[280px] lg:h-[280px]
+          lg:w-[320px] lg:h-[320px]
+          xl:w-[360px] xl:h-[360px]
+          2xl:w-[400px] 2xl:h-[400px]
           flex-shrink-0
           bg-gray-100 dark:bg-zinc-800
           overflow-hidden
@@ -655,7 +656,7 @@ const SandookAdCard = () => {
         />
       </div>
 
-      {/* Text content */}
+      {/* Text content unchanged */}
       <div
         className="
           flex-1
@@ -891,14 +892,16 @@ const Home = () => {
           overflow-hidden
         "
       >
-        {/* Advertisement Image */}
+        {/* Advertisement Image - increased only on desktop (lg+) */}
         <div
           className="
             relative
             w-[110px] h-[110px]
             sm:w-[180px] sm:h-[180px]
             md:w-[230px] md:h-[230px]
-            lg:w-[280px] lg:h-[280px]
+            lg:w-[320px] lg:h-[320px]
+            xl:w-[360px] xl:h-[360px]
+            2xl:w-[400px] 2xl:h-[400px]
             flex-shrink-0
             bg-gray-100 dark:bg-zinc-800
             overflow-hidden
@@ -921,7 +924,7 @@ const Home = () => {
           />
         </div>
 
-        {/* Advertisement Content */}
+        {/* Advertisement Content (unchanged) */}
         <div
           className="
             flex-1
