@@ -629,16 +629,14 @@ const SandookAdCard = () => {
         overflow-hidden
       "
     >
-      {/* Image - increased only on desktop (lg+) */}
+      {/* Image */}
       <div
         className="
           relative
           w-[110px] h-[110px]
           sm:w-[180px] sm:h-[180px]
           md:w-[230px] md:h-[230px]
-          lg:w-[320px] lg:h-[320px]
-          xl:w-[360px] xl:h-[360px]
-          2xl:w-[400px] 2xl:h-[400px]
+          lg:w-[280px] lg:h-[280px]
           flex-shrink-0
           bg-gray-100 dark:bg-zinc-800
           overflow-hidden
@@ -656,7 +654,7 @@ const SandookAdCard = () => {
         />
       </div>
 
-      {/* Text content unchanged */}
+      {/* Text content */}
       <div
         className="
           flex-1
@@ -892,16 +890,14 @@ const Home = () => {
           overflow-hidden
         "
       >
-        {/* Advertisement Image - increased only on desktop (lg+) */}
+        {/* Advertisement Image */}
         <div
           className="
             relative
             w-[110px] h-[110px]
             sm:w-[180px] sm:h-[180px]
             md:w-[230px] md:h-[230px]
-            lg:w-[320px] lg:h-[320px]
-            xl:w-[360px] xl:h-[360px]
-            2xl:w-[400px] 2xl:h-[400px]
+            lg:w-[280px] lg:h-[280px]
             flex-shrink-0
             bg-gray-100 dark:bg-zinc-800
             overflow-hidden
@@ -924,7 +920,7 @@ const Home = () => {
           />
         </div>
 
-        {/* Advertisement Content (unchanged) */}
+        {/* Advertisement Content */}
         <div
           className="
             flex-1
