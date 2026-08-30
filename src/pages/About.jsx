@@ -88,11 +88,11 @@ const About = () => {
       {/* ─── Hero Section ────────────────────────────────── */}
       <section className="border-b border-gray-200 dark:border-zinc-800 py-14 xs:py-16 sm:py-20 md:py-24 lg:py-28 px-3 xs:px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center justify-center text-lg xs:text-xl font-black tracking-tight mb-4">
+          {/* <div className="inline-flex items-center justify-center text-lg xs:text-xl font-black tracking-tight mb-4">
             <FiFeather className="text-black dark:text-white mr-2" size={20} />
             <span className="font-light text-gray-800 dark:text-gray-200">FEATHERED</span>
             <span className="font-extrabold text-black dark:text-white">PEN</span>
-          </div>
+          </div> */}
           <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-bold text-black dark:text-white leading-tight">
             Stories That
             <br className="sm:hidden" />{" "}
