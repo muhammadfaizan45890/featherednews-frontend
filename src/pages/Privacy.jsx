@@ -1,60 +1,92 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { FiArrowUp, FiFeather } from "react-icons/fi";
+import { FiArrowUp, FiFeather, FiChevronDown } from "react-icons/fi";
+
+// Defined once, outside the component, so it isn't recreated on every render.
+const TOC = [
+  { id: "intro", label: "Introduction" },
+  { id: "collection", label: "Information We Collect" },
+  { id: "cookies", label: "Cookies" },
+  { id: "thirdparty", label: "Third‑Party Services" },
+  { id: "rights", label: "Your Rights" },
+  { id: "security", label: "Data Security" },
+  { id: "contact", label: "Contact Us" },
+  { id: "changes", label: "Changes to This Policy" },
+];
+
+// Extra offset on mobile accounts for the sticky "jump to section" bar
+// sitting above the content; desktop has no such bar.
+const SCROLL_OFFSET_MOBILE = 116;
+const SCROLL_OFFSET_DESKTOP = 80;
 
 const Privacy = () => {
-  // const [showBackToTop, setShowBackToTop] = useState(false);
-  const [activeSection, setActiveSection] = useState("");
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [activeSection, setActiveSection] = useState(TOC[0].id);
+  const [readProgress, setReadProgress] = useState(0);
   const contentRef = useRef(null);
 
   useEffect(() => {
+    const isMobile = () => window.innerWidth < 1024;
+
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 400);
 
-      // Update active section for TOC
-      const sections = ["intro", "collection", "cookies", "thirdparty", "rights", "security", "contact", "changes"];
-      const scrollPos = window.scrollY + 120;
-      for (const id of sections) {
-        const el = document.getElementById(id);
-        if (el && el.offsetTop <= scrollPos) {
-          setActiveSection(id);
+      // Reading progress across the whole document.
+      const doc = document.documentElement;
+      const total = doc.scrollHeight - doc.clientHeight;
+      setReadProgress(total > 0 ? Math.min(Math.max(window.scrollY / total, 0), 1) * 100 : 0);
+
+      // Update active section for the TOC / mobile dropdown.
+      const offset = isMobile() ? SCROLL_OFFSET_MOBILE : SCROLL_OFFSET_DESKTOP;
+      let current = TOC[0].id;
+      for (const item of TOC) {
+        const el = document.getElementById(item.id);
+        if (el && el.getBoundingClientRect().top - offset <= 0) {
+          current = item.id;
         }
       }
+      setActiveSection(current);
     };
-    window.addEventListener("scroll", handleScroll);
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
-  // ─── Table of contents ────────────────────────────────
-  const toc = [
-    { id: "intro", label: "Introduction" },
-    { id: "collection", label: "Information We Collect" },
-    { id: "cookies", label: "Cookies" },
-    { id: "thirdparty", label: "Third‑Party Services" },
-    { id: "rights", label: "Your Rights" },
-    { id: "security", label: "Data Security" },
-    { id: "contact", label: "Contact Us" },
-    { id: "changes", label: "Changes to This Policy" },
-  ];
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const offset = window.innerWidth < 1024 ? SCROLL_OFFSET_MOBILE : SCROLL_OFFSET_DESKTOP;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: "smooth" });
+  };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-900" ref={contentRef}>
+    <div className="min-h-screen bg-white dark:bg-zinc-900 overflow-x-hidden" ref={contentRef}>
+      {/* ─── Reading progress rail ─────────────────────── */}
+      <div className="fixed top-0 left-0 right-0 h-[3px] bg-gray-100 dark:bg-zinc-800 z-40">
+        <div
+          className="h-full bg-black dark:bg-white motion-safe:transition-[width] motion-safe:duration-150"
+          style={{ width: `${readProgress}%` }}
+        />
+      </div>
+
       {/* ─── Hero Header ────────────────────────────────────── */}
-      <div className="border-b border-gray-200 dark:border-zinc-800 py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
+      <div className="border-b border-gray-200 dark:border-zinc-800 py-10 xs:py-12 sm:py-16 px-3 xs:px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          {/* (Optional logo – updated to Feathered News)
-          <div className="inline-flex items-center gap-2 text-xl font-black tracking-tight mb-4">
-            <FiFeather className="text-black dark:text-white" />
+          <div className="inline-flex items-center gap-2 text-lg xs:text-xl font-black tracking-tight mb-3 sm:mb-4">
+            <FiFeather className="text-black dark:text-white" size={18} />
             <span className="font-light text-gray-800 dark:text-gray-200">Feathered</span>
             <span className="font-extrabold text-black dark:text-white">NEWS</span>
-          </div> */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-black dark:text-white">
+          </div>
+          <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-bold text-black dark:text-white">
             Privacy Policy
           </h1>
-          <p className="mt-3 text-base sm:text-lg text-gray-600 dark:text-gray-400">
-            Last updated: {new Date().toLocaleDateString("en-US", {
+          <p className="mt-2 sm:mt-3 text-sm xs:text-base sm:text-lg text-gray-600 dark:text-gray-400">
+            Last updated:{" "}
+            {new Date().toLocaleDateString("en-US", {
               year: "numeric",
               month: "long",
               day: "numeric",
@@ -63,33 +95,54 @@ const Privacy = () => {
         </div>
       </div>
 
+      {/* ─── Mobile: sticky jump-to-section dropdown ─────── */}
+      <div className="lg:hidden sticky top-0 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur border-b border-gray-200 dark:border-zinc-800 px-3 xs:px-4 sm:px-6 py-2.5">
+        <label htmlFor="toc-select" className="sr-only">
+          Jump to section
+        </label>
+        <div className="relative max-w-7xl mx-auto">
+          <select
+            id="toc-select"
+            value={activeSection}
+            onChange={(e) => scrollToSection(e.target.value)}
+            className="w-full appearance-none bg-transparent border border-gray-300 dark:border-zinc-700 text-sm text-black dark:text-white px-3 py-2 pr-9 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
+          >
+            {TOC.map((item) => (
+              <option key={item.id} value={item.id} className="bg-white dark:bg-zinc-900">
+                {item.label}
+              </option>
+            ))}
+          </select>
+          <FiChevronDown
+            size={16}
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
+          />
+        </div>
+      </div>
+
       {/* ─── Main Content ──────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-          {/* ─── Table of Contents (Sidebar) ──────────────── */}
-          <aside className="lg:col-span-3 order-2 lg:order-1">
+          {/* ─── Table of Contents (desktop sidebar only; ──────
+               mobile uses the sticky dropdown above instead) ── */}
+          <aside className="hidden lg:block lg:col-span-3">
             <div className="sticky top-4">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">
                 On this page
               </h2>
-              <nav className="space-y-2">
-                {toc.map((item) => (
+              <nav className="space-y-1">
+                {TOC.map((item) => (
                   <a
                     key={item.id}
                     href={`#${item.id}`}
-                    className={`block text-sm py-1.5 px-2 border-l-2 transition ${
+                    className={`block text-sm py-1.5 px-2 border-l-2 motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:focus-visible:ring-white ${
                       activeSection === item.id
                         ? "border-black dark:border-white text-black dark:text-white font-medium"
                         : "border-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white"
                     }`}
                     onClick={(e) => {
                       e.preventDefault();
-                      const el = document.getElementById(item.id);
-                      if (el) {
-                        const offset = 80;
-                        const top = el.getBoundingClientRect().top + window.scrollY - offset;
-                        window.scrollTo({ top, behavior: "smooth" });
-                      }
+                      scrollToSection(item.id);
                     }}
                   >
                     {item.label}
@@ -100,10 +153,10 @@ const Privacy = () => {
           </aside>
 
           {/* ─── Content ────────────────────────────────────── */}
-          <div className="lg:col-span-9 order-1 lg:order-2">
-            <div className="prose prose-lg max-w-none dark:prose-invert prose-headings:text-black dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-a:text-red-500 prose-a:no-underline hover:prose-a:underline">
+          <div className="lg:col-span-9">
+            <div className="prose prose-sm sm:prose-base lg:prose-lg max-w-none dark:prose-invert prose-headings:text-black dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-a:text-red-500 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 dark:prose-li:text-gray-300">
               {/* ─── Introduction ────────────────────────────── */}
-              <section id="intro" className="scroll-mt-20">
+              <section id="intro" className="scroll-mt-28 lg:scroll-mt-20">
                 <h2>Introduction</h2>
                 <p>
                   At <strong>Feathered News</strong>, we take your privacy seriously. This policy explains how we collect,
@@ -112,12 +165,12 @@ const Privacy = () => {
                 </p>
                 <p>
                   We are committed to being transparent about our data practices and to giving you control over your
-                  information. If you have any questions, please see the <a href="#contact">Contact</a> section below.
+                  information. If you have any questions, please see the <a href="#contact" onClick={(e) => { e.preventDefault(); scrollToSection("contact"); }}>Contact</a> section below.
                 </p>
               </section>
 
               {/* ─── Information We Collect ──────────────────── */}
-              <section id="collection" className="scroll-mt-20">
+              <section id="collection" className="scroll-mt-28 lg:scroll-mt-20">
                 <h2>Information We Collect</h2>
                 <p>We collect only the information necessary to provide and improve our service:</p>
                 <ul>
@@ -137,7 +190,7 @@ const Privacy = () => {
               </section>
 
               {/* ─── Cookies ──────────────────────────────────── */}
-              <section id="cookies" className="scroll-mt-20">
+              <section id="cookies" className="scroll-mt-28 lg:scroll-mt-20">
                 <h2>Cookies</h2>
                 <p>
                   Cookies are small text files stored on your device. We use them to:
@@ -153,7 +206,7 @@ const Privacy = () => {
               </section>
 
               {/* ─── Third‑Party Services ────────────────────── */}
-              <section id="thirdparty" className="scroll-mt-20">
+              <section id="thirdparty" className="scroll-mt-28 lg:scroll-mt-20">
                 <h2>Third‑Party Services</h2>
                 <p>We use trusted third‑party services to enhance our site:</p>
                 <ul>
@@ -176,7 +229,7 @@ const Privacy = () => {
               </section>
 
               {/* ─── Your Rights ────────────────────────────── */}
-              <section id="rights" className="scroll-mt-20">
+              <section id="rights" className="scroll-mt-28 lg:scroll-mt-20">
                 <h2>Your Rights</h2>
                 <p>Depending on your location, you may have the following rights:</p>
                 <ul>
@@ -186,12 +239,12 @@ const Privacy = () => {
                   <li>Withdraw consent at any time.</li>
                 </ul>
                 <p>
-                  To exercise any of these rights, contact us using the details in the <a href="#contact">Contact</a> section.
+                  To exercise any of these rights, contact us using the details in the <a href="#contact" onClick={(e) => { e.preventDefault(); scrollToSection("contact"); }}>Contact</a> section.
                 </p>
               </section>
 
               {/* ─── Data Security ───────────────────────────── */}
-              <section id="security" className="scroll-mt-20">
+              <section id="security" className="scroll-mt-28 lg:scroll-mt-20">
                 <h2>Data Security</h2>
                 <p>
                   We take reasonable steps to protect your personal data from loss, misuse, and unauthorised access.
@@ -203,20 +256,20 @@ const Privacy = () => {
               </section>
 
               {/* ─── Contact Us ──────────────────────────────── */}
-              <section id="contact" className="scroll-mt-20">
+              <section id="contact" className="scroll-mt-28 lg:scroll-mt-20">
                 <h2>Contact Us</h2>
                 <p>
                   If you have any questions, concerns, or requests regarding this privacy policy, please reach out:
                 </p>
                 <ul>
                   <li><strong>Email:</strong> <a href="mailto:info@featherednews.com">info@featherednews.com</a></li>
-                  <li><strong>Website:</strong> <a href="/">featherednews.com</a></li>
+                  <li><strong>Website:</strong> <Link to="/">featherednews.com</Link></li>
                 </ul>
                 <p>We aim to respond within 5 business days.</p>
               </section>
 
               {/* ─── Changes to This Policy ──────────────────── */}
-              <section id="changes" className="scroll-mt-20">
+              <section id="changes" className="scroll-mt-28 lg:scroll-mt-20">
                 <h2>Changes to This Policy</h2>
                 <p>
                   We may update this policy from time to time. The latest version will always be posted on this page,
@@ -232,15 +285,16 @@ const Privacy = () => {
       </div>
 
       {/* ─── Back to Top ────────────────────────────────── */}
-      {/* <button
+      <button
         onClick={scrollToTop}
-        className={`fixed bottom-6 right-6 z-50 bg-black dark:bg-white text-white dark:text-black p-3 shadow-lg transition-opacity duration-300 ${
-          showBackToTop ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
         aria-label="Back to top"
+        className={`fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-50 bg-black dark:bg-white text-white dark:text-black p-2.5 sm:p-3 rounded-full shadow-lg motion-safe:transition-all motion-safe:duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black dark:focus-visible:ring-white focus-visible:ring-offset-2 ${
+          showBackToTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
+        }`}
       >
-        <FiArrowUp size={20} />
-      </button> */}
+        <FiArrowUp size={18} className="sm:hidden" />
+        <FiArrowUp size={20} className="hidden sm:block" />
+      </button>
     </div>
   );
 };
