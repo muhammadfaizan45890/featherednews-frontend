@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  memo,
+} from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   FiSearch,
@@ -9,6 +16,8 @@ import {
   FiFeather,
   FiLogIn,
   FiChevronRight,
+  FiTrendingUp,
+  FiClock,
 } from "react-icons/fi";
 import { FaFacebookF, FaInstagram, FaYoutube } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
@@ -19,7 +28,10 @@ import { toast } from "sonner";
 import API from "@/utils/api";
 import { User } from "lucide-react";
 
-// ─── Editorial "beat" palette ─────────────────────────────
+/* ─────────────────────────────────────────────────────────
+   Constants & Helpers
+   ───────────────────────────────────────────────────────── */
+
 const BEAT_PALETTE = [
   { fg: "#B91C1C", bg: "#FEF2F2" },
   { fg: "#1D4ED8", bg: "#EFF6FF" },
@@ -28,6 +40,7 @@ const BEAT_PALETTE = [
   { fg: "#6D28D9", bg: "#F5F3FF" },
   { fg: "#0E7490", bg: "#ECFEFF" },
 ];
+
 const beatColor = (label = "") => {
   let hash = 0;
   for (let i = 0; i < label.length; i++) {
@@ -37,7 +50,6 @@ const beatColor = (label = "") => {
   return BEAT_PALETTE[Math.abs(hash) % BEAT_PALETTE.length];
 };
 
-// ─── Helpers ──────────────────────────────────────────────
 const getAvatarUrl = (avatarPath) => {
   if (!avatarPath) return null;
   if (/^https?:\/\//.test(avatarPath)) return avatarPath;
@@ -68,63 +80,106 @@ const getApiInstance = () => {
 
 const api = getApiInstance();
 
-const PillSkeleton = ({ w = "w-16" }) => (
-  <div className={`h-6 ${w} shrink-0 rounded-full bg-gray-100 animate-pulse`} />
-);
+/* ─────────────────────────────────────────────────────────
+   Module-level category cache (survives remounts)
+   ───────────────────────────────────────────────────────── */
+let CATEGORY_CACHE = null;
+const FALLBACK_CATEGORIES = ["Travel", "Food", "Lifestyle", "News", "Business", "Fashion"];
 
+const fetchCategoriesOnce = async () => {
+  if (CATEGORY_CACHE) return CATEGORY_CACHE;
+  try {
+    const res = await api.get("/api/posts", { params: { limit: 100, page: 1 } });
+    const posts = res.data?.data || [];
+    const unique = [...new Set(posts.map((p) => p.category).filter(Boolean))];
+    CATEGORY_CACHE = unique.length ? unique : FALLBACK_CATEGORIES;
+  } catch {
+    CATEGORY_CACHE = FALLBACK_CATEGORIES;
+  }
+  return CATEGORY_CACHE;
+};
+
+/* ─────────────────────────────────────────────────────────
+   Small presentational bits
+   ───────────────────────────────────────────────────────── */
+const PillSkeleton = memo(({ w = "w-16" }) => (
+  <div className={`h-7 ${w} shrink-0 rounded-full bg-gray-100 animate-pulse`} />
+));
+PillSkeleton.displayName = "PillSkeleton";
+
+/* ─────────────────────────────────────────────────────────
+   Navbar
+   ───────────────────────────────────────────────────────── */
 const Navbar = () => {
   const { user, setUser } = getData();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ─── State ──────────────────────────────────────────────
+  /* ── State ── */
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileOpenDropdown, setMobileOpenDropdown] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categories, setCategories] = useState(CATEGORY_CACHE || []);
+  const [categoriesLoading, setCategoriesLoading] = useState(!CATEGORY_CACHE);
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
+  const [recentSearches, setRecentSearches] = useState([]);
 
-  // ─── Refs ──────────────────────────────────────────────
+  /* ── Refs ── */
   const sidebarRef = useRef(null);
   const menuButtonRef = useRef(null);
   const closeButtonRef = useRef(null);
   const searchInputRef = useRef(null);
+  const searchWrapRef = useRef(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  const categoryFetched = useRef(false);
   const megaMenuRef = useRef(null);
   const megaTriggerRef = useRef(null);
   const megaCloseTimer = useRef(null);
 
-  const accessToken = localStorage.getItem("accessToken");
+  const accessToken =
+    typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
   const userRole = user?.role || "user";
+  const profileRoute = userRole === "admin" ? "/admin/profile" : "/profile";
 
-  // ─── Fetch categories (once) ──────────────────────────
+  /* ── Recent searches (localStorage) ── */
   useEffect(() => {
-    if (categoryFetched.current) return;
-    categoryFetched.current = true;
-
-    const fetchCategories = async () => {
-      try {
-        setCategoriesLoading(true);
-        const res = await api.get("/api/posts", { params: { limit: 100, page: 1 } });
-        const posts = res.data.data || [];
-        const unique = [...new Set(posts.map((p) => p.category).filter(Boolean))];
-        setCategories(unique);
-      } catch (error) {
-        console.error("Failed to fetch categories:", error);
-        setCategories(["Travel", "Food", "Lifestyle", "News", "Business", "Fashion"]);
-      } finally {
-        setCategoriesLoading(false);
-      }
-    };
-    fetchCategories();
+    try {
+      const raw = localStorage.getItem("recentSearches");
+      if (raw) setRecentSearches(JSON.parse(raw).slice(0, 5));
+    } catch {
+      /* ignore */
+    }
   }, []);
 
-  // ─── Memoized nav items ──────────────────────────────
+  const pushRecentSearch = useCallback((q) => {
+    setRecentSearches((prev) => {
+      const next = [q, ...prev.filter((x) => x !== q)].slice(0, 5);
+      try {
+        localStorage.setItem("recentSearches", JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
+
+  /* ── Fetch categories (cached) ── */
+  useEffect(() => {
+    let alive = true;
+    if (!CATEGORY_CACHE) setCategoriesLoading(true);
+    fetchCategoriesOnce().then((cats) => {
+      if (!alive) return;
+      setCategories(cats);
+      setCategoriesLoading(false);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  /* ── Nav items ── */
   const primaryNavItems = useMemo(
     () => [
       { label: "Home", link: "/" },
@@ -142,36 +197,37 @@ const Navbar = () => {
     ],
     []
   );
-  const navItems = useMemo(() => {
-    const base = [
+  const mobileNavItems = useMemo(
+    () => [
       { label: "Home", link: "/" },
       { label: "News", link: "/news" },
       { label: "Listen", link: "/audio" },
       {
         label: "Categories",
-        sub: categories.map((cat) => ({
-          label: cat,
-          link: `/news?category=${encodeURIComponent(cat)}`,
+        sub: categories.map((c) => ({
+          label: c,
+          link: `/news?category=${encodeURIComponent(c)}`,
         })),
       },
       { label: "Advertise", link: "/advertise" },
       { label: "Privacy", link: "/privacy" },
       { label: "Contact", link: "/contact" },
       { label: "About", link: "/about" },
-    ];
-    return base.filter((item) => item.sub?.length > 0 || item.link);
-  }, [categories]);
+    ],
+    [categories]
+  );
 
-  // ─── Close sidebar/menus on route change ──────────────
+  /* ── Close overlays on route change ── */
   useEffect(() => {
     setSidebarOpen(false);
     setMobileOpenDropdown(null);
     setMegaMenuOpen(false);
+    setSearchOpen(false);
   }, [location.pathname, location.search]);
 
-  // ─── Outside click for sidebar + mega menu ───────────
+  /* ── Outside click ── */
   useEffect(() => {
-    const handleClickOutside = (e) => {
+    const onDown = (e) => {
       if (
         sidebarOpen &&
         sidebarRef.current &&
@@ -188,14 +244,22 @@ const Navbar = () => {
       ) {
         setMegaMenuOpen(false);
       }
+      if (
+        searchOpen &&
+        searchWrapRef.current &&
+        !searchWrapRef.current.contains(e.target)
+      ) {
+        // Only close on outside click if query empty
+        if (!searchQuery) setSearchOpen(false);
+      }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [sidebarOpen, megaMenuOpen]);
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [sidebarOpen, megaMenuOpen, searchOpen, searchQuery]);
 
-  // ─── ESC to close everything ────────────────────────
+  /* ── ESC closes everything ── */
   useEffect(() => {
-    const handleEscape = (e) => {
+    const onKey = (e) => {
       if (e.key === "Escape") {
         setSidebarOpen(false);
         setMobileOpenDropdown(null);
@@ -203,38 +267,42 @@ const Navbar = () => {
         setMegaMenuOpen(false);
       }
     };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // ─── "/" keyboard shortcut opens search ──────────────
+  /* ── "/" shortcut ── */
   useEffect(() => {
-    const handleShortcut = (e) => {
+    const onKey = (e) => {
       const tag = document.activeElement?.tagName;
-      const isTyping = tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable;
-      if (e.key === "/" && !isTyping) {
+      const typing =
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        document.activeElement?.isContentEditable;
+      if (e.key === "/" && !typing) {
         e.preventDefault();
         setSearchOpen(true);
+        // focus after mount
+        setTimeout(() => searchInputRef.current?.focus(), 50);
       }
     };
-    document.addEventListener("keydown", handleShortcut);
-    return () => document.removeEventListener("keydown", handleShortcut);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // ─── Focus trap for sidebar ──────────────────────────
+  /* ── Focus trap for sidebar ── */
   useEffect(() => {
     if (!sidebarOpen) return;
     closeButtonRef.current?.focus();
 
-    const handleTab = (e) => {
+    const onTab = (e) => {
       if (e.key !== "Tab" || !sidebarRef.current) return;
       const focusable = sidebarRef.current.querySelectorAll(
         'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])'
       );
-      if (focusable.length === 0) return;
+      if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-
       if (e.shiftKey && document.activeElement === first) {
         e.preventDefault();
         last.focus();
@@ -243,71 +311,70 @@ const Navbar = () => {
         first.focus();
       }
     };
-    document.addEventListener("keydown", handleTab);
-    return () => document.removeEventListener("keydown", handleTab);
+    document.addEventListener("keydown", onTab);
+    return () => document.removeEventListener("keydown", onTab);
   }, [sidebarOpen]);
 
-  // ─── Auto‑focus search input ────────────────────────
+  /* ── Auto-focus search ── */
   useEffect(() => {
-    if (searchOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
+    if (searchOpen) {
+      const t = setTimeout(() => searchInputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
     }
   }, [searchOpen]);
 
-  // ─── Scroll shadow + compact mode ───────────────────
+  /* ── Scroll shadow ── */
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    const onScroll = () => setIsScrolled(window.scrollY > 10);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // ─── Lock body scroll when sidebar open ──────────────
+  /* ── Body scroll lock ── */
   useEffect(() => {
     if (sidebarOpen) {
+      const scrollY = window.scrollY;
       document.body.style.overflow = "hidden";
       document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
       document.body.style.width = "100%";
-    } else {
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
+      return () => {
+        document.body.style.overflow = "";
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        window.scrollTo(0, scrollY);
+      };
     }
-    return () => {
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    };
   }, [sidebarOpen]);
 
-  // ─── Handlers ──────────────────────────────────────────
+  /* ── Handlers ── */
   const toggleSidebar = useCallback(() => {
-    setSidebarOpen((prev) => !prev);
+    setSidebarOpen((v) => !v);
     setMobileOpenDropdown(null);
   }, []);
-
-  const toggleMobileDropdown = useCallback((label) => {
-    setMobileOpenDropdown((prev) => (prev === label ? null : label));
-  }, []);
-
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
     setMobileOpenDropdown(null);
+  }, []);
+  const toggleMobileDropdown = useCallback((label) => {
+    setMobileOpenDropdown((prev) => (prev === label ? null : label));
   }, []);
 
   const handleSearchSubmit = useCallback(
     (e) => {
       e.preventDefault();
-      const query = searchQuery.trim();
-      if (query) {
-        navigate(`/news?search=${encodeURIComponent(query)}`);
-        setSearchOpen(false);
-        setSearchQuery("");
-      }
+      const q = searchQuery.trim();
+      if (!q) return;
+      pushRecentSearch(q);
+      navigate(`/news?search=${encodeURIComponent(q)}`);
+      setSearchOpen(false);
+      setSearchQuery("");
     },
-    [searchQuery, navigate]
+    [searchQuery, navigate, pushRecentSearch]
   );
 
-  // ─── Mega menu open/close with small delay ──────────
   const openMegaMenu = useCallback(() => {
     clearTimeout(megaCloseTimer.current);
     setMegaMenuOpen(true);
@@ -317,7 +384,7 @@ const Navbar = () => {
     megaCloseTimer.current = setTimeout(() => setMegaMenuOpen(false), 150);
   }, []);
 
-  // ─── Touch swipe to close sidebar ────────────────────
+  /* ── Touch swipe to close ── */
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
     touchEndX.current = e.touches[0].clientX;
@@ -326,29 +393,28 @@ const Navbar = () => {
     touchEndX.current = e.touches[0].clientX;
   };
   const handleTouchEnd = () => {
-    if (touchStartX.current - touchEndX.current > 75) {
-      closeSidebar();
-    }
+    if (touchStartX.current - touchEndX.current > 75) closeSidebar();
     touchStartX.current = 0;
     touchEndX.current = 0;
   };
 
-  // ─── Auth helpers ──────────────────────────────────
+  /* ── Auth ── */
   const getUserInitials = () => {
     if (user?.fullname) {
-      const parts = user.fullname.split(" ");
+      const parts = user.fullname.split(" ").filter(Boolean);
       return parts.map((n) => n[0]).join("").toUpperCase().slice(0, 2);
     }
     if (user?.email) return user.email[0].toUpperCase();
     return "U";
   };
 
-  const getRoleBadge = () => (userRole === "admin" ? "A" : null);
-  const profileRoute = userRole === "admin" ? "/admin/profile" : "/profile";
-
   const logoutHandler = useCallback(async () => {
     try {
-      const res = await api.post("/user/logout", {}, { headers: { Authorization: `Bearer ${accessToken}` } });
+      const res = await api.post(
+        "/user/logout",
+        {},
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
       if (res.data.success) {
         setUser(null);
         toast.success(res.data.message);
@@ -361,23 +427,35 @@ const Navbar = () => {
     }
   }, [accessToken, setUser, navigate, closeSidebar]);
 
-  const isCategoryActive = (category) => {
-    const params = new URLSearchParams(location.search);
-    return params.get("category") === category;
-  };
-  const isLinkActive = (link) => location.pathname === link;
+  const isCategoryActive = useCallback(
+    (category) => {
+      const params = new URLSearchParams(location.search);
+      return params.get("category") === category;
+    },
+    [location.search]
+  );
+  const isLinkActive = useCallback(
+    (link) => location.pathname === link,
+    [location.pathname]
+  );
 
-  // ─── Render ──────────────────────────────────────────
+  /* ─────────────────────────────────────────────────────
+     Render
+     ───────────────────────────────────────────────────── */
   return (
     <header
-      className={`w-full bg-white sticky top-0 z-50 transition-shadow duration-300 ease-in-out ${
-        isScrolled ? "shadow-sm" : ""
+      className={`w-full bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 sticky top-0 z-50 transition-shadow duration-300 ${
+        isScrolled ? "shadow-md border-b border-gray-100" : ""
       }`}
     >
       <style>{`
         @keyframes fadeInRight {
           from { opacity: 0; transform: translateX(8px); }
           to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         @media (prefers-reduced-motion: reduce) {
           *, *::before, *::after {
@@ -386,129 +464,129 @@ const Navbar = () => {
           }
         }
       `}</style>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* ─── Top Header ──────────────────────────────────── */}
+
+      <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8">
+        {/* ── Top row ── */}
         <div
-          className={`relative flex items-center justify-between transition-[padding] duration-300 ease-in-out ${
-            isScrolled ? "py-2.5 sm:py-3" : "py-3 sm:py-4 md:py-5 lg:py-4 xl:py-5"
+          className={`relative flex items-center justify-between transition-[padding] duration-300 ${
+            isScrolled
+              ? "py-2 sm:py-2.5"
+              : "py-3 sm:py-4 md:py-5 lg:py-4 xl:py-5"
           }`}
         >
-          {/* Left: Hamburger + Search */}
-          <div className="flex items-center gap-3 sm:gap-4 text-gray-700">
+          {/* Left cluster */}
+          <div className="flex items-center gap-1 xs:gap-2 sm:gap-3 text-gray-700">
             <button
               ref={menuButtonRef}
               onClick={toggleSidebar}
-              className="hover:text-black rounded-full p-1 transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              className="hover:text-black rounded-full p-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
               aria-label={sidebarOpen ? "Close menu" : "Open menu"}
               aria-expanded={sidebarOpen}
               aria-controls="sidebar-drawer"
             >
-              <span className="inline-flex transition-transform duration-200 ease-in-out">
+              <span className="inline-flex transition-transform duration-200">
                 {sidebarOpen ? <FiX size={22} /> : <FiMenu size={22} />}
               </span>
             </button>
             <button
               onClick={() => setSearchOpen((v) => !v)}
-              className="hover:text-black rounded-full p-1 transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              className="hover:text-black rounded-full p-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
               aria-label="Toggle search"
               aria-expanded={searchOpen}
               title="Search (press /)"
             >
-              <FiSearch size={18} className="sm:size-5 mb-1" />
+              <FiSearch size={18} className="sm:size-5" />
             </button>
           </div>
 
-          {/* ─── Logo ────────────────────────────────── */}
+          {/* Logo */}
           <Link
             to="/"
-            className="absolute left-1/2 -translate-x-1/2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded transition-opacity duration-200 ease-in-out hover:opacity-80"
+            className="absolute left-1/2 -translate-x-1/2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded transition-opacity hover:opacity-80"
+            aria-label="Feathered News home"
           >
             <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3">
               <FiFeather
                 className="text-black shrink-0"
-                style={{ width: "clamp(20px, 3vw, 32px)", height: "clamp(20px, 3vw, 32px)" }}
+                style={{
+                  width: "clamp(18px, 3vw, 32px)",
+                  height: "clamp(18px, 3vw, 32px)",
+                }}
               />
               <h1
-                className="font-black tracking-tight leading-none"
-                style={{ fontSize: "clamp(1.25rem, 2.6vw, 2rem)" }}
+                className="font-black tracking-tight leading-none whitespace-nowrap"
+                style={{ fontSize: "clamp(1rem, 2.6vw, 2rem)" }}
               >
                 <span className="font-light text-gray-800">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span>
                 <span className="font-extrabold text-black">NEWS</span>
               </h1>
             </div>
-            <p className="tracking-[4px] sm:tracking-[6px] md:tracking-[8px] uppercase text-[10px] sm:text-[11px] md:text-[12px] mt-1 sm:mt-2 text-gray-400 font-light">
+            <p
+              className="tracking-[3px] sm:tracking-[6px] md:tracking-[8px] uppercase text-gray-400 font-light mt-1 sm:mt-2 hidden xs:block"
+              style={{ fontSize: "clamp(8px, 1vw, 12px)" }}
+            >
               Stories That Soar
             </p>
           </Link>
 
-          {/* Right: Social + Auth */}
-          <div className="flex items-center gap-4 lg:gap-5">
-            <div className="hidden lg:flex items-center gap-2.5 text-gray-600">
-              <a
-                href="#"
-                aria-label="Facebook"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-              >
-                <FaFacebookF size={16} />
-              </a>
-              <a
-                href="https://x.com/feathered_pen"
-                aria-label="Twitter"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-              >
-                <FaXTwitter size={16} />
-              </a>
-              <a
-                href="#"
-                aria-label="Instagram"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-              >
-                <FaInstagram size={16} />
-              </a>
-              <a
-                href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
-                aria-label="YouTube"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-              >
-                <FaYoutube size={16} />
-              </a>
+          {/* Right cluster */}
+          <div className="flex items-center gap-2 sm:gap-4 lg:gap-5">
+            {/* Socials (lg+) */}
+            <div className="hidden lg:flex items-center gap-2 text-gray-600">
+              {[
+                { href: "#", Icon: FaFacebookF, label: "Facebook" },
+                {
+                  href: "https://x.com/feathered_pen",
+                  Icon: FaXTwitter,
+                  label: "Twitter",
+                },
+                { href: "#", Icon: FaInstagram, label: "Instagram" },
+                {
+                  href: "https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo",
+                  Icon: FaYoutube,
+                  label: "YouTube",
+                },
+              ].map(({ href, Icon, label }) => (
+                <a
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  target={href.startsWith("http") ? "_blank" : undefined}
+                  rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                  className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                >
+                  <Icon size={15} />
+                </a>
+              ))}
             </div>
 
             {/* Auth */}
             {user ? (
-              <div className="flex items-center gap-3">
-                <Link
-                  to={profileRoute}
-                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 group transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                >
-                  <div className="relative">
-                    <Avatar className="h-8 w-8 transition-transform duration-200 ease-in-out group-hover:scale-105">
-                      <AvatarImage src={getAvatarUrl(user?.avatar)} />
-                      <AvatarFallback className="bg-gray-200 text-gray-700 text-xs font-bold">
-                        {getUserInitials()}
-                        {getRoleBadge() && (
-                          <span className="ml-0.5 text-[8px]">{getRoleBadge()}</span>
-                        )}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                </Link>
-              </div>
+              <Link
+                to={profileRoute}
+                className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 group transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                aria-label="Your profile"
+              >
+                <Avatar className="h-8 w-8 sm:h-9 sm:w-9 transition-transform group-hover:scale-105">
+                  <AvatarImage src={getAvatarUrl(user?.avatar)} alt="" />
+                  <AvatarFallback className="bg-gray-200 text-gray-700 text-xs font-bold">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
             ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  to="/login"
-                  className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-gray-600 hover:text-black transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                  aria-label="Log in"
-                >
-                  <User size={20} className="sm:size-[22px]" />
-                </Link>
-              </div>
+              <Link
+                to="/login"
+                className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-gray-600 hover:text-black hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                aria-label="Log in"
+              >
+                <User size={20} className="sm:size-[22px]" />
+              </Link>
             )}
           </div>
         </div>
 
-        {/* ─── DESKTOP PRIMARY NAV + CATEGORIES MEGA MENU ──── */}
+        {/* ── Desktop nav (lg+) ── */}
         <div className="hidden lg:block relative border-t border-gray-200">
           <div className="flex items-center justify-between py-2.5 gap-6">
             <nav aria-label="Primary" className="flex items-center gap-1">
@@ -517,7 +595,7 @@ const Navbar = () => {
                   key={item.label}
                   to={item.link}
                   aria-current={isLinkActive(item.link) ? "page" : undefined}
-                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
                     isLinkActive(item.link)
                       ? "bg-black text-white"
                       : "text-gray-600 hover:bg-gray-100 hover:text-black"
@@ -527,7 +605,7 @@ const Navbar = () => {
                 </Link>
               ))}
 
-              {/* Categories mega menu trigger */}
+              {/* Categories mega menu */}
               <div
                 className="relative"
                 onMouseEnter={openMegaMenu}
@@ -539,56 +617,62 @@ const Navbar = () => {
                   onClick={() => setMegaMenuOpen((v) => !v)}
                   aria-haspopup="true"
                   aria-expanded={megaMenuOpen}
-                  className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
-                    megaMenuOpen ? "bg-gray-100 text-black" : "text-gray-600 hover:bg-gray-100 hover:text-black"
+                  aria-controls="mega-menu"
+                  className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+                    megaMenuOpen
+                      ? "bg-gray-100 text-black"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-black"
                   }`}
                 >
                   Categories
                   <FiChevronDown
                     size={14}
-                    className={`transition-transform duration-200 ${megaMenuOpen ? "rotate-180" : ""}`}
+                    className={`transition-transform ${
+                      megaMenuOpen ? "rotate-180" : ""
+                    }`}
                   />
                 </button>
 
-                <div
-                  ref={megaMenuRef}
-                  onMouseEnter={openMegaMenu}
-                  onMouseLeave={scheduleCloseMegaMenu}
-                  className={`absolute left-0 top-full mt-2 w-[420px] xl:w-[520px] bg-white border border-gray-200 shadow-xl rounded-lg p-4 z-50 origin-top transition-all duration-200 ease-out ${
-                    megaMenuOpen
-                      ? "opacity-100 scale-100 pointer-events-auto"
-                      : "opacity-0 scale-95 pointer-events-none"
-                  }`}
-                  role="menu"
-                >
-                  <p className="text-[10px] font-bold uppercase tracking-[2px] text-gray-400 mb-3">
-                    Browse by category
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {categoriesLoading
-                      ? Array.from({ length: 8 }).map((_, i) => <PillSkeleton key={i} />)
-                      : categories.map((cat) => {
-                          const c = beatColor(cat);
-                          return (
-                            <Link
-                              key={cat}
-                              to={`/news?category=${encodeURIComponent(cat)}`}
-                              role="menuitem"
-                              className="text-xs font-semibold px-3 py-1.5 rounded-full transition-transform duration-150 hover:scale-[1.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                              style={{ color: c.fg, backgroundColor: c.bg }}
-                            >
-                              {cat}
-                            </Link>
-                          );
-                        })}
-                  </div>
-                  <Link
-                    to="/news"
-                    className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-600"
+                {megaMenuOpen && (
+                  <div
+                    ref={megaMenuRef}
+                    id="mega-menu"
+                    onMouseEnter={openMegaMenu}
+                    onMouseLeave={scheduleCloseMegaMenu}
+                    role="menu"
+                    className="absolute left-0 top-full mt-2 w-[440px] xl:w-[560px] bg-white border border-gray-200 shadow-xl rounded-lg p-4 z-50 origin-top animate-[slideDown_180ms_ease-out]"
                   >
-                    View all stories <FiChevronRight size={13} />
-                  </Link>
-                </div>
+                    <p className="text-[10px] font-bold uppercase tracking-[2px] text-gray-400 mb-3">
+                      Browse by category
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {categoriesLoading
+                        ? Array.from({ length: 8 }).map((_, i) => (
+                            <PillSkeleton key={i} />
+                          ))
+                        : categories.map((cat) => {
+                            const c = beatColor(cat);
+                            return (
+                              <Link
+                                key={cat}
+                                to={`/news?category=${encodeURIComponent(cat)}`}
+                                role="menuitem"
+                                className="text-xs font-semibold px-3 py-1.5 rounded-full transition-transform hover:scale-[1.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                                style={{ color: c.fg, backgroundColor: c.bg }}
+                              >
+                                {cat}
+                              </Link>
+                            );
+                          })}
+                    </div>
+                    <Link
+                      to="/news"
+                      className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-600"
+                    >
+                      View all stories <FiChevronRight size={13} />
+                    </Link>
+                  </div>
+                )}
               </div>
 
               {secondaryNavItems.map((item) => (
@@ -596,7 +680,7 @@ const Navbar = () => {
                   key={item.label}
                   to={item.link}
                   aria-current={isLinkActive(item.link) ? "page" : undefined}
-                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
                     isLinkActive(item.link)
                       ? "bg-black text-white"
                       : "text-gray-600 hover:bg-gray-100 hover:text-black"
@@ -607,12 +691,13 @@ const Navbar = () => {
               ))}
             </nav>
 
-            {/* Quick category pills on desktop */}
-            <div className="flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory min-w-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Quick pills */}
+            <div className="relative flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory min-w-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <Link
                 to="/news"
-                className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
-                  location.pathname === "/news" && !new URLSearchParams(location.search).get("category")
+                className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+                  location.pathname === "/news" &&
+                  !new URLSearchParams(location.search).get("category")
                     ? "bg-black text-white border-black"
                     : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
                 }`}
@@ -620,7 +705,9 @@ const Navbar = () => {
                 All
               </Link>
               {categoriesLoading
-                ? Array.from({ length: 4 }).map((_, i) => <PillSkeleton key={i} w="w-14" />)
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <PillSkeleton key={i} w="w-14" />
+                  ))
                 : categories.slice(0, 6).map((cat) => {
                     const active = isCategoryActive(cat);
                     const c = beatColor(cat);
@@ -628,11 +715,19 @@ const Navbar = () => {
                       <Link
                         key={cat}
                         to={`/news?category=${encodeURIComponent(cat)}`}
-                        className="snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                        className="snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                         style={
                           active
-                            ? { color: c.bg, backgroundColor: c.fg, borderColor: c.fg }
-                            : { color: c.fg, borderColor: "transparent", backgroundColor: c.bg }
+                            ? {
+                                color: c.bg,
+                                backgroundColor: c.fg,
+                                borderColor: c.fg,
+                              }
+                            : {
+                                color: c.fg,
+                                borderColor: "transparent",
+                                backgroundColor: c.bg,
+                              }
                         }
                       >
                         {cat}
@@ -641,46 +736,85 @@ const Navbar = () => {
                   })}
             </div>
           </div>
-          <div className="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white to-transparent" />
         </div>
       </div>
 
-      {/* ─── Search Bar ────────────────────────────────────── */}
+      {/* ── Search bar ── */}
       <div
-        className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${
-          searchOpen ? "max-h-32 opacity-100 border-t border-gray-200" : "max-h-0 opacity-0"
+        className={`overflow-hidden transition-[max-height,opacity] duration-300 ${
+          searchOpen
+            ? "max-h-[400px] opacity-100 border-t border-gray-200"
+            : "max-h-0 opacity-0"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <form onSubmit={handleSearchSubmit} className="relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+        <div ref={searchWrapRef} className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-3">
+          <form
+            onSubmit={handleSearchSubmit}
+            role="search"
+            className="relative"
+            aria-label="Site search"
+          >
+            <FiSearch
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={18}
+            />
             <input
               ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search articles, topics, or keywords..."
-              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md transition-colors duration-200 ease-in-out focus:border-black focus:outline-none"
+              className="w-full pl-10 pr-24 py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg transition-colors focus:border-black focus:ring-2 focus:ring-black/5 focus:outline-none"
               aria-label="Search"
+              autoComplete="off"
             />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery("");
-                  searchInputRef.current?.focus();
-                }}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
-              >
-                <FiX size={16} />
-              </button>
-            )}
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    searchInputRef.current?.focus();
+                  }}
+                  aria-label="Clear search"
+                  className="p-1.5 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100"
+                >
+                  <FiX size={16} />
+                </button>
+              )}
+              <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-gray-400 border border-gray-200 rounded">
+                /
+              </kbd>
+            </div>
           </form>
+
+          {/* Recent searches */}
+          {!searchQuery && recentSearches.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mt-3 animate-[slideDown_180ms_ease-out]">
+              <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
+                <FiClock size={11} /> Recent:
+              </span>
+              {recentSearches.map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery(q);
+                    searchInputRef.current?.focus();
+                  }}
+                  className="text-xs text-gray-600 hover:text-black px-2 py-1 rounded-md hover:bg-gray-100 transition-colors"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Popular */}
           {!searchQuery && categories.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mt-2.5">
-              <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
-                Popular:
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
+                <FiTrendingUp size={11} /> Popular:
               </span>
               {categories.slice(0, 5).map((cat) => (
                 <button
@@ -700,22 +834,23 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* ─── Sidebar (Drawer) ──────────────────────────────── */}
+      {/* ── Backdrop ── */}
       <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 ease-in-out ${
-          sidebarOpen ? "opacity-100 block" : "opacity-0 hidden"
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 lg:hidden ${
+          sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={closeSidebar}
         aria-hidden="true"
       />
 
+      {/* ── Sidebar drawer ── */}
       <div
         id="sidebar-drawer"
         ref={sidebarRef}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`fixed top-0 right-0 h-full w-[280px] sm:w-[320px] max-w-[85vw] bg-white z-50 transition-transform duration-300 ease-in-out will-change-transform ${
+        className={`fixed top-0 right-0 h-full w-[85vw] max-w-[340px] sm:w-[340px] bg-white z-50 shadow-2xl transition-transform duration-300 ease-out will-change-transform ${
           sidebarOpen ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
@@ -725,7 +860,7 @@ const Navbar = () => {
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50/50">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50/60">
             <div className="flex items-center gap-2">
               <FiFeather className="text-xl text-black" />
               <span className="font-bold text-sm">Menu</span>
@@ -733,23 +868,23 @@ const Navbar = () => {
             <button
               ref={closeButtonRef}
               onClick={closeSidebar}
-              className="p-2 hover:bg-gray-200 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              className="p-2 hover:bg-gray-200 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
               aria-label="Close menu"
             >
-              <FiX size={24} />
+              <FiX size={22} />
             </button>
           </div>
 
-          {/* User Profile */}
+          {/* Profile */}
           {user && (
-            <div className="p-4 bg-gradient-to-r from-gray-50 to-white">
+            <div className="p-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
               <Link
                 to={profileRoute}
                 onClick={closeSidebar}
                 className="flex items-center gap-3 group"
               >
-                <Avatar className="h-12 w-12 transition-transform duration-200 ease-in-out group-hover:scale-105">
-                  <AvatarImage src={getAvatarUrl(user?.avatar)} />
+                <Avatar className="h-12 w-12 transition-transform group-hover:scale-105">
+                  <AvatarImage src={getAvatarUrl(user?.avatar)} alt="" />
                   <AvatarFallback className="bg-gray-200 text-gray-700 text-sm font-bold">
                     {getUserInitials()}
                   </AvatarFallback>
@@ -758,22 +893,27 @@ const Navbar = () => {
                   <p className="text-sm font-semibold text-gray-900 truncate">
                     {user?.fullname || "User"}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">{user?.email || ""}</p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {user?.email || ""}
+                  </p>
                   {userRole === "admin" && (
                     <span className="inline-block mt-0.5 text-[9px] font-bold uppercase bg-black text-white px-2 py-0.5 rounded">
                       Admin
                     </span>
                   )}
                 </div>
-                <FiChevronRight className="text-gray-400 group-hover:text-black transition-all duration-200 ease-in-out group-hover:translate-x-0.5" size={18} />
+                <FiChevronRight
+                  className="text-gray-400 group-hover:text-black transition-transform group-hover:translate-x-0.5"
+                  size={18}
+                />
               </Link>
             </div>
           )}
 
-          {/* Navigation Links */}
-          <nav className="flex-1 overflow-y-auto py-2">
+          {/* Nav */}
+          <nav className="flex-1 overflow-y-auto overscroll-contain py-2">
             <ul className="space-y-0.5">
-              {navItems.map((item) => {
+              {mobileNavItems.map((item) => {
                 const subItems = item.sub || [];
                 const hasSub = subItems.length > 0;
                 const isActive = location.pathname === item.link;
@@ -781,25 +921,30 @@ const Navbar = () => {
                 if (hasSub) {
                   const isOpen = mobileOpenDropdown === item.label;
                   return (
-                    <li key={item.label} className="border-b border-gray-100 last:border-0">
+                    <li
+                      key={item.label}
+                      className="border-b border-gray-100 last:border-0"
+                    >
                       <button
                         onClick={() => toggleMobileDropdown(item.label)}
-                        className={`flex items-center w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-200 ease-in-out ${
-                          isActive ? "bg-gray-50" : ""
-                        }`}
+                        className="flex items-center w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors focus:outline-none focus-visible:bg-gray-50"
                         aria-expanded={isOpen}
+                        aria-controls={`submenu-${item.label}`}
                       >
-                        <span className="flex-1 font-medium text-gray-700">{item.label}</span>
+                        <span className="flex-1 font-medium text-gray-700 text-sm">
+                          {item.label}
+                        </span>
                         <FiChevronDown
-                          className={`transform transition-transform duration-300 ease-in-out ${
+                          className={`transform transition-transform duration-300 text-gray-400 ${
                             isOpen ? "rotate-180" : ""
-                          } text-gray-400`}
+                          }`}
                           size={16}
                         />
                       </button>
                       <div
-                        className={`overflow-hidden transition-[max-height] duration-300 ease-in-out ${
-                          isOpen ? "max-h-[500px]" : "max-h-0"
+                        id={`submenu-${item.label}`}
+                        className={`overflow-hidden transition-[max-height] duration-300 ${
+                          isOpen ? "max-h-[600px]" : "max-h-0"
                         }`}
                       >
                         <ul className="bg-gray-50/80 py-1">
@@ -813,7 +958,7 @@ const Navbar = () => {
                               <li key={sub.label}>
                                 <Link
                                   to={sub.link}
-                                  className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition-colors duration-200 ease-in-out"
+                                  className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition-colors"
                                   onClick={closeSidebar}
                                 >
                                   {sub.label}
@@ -832,13 +977,15 @@ const Navbar = () => {
                     <Link
                       to={item.link}
                       aria-current={isActive ? "page" : undefined}
-                      className={`flex items-center px-4 py-3 hover:bg-gray-50 transition-colors duration-200 ease-in-out ${
-                        isActive ? "bg-gray-50 text-black" : "text-gray-700"
+                      className={`flex items-center px-4 py-3 hover:bg-gray-50 transition-colors text-sm ${
+                        isActive ? "bg-gray-50 text-black font-semibold" : "text-gray-700 font-medium"
                       }`}
                       onClick={closeSidebar}
                     >
-                      <span className="font-medium">{item.label}</span>
-                      {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />}
+                      <span>{item.label}</span>
+                      {isActive && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />
+                      )}
                     </Link>
                   </li>
                 );
@@ -848,35 +995,32 @@ const Navbar = () => {
 
           {/* Footer */}
           <div className="border-t border-gray-200 bg-gray-50/50">
-            <div className="flex justify-center gap-2.5 py-4 px-4 border-b border-gray-200">
-              <a
-                href="#"
-                aria-label="Facebook"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-              >
-                <FaFacebookF size={16} />
-              </a>
-              <a
-                href="https://x.com/feathered_pen"
-                aria-label="Twitter"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-              >
-                <FaXTwitter size={16} />
-              </a>
-              <a
-                href="#"
-                aria-label="Instagram"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-              >
-                <FaInstagram size={16} />
-              </a>
-              <a
-                href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
-                aria-label="YouTube"
-                className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-              >
-                <FaYoutube size={16} />
-              </a>
+            <div className="flex justify-center gap-2 py-3 px-4 border-b border-gray-200">
+              {[
+                { href: "#", Icon: FaFacebookF, label: "Facebook" },
+                {
+                  href: "https://x.com/feathered_pen",
+                  Icon: FaXTwitter,
+                  label: "Twitter",
+                },
+                { href: "#", Icon: FaInstagram, label: "Instagram" },
+                {
+                  href: "https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo",
+                  Icon: FaYoutube,
+                  label: "YouTube",
+                },
+              ].map(({ href, Icon, label }) => (
+                <a
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  target={href.startsWith("http") ? "_blank" : undefined}
+                  rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                  className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                >
+                  <Icon size={15} />
+                </a>
+              ))}
             </div>
             <div className="p-4">
               {user ? (
@@ -884,7 +1028,7 @@ const Navbar = () => {
                   {userRole === "admin" && (
                     <Link
                       to="/admin/dashboard"
-                      className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors duration-200 ease-in-out"
+                      className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
                       onClick={closeSidebar}
                     >
                       Admin Panel
@@ -892,7 +1036,7 @@ const Navbar = () => {
                   )}
                   <button
                     onClick={logoutHandler}
-                    className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition-colors duration-200 ease-in-out"
+                    className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
                   >
                     Sign Out
                   </button>
@@ -901,7 +1045,7 @@ const Navbar = () => {
                 <div className="flex gap-2">
                   <Link
                     to="/login"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors duration-200 ease-in-out"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
                     onClick={closeSidebar}
                   >
                     <FiLogIn size={16} />
@@ -909,7 +1053,7 @@ const Navbar = () => {
                   </Link>
                   <Link
                     to="/signup"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors duration-200 ease-in-out"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
                     onClick={closeSidebar}
                   >
                     <FiUser size={16} />
@@ -950,8 +1094,6 @@ export default Navbar;
 
 
 
-
-
 // import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 // import { Link, useNavigate, useLocation } from "react-router-dom";
 // import {
@@ -963,9 +1105,6 @@ export default Navbar;
 //   FiFeather,
 //   FiLogIn,
 //   FiChevronRight,
-//   FiCommand,
-//   FiArrowUpRight,
-//   FiZap,
 // } from "react-icons/fi";
 // import { FaFacebookF, FaInstagram, FaYoutube } from "react-icons/fa";
 // import { FaXTwitter } from "react-icons/fa6";
@@ -1026,30 +1165,8 @@ export default Navbar;
 // const api = getApiInstance();
 
 // const PillSkeleton = ({ w = "w-16" }) => (
-//   <div className={`h-6 ${w} shrink-0 rounded-full bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]`} />
+//   <div className={`h-6 ${w} shrink-0 rounded-full bg-gray-100 animate-pulse`} />
 // );
-
-// // ─── Reading progress bar ─────────────────────────────────
-// const ReadingProgress = () => {
-//   const [progress, setProgress] = useState(0);
-//   useEffect(() => {
-//     const update = () => {
-//       const h = document.documentElement;
-//       const scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight);
-//       setProgress(Math.min(100, Math.max(0, scrolled * 100)));
-//     };
-//     window.addEventListener("scroll", update, { passive: true });
-//     return () => window.removeEventListener("scroll", update);
-//   }, []);
-//   return (
-//     <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-transparent">
-//       <div
-//         className="h-full bg-gradient-to-r from-red-500 via-red-600 to-black transition-[width] duration-150 ease-out"
-//         style={{ width: `${progress}%` }}
-//       />
-//     </div>
-//   );
-// };
 
 // const Navbar = () => {
 //   const { user, setUser } = getData();
@@ -1065,7 +1182,6 @@ export default Navbar;
 //   const [categories, setCategories] = useState([]);
 //   const [categoriesLoading, setCategoriesLoading] = useState(true);
 //   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
-//   const [scrollY, setScrollY] = useState(0);
 
 //   // ─── Refs ──────────────────────────────────────────────
 //   const sidebarRef = useRef(null);
@@ -1236,10 +1352,7 @@ export default Navbar;
 
 //   // ─── Scroll shadow + compact mode ───────────────────
 //   useEffect(() => {
-//     const handleScroll = () => {
-//       setIsScrolled(window.scrollY > 10);
-//       setScrollY(window.scrollY);
-//     };
+//     const handleScroll = () => setIsScrolled(window.scrollY > 10);
 //     window.addEventListener("scroll", handleScroll, { passive: true });
 //     return () => window.removeEventListener("scroll", handleScroll);
 //   }, []);
@@ -1353,32 +1466,14 @@ export default Navbar;
 //   // ─── Render ──────────────────────────────────────────
 //   return (
 //     <header
-//       className={`w-full bg-white/95 backdrop-blur-xl sticky top-0 z-50 transition-all duration-500 ease-out ${
-//         isScrolled
-//           ? "shadow-[0_4px_30px_-4px_rgba(0,0,0,0.08)] border-b border-gray-200/60"
-//           : "shadow-none border-b border-transparent"
+//       className={`w-full bg-white sticky top-0 z-50 transition-shadow duration-300 ease-in-out ${
+//         isScrolled ? "shadow-sm" : ""
 //       }`}
 //     >
 //       <style>{`
-//         @keyframes shimmer {
-//           0% { background-position: 200% 0; }
-//           100% { background-position: -200% 0; }
-//         }
 //         @keyframes fadeInRight {
 //           from { opacity: 0; transform: translateX(8px); }
 //           to { opacity: 1; transform: translateX(0); }
-//         }
-//         @keyframes fadeInUp {
-//           from { opacity: 0; transform: translateY(4px); }
-//           to { opacity: 1; transform: translateY(0); }
-//         }
-//         @keyframes scaleIn {
-//           from { opacity: 0; transform: scale(0.96); }
-//           to { opacity: 1; transform: scale(1); }
-//         }
-//         @keyframes slideDown {
-//           from { opacity: 0; transform: translateY(-8px); }
-//           to { opacity: 1; transform: translateY(0); }
 //         }
 //         @media (prefers-reduced-motion: reduce) {
 //           *, *::before, *::after {
@@ -1387,55 +1482,46 @@ export default Navbar;
 //           }
 //         }
 //       `}</style>
-
-//       {/* Reading progress bar (only visible when scrolled) */}
-//       {isScrolled && <ReadingProgress />}
-
-//       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 //         {/* ─── Top Header ──────────────────────────────────── */}
 //         <div
-//           className={`relative flex items-center justify-between transition-all duration-500 ease-out ${
-//             isScrolled
-//               ? "py-2 sm:py-2.5 lg:py-2.5"
-//               : "py-3 sm:py-4 md:py-5 lg:py-4 xl:py-6"
+//           className={`relative flex items-center justify-between transition-[padding] duration-300 ease-in-out ${
+//             isScrolled ? "py-2.5 sm:py-3" : "py-3 sm:py-4 md:py-5 lg:py-4 xl:py-5"
 //           }`}
 //         >
 //           {/* Left: Hamburger + Search */}
-//           <div className="flex items-center gap-2 sm:gap-3 text-gray-700 z-10">
+//           <div className="flex items-center gap-3 sm:gap-4 text-gray-700">
 //             <button
 //               ref={menuButtonRef}
 //               onClick={toggleSidebar}
-//               className="group relative hover:text-black rounded-xl p-2 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 hover:bg-gray-100/80 active:scale-95"
+//               className="hover:text-black rounded-full p-1 transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
 //               aria-label={sidebarOpen ? "Close menu" : "Open menu"}
 //               aria-expanded={sidebarOpen}
 //               aria-controls="sidebar-drawer"
 //             >
-//               <span className="inline-flex transition-transform duration-300 ease-out group-hover:rotate-90">
+//               <span className="inline-flex transition-transform duration-200 ease-in-out">
 //                 {sidebarOpen ? <FiX size={22} /> : <FiMenu size={22} />}
 //               </span>
 //             </button>
 //             <button
 //               onClick={() => setSearchOpen((v) => !v)}
-//               className="group relative flex items-center gap-2 hover:text-black rounded-xl px-2 sm:px-3 py-2 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 hover:bg-gray-100/80 active:scale-95"
+//               className="hover:text-black rounded-full p-1 transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
 //               aria-label="Toggle search"
 //               aria-expanded={searchOpen}
 //               title="Search (press /)"
 //             >
-//               <FiSearch size={18} className="sm:size-[19px] transition-transform duration-200 group-hover:scale-110" />
-//               <span className="hidden xl:inline-flex items-center gap-1 text-[10px] font-semibold text-gray-400 border border-gray-200 rounded-md px-1.5 py-0.5 group-hover:border-gray-300 group-hover:text-gray-500 transition-colors">
-//                 <FiCommand size={10} /> /
-//               </span>
+//               <FiSearch size={18} className="sm:size-5 mb-1" />
 //             </button>
 //           </div>
 
 //           {/* ─── Logo ────────────────────────────────── */}
 //           <Link
 //             to="/"
-//             className="absolute left-1/2 -translate-x-1/2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 rounded-xl transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] z-10"
+//             className="absolute left-1/2 -translate-x-1/2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black rounded transition-opacity duration-200 ease-in-out hover:opacity-80"
 //           >
 //             <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3">
 //               <FiFeather
-//                 className="text-black shrink-0 transition-transform duration-500 ease-out group-hover:rotate-[-10deg]"
+//                 className="text-black shrink-0"
 //                 style={{ width: "clamp(20px, 3vw, 32px)", height: "clamp(20px, 3vw, 32px)" }}
 //               />
 //               <h1
@@ -1443,7 +1529,7 @@ export default Navbar;
 //                 style={{ fontSize: "clamp(1.25rem, 2.6vw, 2rem)" }}
 //               >
 //                 <span className="font-light text-gray-800">𝙵𝙴𝙰𝚃𝙷𝙴𝚁𝙴𝙳</span>
-//                 <span className="font-extrabold text-black bg-gradient-to-r from-black to-gray-700 bg-clip-text">NEWS</span>
+//                 <span className="font-extrabold text-black">NEWS</span>
 //               </h1>
 //             </div>
 //             <p className="tracking-[4px] sm:tracking-[6px] md:tracking-[8px] uppercase text-[10px] sm:text-[11px] md:text-[12px] mt-1 sm:mt-2 text-gray-400 font-light">
@@ -1452,57 +1538,74 @@ export default Navbar;
 //           </Link>
 
 //           {/* Right: Social + Auth */}
-//           <div className="flex items-center gap-2 sm:gap-4 lg:gap-5 z-10">
-//             <div className="hidden lg:flex items-center gap-2 text-gray-600">
-//               {[
-//                 { Icon: FaFacebookF, href: "#", label: "Facebook" },
-//                 { Icon: FaXTwitter, href: "https://x.com/feathered_pen", label: "Twitter" },
-//                 { Icon: FaInstagram, href: "#", label: "Instagram" },
-//                 { Icon: FaYoutube, href: "https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo", label: "YouTube" },
-//               ].map(({ Icon, href, label }) => (
-//                 <a
-//                   key={label}
-//                   href={href}
-//                   aria-label={label}
-//                   className="group relative flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 hover:bg-black hover:text-white hover:border-black transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 hover:scale-110 hover:-translate-y-0.5 active:scale-95"
-//                 >
-//                   <Icon size={15} className="transition-transform duration-300" />
-//                 </a>
-//               ))}
+//           <div className="flex items-center gap-4 lg:gap-5">
+//             <div className="hidden lg:flex items-center gap-2.5 text-gray-600">
+//               <a
+//                 href="#"
+//                 aria-label="Facebook"
+//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+//               >
+//                 <FaFacebookF size={16} />
+//               </a>
+//               <a
+//                 href="https://x.com/feathered_pen"
+//                 aria-label="Twitter"
+//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+//               >
+//                 <FaXTwitter size={16} />
+//               </a>
+//               <a
+//                 href="#"
+//                 aria-label="Instagram"
+//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+//               >
+//                 <FaInstagram size={16} />
+//               </a>
+//               <a
+//                 href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
+//                 aria-label="YouTube"
+//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+//               >
+//                 <FaYoutube size={16} />
+//               </a>
 //             </div>
 
 //             {/* Auth */}
 //             {user ? (
-//               <Link
-//                 to={profileRoute}
-//                 className="group flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-//               >
-//                 <div className="relative">
-//                   <Avatar className="h-8 w-8 ring-2 ring-transparent group-hover:ring-red-500 transition-all duration-300 group-hover:scale-105">
-//                     <AvatarImage src={getAvatarUrl(user?.avatar)} />
-//                     <AvatarFallback className="bg-gradient-to-br from-gray-200 to-gray-300 text-gray-700 text-xs font-bold">
-//                       {getUserInitials()}
-//                       {getRoleBadge() && <span className="ml-0.5 text-[8px]">{getRoleBadge()}</span>}
-//                     </AvatarFallback>
-//                   </Avatar>
-//                   <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
-//                 </div>
-//               </Link>
+//               <div className="flex items-center gap-3">
+//                 <Link
+//                   to={profileRoute}
+//                   className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-100 group transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+//                 >
+//                   <div className="relative">
+//                     <Avatar className="h-8 w-8 transition-transform duration-200 ease-in-out group-hover:scale-105">
+//                       <AvatarImage src={getAvatarUrl(user?.avatar)} />
+//                       <AvatarFallback className="bg-gray-200 text-gray-700 text-xs font-bold">
+//                         {getUserInitials()}
+//                         {getRoleBadge() && (
+//                           <span className="ml-0.5 text-[8px]">{getRoleBadge()}</span>
+//                         )}
+//                       </AvatarFallback>
+//                     </Avatar>
+//                   </div>
+//                 </Link>
+//               </div>
 //             ) : (
-//               <Link
-//                 to="/login"
-//                 className="group flex items-center justify-center gap-2 w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-full sm:rounded-xl text-gray-600 hover:text-white hover:bg-black transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-//                 aria-label="Log in"
-//               >
-//                 <User size={18} className="sm:size-[16px] transition-transform duration-300 group-hover:scale-110" />
-//                 <span className="hidden sm:inline text-xs font-semibold uppercase tracking-wide">Sign In</span>
-//               </Link>
+//               <div className="flex items-center gap-2">
+//                 <Link
+//                   to="/login"
+//                   className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-gray-600 hover:text-black transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+//                   aria-label="Log in"
+//                 >
+//                   <User size={20} className="sm:size-[22px]" />
+//                 </Link>
+//               </div>
 //             )}
 //           </div>
 //         </div>
 
 //         {/* ─── DESKTOP PRIMARY NAV + CATEGORIES MEGA MENU ──── */}
-//         <div className="hidden lg:block relative border-t border-gray-200/60">
+//         <div className="hidden lg:block relative border-t border-gray-200">
 //           <div className="flex items-center justify-between py-2.5 gap-6">
 //             <nav aria-label="Primary" className="flex items-center gap-1">
 //               {primaryNavItems.map((item) => (
@@ -1510,16 +1613,13 @@ export default Navbar;
 //                   key={item.label}
 //                   to={item.link}
 //                   aria-current={isLinkActive(item.link) ? "page" : undefined}
-//                   className={`group relative px-3.5 py-2 text-xs font-semibold uppercase tracking-wider rounded-full transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 ${
+//                   className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
 //                     isLinkActive(item.link)
-//                       ? "bg-black text-white shadow-lg shadow-black/10"
+//                       ? "bg-black text-white"
 //                       : "text-gray-600 hover:bg-gray-100 hover:text-black"
 //                   }`}
 //                 >
 //                   {item.label}
-//                   {!isLinkActive(item.link) && (
-//                     <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-black rounded-full transition-all duration-300 group-hover:w-4" />
-//                   )}
 //                 </Link>
 //               ))}
 
@@ -1535,17 +1635,14 @@ export default Navbar;
 //                   onClick={() => setMegaMenuOpen((v) => !v)}
 //                   aria-haspopup="true"
 //                   aria-expanded={megaMenuOpen}
-//                   className={`group flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold uppercase tracking-wider rounded-full transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 ${
-//                     megaMenuOpen
-//                       ? "bg-gradient-to-r from-gray-900 to-black text-white shadow-lg shadow-black/10"
-//                       : "text-gray-600 hover:bg-gray-100 hover:text-black"
+//                   className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+//                     megaMenuOpen ? "bg-gray-100 text-black" : "text-gray-600 hover:bg-gray-100 hover:text-black"
 //                   }`}
 //                 >
-//                   <FiZap size={12} className={megaMenuOpen ? "text-yellow-400" : "text-gray-400"} />
 //                   Categories
 //                   <FiChevronDown
 //                     size={14}
-//                     className={`transition-transform duration-300 ${megaMenuOpen ? "rotate-180" : ""}`}
+//                     className={`transition-transform duration-200 ${megaMenuOpen ? "rotate-180" : ""}`}
 //                   />
 //                 </button>
 
@@ -1553,56 +1650,40 @@ export default Navbar;
 //                   ref={megaMenuRef}
 //                   onMouseEnter={openMegaMenu}
 //                   onMouseLeave={scheduleCloseMegaMenu}
-//                   className={`absolute left-0 top-full mt-3 w-[460px] xl:w-[560px] bg-white/95 backdrop-blur-xl border border-gray-200/80 shadow-2xl shadow-black/5 rounded-2xl p-5 z-50 origin-top-left transition-all duration-300 ease-out ${
+//                   className={`absolute left-0 top-full mt-2 w-[420px] xl:w-[520px] bg-white border border-gray-200 shadow-xl rounded-lg p-4 z-50 origin-top transition-all duration-200 ease-out ${
 //                     megaMenuOpen
-//                       ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
-//                       : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+//                       ? "opacity-100 scale-100 pointer-events-auto"
+//                       : "opacity-0 scale-95 pointer-events-none"
 //                   }`}
 //                   role="menu"
 //                 >
-//                   <div className="flex items-center justify-between mb-4">
-//                     <p className="text-[10px] font-bold uppercase tracking-[2.5px] text-gray-400 flex items-center gap-1.5">
-//                       <FiZap size={10} className="text-yellow-500" />
-//                       Browse by category
-//                     </p>
-//                     <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-//                       {categories.length} beats
-//                     </span>
-//                   </div>
+//                   <p className="text-[10px] font-bold uppercase tracking-[2px] text-gray-400 mb-3">
+//                     Browse by category
+//                   </p>
 //                   <div className="flex flex-wrap gap-2">
 //                     {categoriesLoading
 //                       ? Array.from({ length: 8 }).map((_, i) => <PillSkeleton key={i} />)
-//                       : categories.map((cat, idx) => {
+//                       : categories.map((cat) => {
 //                           const c = beatColor(cat);
 //                           return (
 //                             <Link
 //                               key={cat}
 //                               to={`/news?category=${encodeURIComponent(cat)}`}
 //                               role="menuitem"
-//                               className="group/pill relative text-xs font-semibold px-3.5 py-2 rounded-full transition-all duration-200 ease-out hover:scale-[1.06] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-//                               style={{ color: c.fg, backgroundColor: c.bg, animationDelay: `${idx * 30}ms` }}
+//                               className="text-xs font-semibold px-3 py-1.5 rounded-full transition-transform duration-150 hover:scale-[1.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+//                               style={{ color: c.fg, backgroundColor: c.bg }}
 //                             >
 //                               {cat}
-//                               <FiArrowUpRight
-//                                 size={10}
-//                                 className="absolute -top-0.5 -right-0.5 opacity-0 group-hover/pill:opacity-100 transition-opacity duration-200"
-//                               />
 //                             </Link>
 //                           );
 //                         })}
 //                   </div>
-//                   <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between">
-//                     <Link
-//                       to="/news"
-//                       className="group inline-flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-red-600 transition-colors duration-200"
-//                     >
-//                       View all stories
-//                       <FiChevronRight size={13} className="transition-transform duration-200 group-hover:translate-x-0.5" />
-//                     </Link>
-//                     <span className="text-[10px] text-gray-400 font-medium">
-//                       Press <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[9px] font-mono">/</kbd> to search
-//                     </span>
-//                   </div>
+//                   <Link
+//                     to="/news"
+//                     className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-600"
+//                   >
+//                     View all stories <FiChevronRight size={13} />
+//                   </Link>
 //                 </div>
 //               </div>
 
@@ -1611,16 +1692,13 @@ export default Navbar;
 //                   key={item.label}
 //                   to={item.link}
 //                   aria-current={isLinkActive(item.link) ? "page" : undefined}
-//                   className={`group relative px-3.5 py-2 text-xs font-semibold uppercase tracking-wider rounded-full transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 ${
+//                   className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wide rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
 //                     isLinkActive(item.link)
-//                       ? "bg-black text-white shadow-lg shadow-black/10"
+//                       ? "bg-black text-white"
 //                       : "text-gray-600 hover:bg-gray-100 hover:text-black"
 //                   }`}
 //                 >
 //                   {item.label}
-//                   {!isLinkActive(item.link) && (
-//                     <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-black rounded-full transition-all duration-300 group-hover:w-4" />
-//                   )}
 //                 </Link>
 //               ))}
 //             </nav>
@@ -1629,9 +1707,9 @@ export default Navbar;
 //             <div className="flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory min-w-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 //               <Link
 //                 to="/news"
-//                 className={`snap-start shrink-0 text-[11px] font-semibold uppercase tracking-wider px-3.5 py-1.5 rounded-full border transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 hover:scale-105 ${
+//                 className={`snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
 //                   location.pathname === "/news" && !new URLSearchParams(location.search).get("category")
-//                     ? "bg-black text-white border-black shadow-lg shadow-black/10"
+//                     ? "bg-black text-white border-black"
 //                     : "bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black"
 //                 }`}
 //               >
@@ -1646,10 +1724,10 @@ export default Navbar;
 //                       <Link
 //                         key={cat}
 //                         to={`/news?category=${encodeURIComponent(cat)}`}
-//                         className="snap-start shrink-0 text-[11px] font-semibold uppercase tracking-wider px-3.5 py-1.5 rounded-full border transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 hover:scale-105"
+//                         className="snap-start shrink-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 rounded-full border transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
 //                         style={
 //                           active
-//                             ? { color: c.bg, backgroundColor: c.fg, borderColor: c.fg, boxShadow: `0 4px 12px ${c.fg}33` }
+//                             ? { color: c.bg, backgroundColor: c.fg, borderColor: c.fg }
 //                             : { color: c.fg, borderColor: "transparent", backgroundColor: c.bg }
 //                         }
 //                       >
@@ -1659,51 +1737,45 @@ export default Navbar;
 //                   })}
 //             </div>
 //           </div>
-//           <div className="pointer-events-none absolute top-0 right-0 h-full w-12 bg-gradient-to-l from-white via-white/80 to-transparent" />
+//           <div className="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white to-transparent" />
 //         </div>
 //       </div>
 
 //       {/* ─── Search Bar ────────────────────────────────────── */}
 //       <div
-//         className={`overflow-hidden transition-all duration-500 ease-out ${
-//           searchOpen ? "max-h-40 opacity-100 border-t border-gray-200/60" : "max-h-0 opacity-0"
+//         className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${
+//           searchOpen ? "max-h-32 opacity-100 border-t border-gray-200" : "max-h-0 opacity-0"
 //         }`}
 //       >
-//         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-4">
-//           <form onSubmit={handleSearchSubmit} className="relative group">
-//             <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors duration-300 group-focus-within:text-black" size={18} />
+//         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+//           <form onSubmit={handleSearchSubmit} className="relative">
+//             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
 //             <input
 //               ref={searchInputRef}
 //               type="text"
 //               value={searchQuery}
 //               onChange={(e) => setSearchQuery(e.target.value)}
 //               placeholder="Search articles, topics, or keywords..."
-//               className="w-full pl-11 pr-24 py-3 text-sm border border-gray-200 rounded-2xl bg-gray-50/50 transition-all duration-300 ease-out focus:border-black focus:bg-white focus:outline-none focus:ring-4 focus:ring-black/5 placeholder:text-gray-400"
+//               className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md transition-colors duration-200 ease-in-out focus:border-black focus:outline-none"
 //               aria-label="Search"
 //             />
-//             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-//               {searchQuery && (
-//                 <button
-//                   type="button"
-//                   onClick={() => {
-//                     setSearchQuery("");
-//                     searchInputRef.current?.focus();
-//                   }}
-//                   aria-label="Clear search"
-//                   className="p-1.5 rounded-lg text-gray-400 hover:text-black hover:bg-gray-100 transition-all duration-200"
-//                 >
-//                   <FiX size={16} />
-//                 </button>
-//               )}
-//               <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 rounded-lg text-[10px] font-mono text-gray-400 shadow-sm">
-//                 <FiCommand size={10} /> /
-//               </kbd>
-//             </div>
+//             {searchQuery && (
+//               <button
+//                 type="button"
+//                 onClick={() => {
+//                   setSearchQuery("");
+//                   searchInputRef.current?.focus();
+//                 }}
+//                 aria-label="Clear search"
+//                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
+//               >
+//                 <FiX size={16} />
+//               </button>
+//             )}
 //           </form>
 //           {!searchQuery && categories.length > 0 && (
-//             <div className="flex flex-wrap items-center gap-2 mt-3 animate-[fadeInUp_0.3s_ease-out]">
-//               <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold flex items-center gap-1">
-//                 <FiZap size={10} className="text-yellow-500" />
+//             <div className="flex flex-wrap items-center gap-2 mt-2.5">
+//               <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
 //                 Popular:
 //               </span>
 //               {categories.slice(0, 5).map((cat) => (
@@ -1714,7 +1786,7 @@ export default Navbar;
 //                     navigate(`/news?category=${encodeURIComponent(cat)}`);
 //                     setSearchOpen(false);
 //                   }}
-//                   className="text-xs text-gray-600 hover:text-red-500 transition-all duration-200 underline decoration-gray-300 underline-offset-2 hover:decoration-red-500 hover:-translate-y-0.5"
+//                   className="text-xs text-gray-600 hover:text-red-500 transition-colors underline decoration-gray-300 underline-offset-2"
 //                 >
 //                   {cat}
 //                 </button>
@@ -1726,7 +1798,7 @@ export default Navbar;
 
 //       {/* ─── Sidebar (Drawer) ──────────────────────────────── */}
 //       <div
-//         className={`fixed inset-0 bg-black/50 backdrop-blur-md z-40 transition-all duration-500 ease-out ${
+//         className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 ease-in-out ${
 //           sidebarOpen ? "opacity-100 block" : "opacity-0 hidden"
 //         }`}
 //         onClick={closeSidebar}
@@ -1739,7 +1811,7 @@ export default Navbar;
 //         onTouchStart={handleTouchStart}
 //         onTouchMove={handleTouchMove}
 //         onTouchEnd={handleTouchEnd}
-//         className={`fixed top-0 right-0 h-full w-[300px] sm:w-[360px] max-w-[88vw] bg-white/95 backdrop-blur-xl z-50 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform shadow-2xl shadow-black/20 ${
+//         className={`fixed top-0 right-0 h-full w-[280px] sm:w-[320px] max-w-[85vw] bg-white z-50 transition-transform duration-300 ease-in-out will-change-transform ${
 //           sidebarOpen ? "translate-x-0" : "translate-x-full"
 //         }`}
 //         role="dialog"
@@ -1749,37 +1821,32 @@ export default Navbar;
 //       >
 //         <div className="flex flex-col h-full">
 //           {/* Header */}
-//           <div className="flex items-center justify-between p-5 border-b border-gray-200/60 bg-gradient-to-r from-gray-50 to-white">
-//             <div className="flex items-center gap-2.5">
-//               <div className="w-9 h-9 rounded-xl bg-black flex items-center justify-center">
-//                 <FiFeather className="text-white" size={18} />
-//               </div>
-//               <div>
-//                 <span className="font-bold text-sm block">Menu</span>
-//                 <span className="text-[10px] text-gray-400 uppercase tracking-wider">Navigate</span>
-//               </div>
+//           <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50/50">
+//             <div className="flex items-center gap-2">
+//               <FiFeather className="text-xl text-black" />
+//               <span className="font-bold text-sm">Menu</span>
 //             </div>
 //             <button
 //               ref={closeButtonRef}
 //               onClick={closeSidebar}
-//               className="p-2 hover:bg-gray-200 rounded-xl transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 hover:rotate-90 active:scale-95"
+//               className="p-2 hover:bg-gray-200 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
 //               aria-label="Close menu"
 //             >
-//               <FiX size={22} />
+//               <FiX size={24} />
 //             </button>
 //           </div>
 
 //           {/* User Profile */}
 //           {user && (
-//             <div className="p-4 bg-gradient-to-br from-gray-50 via-white to-gray-50 border-b border-gray-100">
+//             <div className="p-4 bg-gradient-to-r from-gray-50 to-white">
 //               <Link
 //                 to={profileRoute}
 //                 onClick={closeSidebar}
-//                 className="flex items-center gap-3 group p-2 rounded-2xl hover:bg-white transition-all duration-300"
+//                 className="flex items-center gap-3 group"
 //               >
-//                 <Avatar className="h-12 w-12 ring-2 ring-gray-100 group-hover:ring-red-500 transition-all duration-300 group-hover:scale-105">
+//                 <Avatar className="h-12 w-12 transition-transform duration-200 ease-in-out group-hover:scale-105">
 //                   <AvatarImage src={getAvatarUrl(user?.avatar)} />
-//                   <AvatarFallback className="bg-gradient-to-br from-gray-200 to-gray-300 text-gray-700 text-sm font-bold">
+//                   <AvatarFallback className="bg-gray-200 text-gray-700 text-sm font-bold">
 //                     {getUserInitials()}
 //                   </AvatarFallback>
 //                 </Avatar>
@@ -1789,21 +1856,20 @@ export default Navbar;
 //                   </p>
 //                   <p className="text-xs text-gray-500 truncate">{user?.email || ""}</p>
 //                   {userRole === "admin" && (
-//                     <span className="inline-flex items-center gap-1 mt-1 text-[9px] font-bold uppercase bg-gradient-to-r from-black to-gray-700 text-white px-2 py-0.5 rounded-full">
-//                       <FiZap size={8} className="text-yellow-400" />
+//                     <span className="inline-block mt-0.5 text-[9px] font-bold uppercase bg-black text-white px-2 py-0.5 rounded">
 //                       Admin
 //                     </span>
 //                   )}
 //                 </div>
-//                 <FiChevronRight className="text-gray-400 group-hover:text-black transition-all duration-300 group-hover:translate-x-1" size={18} />
+//                 <FiChevronRight className="text-gray-400 group-hover:text-black transition-all duration-200 ease-in-out group-hover:translate-x-0.5" size={18} />
 //               </Link>
 //             </div>
 //           )}
 
 //           {/* Navigation Links */}
-//           <nav className="flex-1 overflow-y-auto py-3 px-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
-//             <ul className="space-y-1">
-//               {navItems.map((item, idx) => {
+//           <nav className="flex-1 overflow-y-auto py-2">
+//             <ul className="space-y-0.5">
+//               {navItems.map((item) => {
 //                 const subItems = item.sub || [];
 //                 const hasSub = subItems.length > 0;
 //                 const isActive = location.pathname === item.link;
@@ -1811,41 +1877,30 @@ export default Navbar;
 //                 if (hasSub) {
 //                   const isOpen = mobileOpenDropdown === item.label;
 //                   return (
-//                     <li
-//                       key={item.label}
-//                       className="animate-[fadeInRight_0.3s_ease-out]"
-//                       style={{ animationDelay: `${idx * 40}ms` }}
-//                     >
+//                     <li key={item.label} className="border-b border-gray-100 last:border-0">
 //                       <button
 //                         onClick={() => toggleMobileDropdown(item.label)}
-//                         className={`group flex items-center w-full px-4 py-3 rounded-xl text-left transition-all duration-300 ease-out ${
-//                           isOpen
-//                             ? "bg-black text-white shadow-lg shadow-black/10"
-//                             : "hover:bg-gray-100 text-gray-700"
+//                         className={`flex items-center w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-200 ease-in-out ${
+//                           isActive ? "bg-gray-50" : ""
 //                         }`}
 //                         aria-expanded={isOpen}
 //                       >
-//                         <span className="flex-1 font-semibold text-sm">{item.label}</span>
-//                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mr-2 ${
-//                           isOpen ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"
-//                         }`}>
-//                           {subItems.length}
-//                         </span>
+//                         <span className="flex-1 font-medium text-gray-700">{item.label}</span>
 //                         <FiChevronDown
-//                           className={`transition-transform duration-300 ease-out ${
+//                           className={`transform transition-transform duration-300 ease-in-out ${
 //                             isOpen ? "rotate-180" : ""
-//                           }`}
+//                           } text-gray-400`}
 //                           size={16}
 //                         />
 //                       </button>
 //                       <div
-//                         className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-//                           isOpen ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+//                         className={`overflow-hidden transition-[max-height] duration-300 ease-in-out ${
+//                           isOpen ? "max-h-[500px]" : "max-h-0"
 //                         }`}
 //                       >
-//                         <ul className="mt-1 ml-3 pl-3 border-l-2 border-gray-200 space-y-0.5 py-1">
+//                         <ul className="bg-gray-50/80 py-1">
 //                           {categoriesLoading ? (
-//                             <li className="px-2 py-2.5 flex gap-2">
+//                             <li className="px-8 py-2.5 flex gap-2">
 //                               <PillSkeleton w="w-16" />
 //                               <PillSkeleton w="w-20" />
 //                             </li>
@@ -1854,7 +1909,7 @@ export default Navbar;
 //                               <li key={sub.label}>
 //                                 <Link
 //                                   to={sub.link}
-//                                   className="block px-4 py-2.5 text-sm text-gray-600 rounded-lg hover:bg-gray-100 hover:text-black hover:translate-x-1 transition-all duration-200 ease-out"
+//                                   className="block px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition-colors duration-200 ease-in-out"
 //                                   onClick={closeSidebar}
 //                                 >
 //                                   {sub.label}
@@ -1869,31 +1924,17 @@ export default Navbar;
 //                 }
 
 //                 return (
-//                   <li
-//                     key={item.label}
-//                     className="animate-[fadeInRight_0.3s_ease-out]"
-//                     style={{ animationDelay: `${idx * 40}ms` }}
-//                   >
+//                   <li key={item.label}>
 //                     <Link
 //                       to={item.link}
 //                       aria-current={isActive ? "page" : undefined}
-//                       className={`group flex items-center px-4 py-3 rounded-xl transition-all duration-300 ease-out ${
-//                         isActive
-//                           ? "bg-black text-white shadow-lg shadow-black/10"
-//                           : "text-gray-700 hover:bg-gray-100 hover:translate-x-1"
+//                       className={`flex items-center px-4 py-3 hover:bg-gray-50 transition-colors duration-200 ease-in-out ${
+//                         isActive ? "bg-gray-50 text-black" : "text-gray-700"
 //                       }`}
 //                       onClick={closeSidebar}
 //                     >
-//                       <span className="font-semibold text-sm">{item.label}</span>
-//                       {isActive && (
-//                         <span className="ml-auto flex items-center gap-1.5">
-//                           <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-//                           <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">Active</span>
-//                         </span>
-//                       )}
-//                       {!isActive && (
-//                         <FiChevronRight size={14} className="ml-auto text-gray-300 group-hover:text-black group-hover:translate-x-1 transition-all duration-300" />
-//                       )}
+//                       <span className="font-medium">{item.label}</span>
+//                       {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />}
 //                     </Link>
 //                   </li>
 //                 );
@@ -1902,23 +1943,36 @@ export default Navbar;
 //           </nav>
 
 //           {/* Footer */}
-//           <div className="border-t border-gray-200/60 bg-gradient-to-t from-gray-50 to-white">
-//             <div className="flex justify-center gap-2.5 py-4 px-4 border-b border-gray-200/60">
-//               {[
-//                 { Icon: FaFacebookF, href: "#", label: "Facebook" },
-//                 { Icon: FaXTwitter, href: "https://x.com/feathered_pen", label: "Twitter" },
-//                 { Icon: FaInstagram, href: "#", label: "Instagram" },
-//                 { Icon: FaYoutube, href: "https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo", label: "YouTube" },
-//               ].map(({ Icon, href, label }) => (
-//                 <a
-//                   key={label}
-//                   href={href}
-//                   aria-label={label}
-//                   className="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 hover:scale-110 hover:-translate-y-0.5 active:scale-95"
-//                 >
-//                   <Icon size={16} />
-//                 </a>
-//               ))}
+//           <div className="border-t border-gray-200 bg-gray-50/50">
+//             <div className="flex justify-center gap-2.5 py-4 px-4 border-b border-gray-200">
+//               <a
+//                 href="#"
+//                 aria-label="Facebook"
+//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+//               >
+//                 <FaFacebookF size={16} />
+//               </a>
+//               <a
+//                 href="https://x.com/feathered_pen"
+//                 aria-label="Twitter"
+//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+//               >
+//                 <FaXTwitter size={16} />
+//               </a>
+//               <a
+//                 href="#"
+//                 aria-label="Instagram"
+//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+//               >
+//                 <FaInstagram size={16} />
+//               </a>
+//               <a
+//                 href="https://youtube.com/@featheredpen1?si=AXxxHTs8adUmQQlo"
+//                 aria-label="YouTube"
+//                 className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+//               >
+//                 <FaYoutube size={16} />
+//               </a>
 //             </div>
 //             <div className="p-4">
 //               {user ? (
@@ -1926,18 +1980,16 @@ export default Navbar;
 //                   {userRole === "admin" && (
 //                     <Link
 //                       to="/admin/dashboard"
-//                       className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-900 to-black hover:from-black hover:to-gray-900 rounded-xl text-sm font-semibold text-white transition-all duration-300 ease-out hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5 active:scale-[0.98]"
+//                       className="flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors duration-200 ease-in-out"
 //                       onClick={closeSidebar}
 //                     >
-//                       <FiZap size={14} className="text-yellow-400" />
 //                       Admin Panel
 //                     </Link>
 //                   )}
 //                   <button
 //                     onClick={logoutHandler}
-//                     className="flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 rounded-xl text-sm font-semibold text-red-600 hover:text-red-700 transition-all duration-300 ease-out hover:shadow-lg hover:shadow-red-500/10 hover:-translate-y-0.5 active:scale-[0.98]"
+//                     className="flex items-center justify-center px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition-colors duration-200 ease-in-out"
 //                   >
-//                     <FiLogIn size={14} className="rotate-180" />
 //                     Sign Out
 //                   </button>
 //                 </div>
@@ -1945,18 +1997,18 @@ export default Navbar;
 //                 <div className="flex gap-2">
 //                   <Link
 //                     to="/login"
-//                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-900 to-black text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-black/20 transition-all duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.98]"
+//                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors duration-200 ease-in-out"
 //                     onClick={closeSidebar}
 //                   >
-//                     <FiLogIn size={14} />
+//                     <FiLogIn size={16} />
 //                     Log In
 //                   </Link>
 //                   <Link
 //                     to="/signup"
-//                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-semibold text-gray-700 transition-all duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.98]"
+//                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors duration-200 ease-in-out"
 //                     onClick={closeSidebar}
 //                   >
-//                     <FiUser size={14} />
+//                     <FiUser size={16} />
 //                     Sign Up
 //                   </Link>
 //                 </div>
@@ -1970,3 +2022,7 @@ export default Navbar;
 // };
 
 // export default Navbar;
+
+
+
+
