@@ -844,10 +844,326 @@ const Navbar = () => {
         className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${
           searchOpen
             ? "max-h-40 opacity-100 border-t border-gray-200"
-            : "max-h-0 opacity-0
+            : "max-h-0 opacity-0"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-3">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <FiSearch
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={18}
+            />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search articles, topics, or keywords..."
+              className="w-full pl-10 pr-20 py-2.5 text-sm border border-gray-300 rounded-lg transition-all duration-200 ease-in-out focus:border-black focus:ring-1 focus:ring-black focus:outline-none"
+              aria-label="Search"
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    searchInputRef.current?.focus();
+                  }}
+                  aria-label="Clear search"
+                  className="p-1.5 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100"
+                >
+                  <FiX size={14} />
+                </button>
+              )}
+              <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-gray-500 bg-gray-100 border border-gray-200 rounded">
+                ESC
+              </kbd>
+            </div>
+          </form>
+          {!searchQuery && categories.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mt-2.5">
+              <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
+                Popular:
+              </span>
+              {categories.slice(0, 5).map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => {
+                    navigate(`/news?category=${encodeURIComponent(cat)}`);
+                    setSearchOpen(false);
+                  }}
+                  className="text-xs text-gray-600 hover:text-red-500 transition-colors underline decoration-gray-300 underline-offset-2"
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
+      {/* ─── Sidebar (Drawer) ──────────────────────────────── */}
+      <div
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300 ease-in-out ${
+          sidebarOpen ? "opacity-100 block" : "opacity-0 pointer-events-none hidden"
+        }`}
+        onClick={closeSidebar}
+        aria-hidden="true"
+      />
 
+      <div
+        id="sidebar-drawer"
+        ref={sidebarRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={`fixed top-0 right-0 h-full w-[300px] xs:w-[320px] sm:w-[360px] max-w-[88vw] bg-white z-50 transition-transform duration-300 ease-in-out will-change-transform shadow-2xl ${
+          sidebarOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+        aria-hidden={!sidebarOpen}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50/50">
+            <div className="flex items-center gap-2">
+              <FiFeather className="text-xl text-black" />
+              <span className="font-bold text-sm">Menu</span>
+            </div>
+            <button
+              ref={closeButtonRef}
+              onClick={closeSidebar}
+              className="p-2 hover:bg-gray-200 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              aria-label="Close menu"
+            >
+              <FiX size={24} />
+            </button>
+          </div>
 
+          {/* Search in Sidebar */}
+          <div className="p-4 border-b border-gray-100">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const q = searchQuery.trim();
+                if (q) {
+                  navigate(`/news?search=${encodeURIComponent(q)}`);
+                  setSearchQuery("");
+                  closeSidebar();
+                }
+              }}
+              className="relative"
+            >
+              <FiSearch
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                size={16}
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search..."
+                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:border-black focus:outline-none transition-colors"
+              />
+            </form>
+          </div>
+
+          {/* User Profile */}
+          {user && (
+            <div className="p-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+              <Link
+                to={profileRoute}
+                onClick={closeSidebar}
+                className="flex items-center gap-3 group"
+              >
+                <Avatar className="h-12 w-12 transition-transform duration-200 ease-in-out group-hover:scale-105 ring-2 ring-gray-100">
+                  <AvatarImage src={getAvatarUrl(user?.avatar)} />
+                  <AvatarFallback className="bg-gray-200 text-gray-700 text-sm font-bold">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {user?.fullname || "User"}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {user?.email || ""}
+                  </p>
+                  {userRole === "admin" && (
+                    <span className="inline-block mt-0.5 text-[9px] font-bold uppercase bg-black text-white px-2 py-0.5 rounded">
+                      Admin
+                    </span>
+                  )}
+                </div>
+                <FiChevronRight
+                  className="text-gray-400 group-hover:text-black transition-all duration-200 ease-in-out group-hover:translate-x-0.5"
+                  size={18}
+                />
+              </Link>
+            </div>
+          )}
+
+          {/* Navigation Links */}
+          <nav className="flex-1 overflow-y-auto py-2 overscroll-contain">
+            <ul className="space-y-0.5">
+              {navItems.map((item) => {
+                const subItems = item.sub || [];
+                const hasSub = subItems.length > 0;
+                const isActive = location.pathname === item.link;
+
+                if (hasSub) {
+                  const isOpen = mobileOpenDropdown === item.label;
+                  return (
+                    <li
+                      key={item.label}
+                      className="border-b border-gray-100 last:border-0"
+                    >
+                      <button
+                        onClick={() => toggleMobileDropdown(item.label)}
+                        className={`flex items-center w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-200 ease-in-out ${
+                          isActive ? "bg-gray-50" : ""
+                        }`}
+                        aria-expanded={isOpen}
+                      >
+                        <span className="flex-1 font-medium text-gray-700">
+                          {item.label}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-semibold mr-2">
+                          {subItems.length}
+                        </span>
+                        <FiChevronDown
+                          className={`transform transition-transform duration-300 ease-in-out ${
+                            isOpen ? "rotate-180" : ""
+                          } text-gray-400`}
+                          size={16}
+                        />
+                      </button>
+                      <div
+                        className={`overflow-hidden transition-[max-height] duration-300 ease-in-out ${
+                          isOpen ? "max-h-[600px]" : "max-h-0"
+                        }`}
+                      >
+                        <ul className="bg-gray-50/80 py-1">
+                          {categoriesLoading ? (
+                            <li className="px-8 py-2.5 flex gap-2">
+                              <PillSkeleton w="w-16" />
+                              <PillSkeleton w="w-20" />
+                            </li>
+                          ) : (
+                            subItems.map((sub) => {
+                              const c = beatColor(sub.label);
+                              return (
+                                <li key={sub.label}>
+                                  <Link
+                                    to={sub.link}
+                                    className="flex items-center gap-2 px-8 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-black transition-colors duration-200 ease-in-out"
+                                    onClick={closeSidebar}
+                                  >
+                                    <span
+                                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                                      style={{ backgroundColor: c.fg }}
+                                    />
+                                    {sub.label}
+                                  </Link>
+                                </li>
+                              );
+                            })
+                          )}
+                        </ul>
+                      </div>
+                    </li>
+                  );
+                }
+
+                return (
+                  <li key={item.label}>
+                    <Link
+                      to={item.link}
+                      aria-current={isActive ? "page" : undefined}
+                      className={`flex items-center px-4 py-3 hover:bg-gray-50 transition-colors duration-200 ease-in-out ${
+                        isActive ? "bg-gray-50 text-black" : "text-gray-700"
+                      }`}
+                      onClick={closeSidebar}
+                    >
+                      <span className="font-medium">{item.label}</span>
+                      {isActive && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-black" />
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          {/* Footer */}
+          <div className="border-t border-gray-200 bg-gray-50/50">
+            <div className="flex justify-center gap-2.5 py-4 px-4 border-b border-gray-200">
+              {SOCIAL_LINKS.map(({ href, label, Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  target={href.startsWith("http") ? "_blank" : undefined}
+                  rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                  className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-black hover:text-white hover:border-black text-gray-600 transition-all duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                >
+                  <Icon size={16} />
+                </a>
+              ))}
+            </div>
+            <div className="p-4">
+              {user ? (
+                <div className="flex flex-col gap-2">
+                  {userRole === "admin" && (
+                    <Link
+                      to="/admin/dashboard"
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors duration-200 ease-in-out"
+                      onClick={closeSidebar}
+                    >
+                      <FiGrid size={15} /> Admin Panel
+                    </Link>
+                  )}
+                  <button
+                    onClick={logoutHandler}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 transition-colors duration-200 ease-in-out"
+                  >
+                    <FiLogIn size={15} className="rotate-180" /> Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Link
+                    to="/login"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors duration-200 ease-in-out"
+                    onClick={closeSidebar}
+                  >
+                    <FiLogIn size={16} />
+                    Log In
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors duration-200 ease-in-out"
+                    onClick={closeSidebar}
+                  >
+                    <FiUser size={16} />
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default Navbar;
 
 
 
