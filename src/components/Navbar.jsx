@@ -198,6 +198,7 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [recentSearches, setRecentSearches] = useState([]);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileOpenDropdown, setMobileOpenDropdown] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [collapsed, setCollapsed] = useState(false); // hides nav rows while scrolling down
   const [categories, setCategories] = useState([]);
@@ -291,17 +292,25 @@ const Navbar = () => {
       { label: "Home", link: "/" },
       { label: "News", link: "/news" },
       { label: "Listen", link: "/audio" },
+      {
+        label: "Categories",
+        sub: categories.map((cat) => ({
+          label: cat,
+          link: `/news?category=${encodeURIComponent(cat)}`,
+        })),
+      },
       { label: "Advertise", link: "/advertise" },
       { label: "Privacy", link: "/privacy" },
       { label: "Contact", link: "/contact" },
       { label: "About", link: "/about" },
     ],
-    []
+    [categories]
   );
 
   /* ─── Close overlays on route change ──────────────────── */
   useEffect(() => {
     setSidebarOpen(false);
+    setMobileOpenDropdown(null);
     setUserMenuOpen(false);
     setSearchOpen(false);
   }, [location.pathname, location.search]);
@@ -334,6 +343,7 @@ const Navbar = () => {
     const onKeyDown = (e) => {
       if (e.key === "Escape") {
         setSidebarOpen(false);
+        setMobileOpenDropdown(null);
         setSearchOpen(false);
         setUserMenuOpen(false);
         return;
@@ -466,11 +476,17 @@ const Navbar = () => {
   /* ─── Handlers ────────────────────────────────────────── */
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);
+    setMobileOpenDropdown(null);
     setUserMenuOpen(false);
   }, []);
 
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
+    setMobileOpenDropdown(null);
+  }, []);
+
+  const toggleMobileDropdown = useCallback((label) => {
+    setMobileOpenDropdown((prev) => (prev === label ? null : label));
   }, []);
 
   const runSearch = useCallback(
@@ -1051,6 +1067,70 @@ const Navbar = () => {
           <nav className="flex-1 overflow-y-auto overscroll-contain py-3" aria-label="Mobile">
             <ul className="space-y-0.5">
               {mobileNavItems.map((item) => {
+                const subItems = item.sub || [];
+                const hasSub = item.sub !== undefined;
+
+                if (hasSub) {
+                  if (!categoriesLoading && subItems.length === 0) return null;
+                  const isOpen = mobileOpenDropdown === item.label;
+                  return (
+                    <li key={item.label} className="border-b border-gray-100">
+                      <button
+                        onClick={() => toggleMobileDropdown(item.label)}
+                        className={`flex w-full items-center px-5 py-3 text-left transition-colors duration-200 hover:bg-gray-50 ${focusRing}`}
+                        aria-expanded={isOpen}
+                        aria-controls="mobile-categories"
+                      >
+                        <span className="flex-1 font-medium text-gray-700">{item.label}</span>
+                        <FiChevronDown
+                          className={`text-gray-400 transition-transform duration-300 ${
+                            isOpen ? "rotate-180" : ""
+                          }`}
+                          size={16}
+                        />
+                      </button>
+                      <div
+                        id="mobile-categories"
+                        className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+                          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                        }`}
+                      >
+                        <ul className="min-h-0 overflow-hidden bg-gray-50/80">
+                          {categoriesLoading ? (
+                            <li className="flex gap-2 px-8 py-3">
+                              <PillSkeleton w="w-16" />
+                              <PillSkeleton w="w-20" />
+                            </li>
+                          ) : (
+                            subItems.map((sub) => {
+                              const { fg } = beatColor(sub.label);
+                              const active = activeCategory === sub.label;
+                              return (
+                                <li key={sub.label}>
+                                  <Link
+                                    to={sub.link}
+                                    tabIndex={isOpen ? 0 : -1}
+                                    onClick={closeSidebar}
+                                    className={`flex items-center gap-3 px-8 py-2.5 text-sm transition-colors duration-200 hover:bg-gray-100 hover:text-black ${focusRing} ${
+                                      active ? "font-semibold text-black" : "text-gray-600"
+                                    }`}
+                                  >
+                                    <span
+                                      className="h-2 w-2 shrink-0 rounded-full"
+                                      style={{ backgroundColor: fg }}
+                                    />
+                                    {sub.label}
+                                  </Link>
+                                </li>
+                              );
+                            })
+                          )}
+                        </ul>
+                      </div>
+                    </li>
+                  );
+                }
+
                 const active = isLinkActive(item.link);
                 return (
                   <li key={item.label}>
@@ -1121,7 +1201,6 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
 
 
 
